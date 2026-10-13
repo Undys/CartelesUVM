@@ -1,0 +1,2561 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Evaluación de Carteles - UVM</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .star-btn {
+            line-height: 1;
+            user-select: none;
+            transition: transform 0.15s ease, color 0.15s ease;
+        }
+        .star-btn:hover {
+            transform: scale(1.25);
+        }
+        .tab-admin-activa {
+            background-color: #dc2626;
+            color: #ffffff;
+            font-weight: 800;
+        }
+        .tab-admin-inactiva {
+            background-color: #ffffff;
+            color: #4b5563;
+            font-weight: 600;
+        }
+        .tab-admin-inactiva:hover {
+            background-color: #f3f4f6;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 font-sans text-slate-800 min-h-screen flex flex-col">
+
+    <!-- ============================================================== -->
+    <!-- BARRA DE NAVEGACIÓN PERMANENTE                                  -->
+    <!-- (El botón de Admin se mantiene visible arriba según requerimiento) -->
+    <!-- ============================================================== -->
+    <nav class="bg-red-700 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-3">
+            <div class="flex items-center gap-2 cursor-pointer select-none" onclick="irInicioSegunRol()">
+                <div class="w-8 h-8 rounded-lg bg-red-800 flex items-center justify-center text-white font-black text-xs border border-red-500/40">UVM</div>
+                <div>
+                    <h1 class="text-lg sm:text-xl font-extrabold leading-tight tracking-wide">Evaluación de Carteles</h1>
+                    <p class="text-xs text-red-200">UVM - Encuentro Académico</p>
+                </div>
+            </div>
+
+            <!-- Botones dinámicos según estado de sesión y rol -->
+            <div id="nav-container-botones" class="flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-semibold">
+                <!-- Se inyecta dinámicamente con renderizarNavegacion() -->
+            </div>
+        </div>
+    </nav>
+
+    <!-- ============================================================== -->
+    <!-- CONTENEDOR PRINCIPAL DE TODAS LAS VISTAS                       -->
+    <!-- ============================================================== -->
+    <main class="max-w-6xl w-full mx-auto p-4 sm:p-6 flex-grow">
+
+        <!-- ============================================================== -->
+        <!-- 1. PÁGINA DE LOGIN GENERAL Y ALTA DE ALUMNOS (ACCESO PRINCIPAL)-->
+        <!-- (Evita que los alumnos vean rubricas o chanchullo)              -->
+        <!-- ============================================================== -->
+        <div id="vista-login-general" class="max-w-xl mx-auto space-y-6">
+            
+            <div class="text-center pt-2">
+                <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-red-600 text-white font-black text-lg shadow-lg mb-3 tracking-wider">UVM</div>
+                <h2 class="text-2xl sm:text-3xl font-black text-slate-800">Acceso al Sistema</h2>
+                <p class="text-xs sm:text-sm text-gray-500 mt-1 max-w-md mx-auto">
+                    Inicia sesión o date de alta como estudiante para inscribir tu cartel y consultar tus calificaciones.
+                </p>
+            </div>
+
+            <!-- Pestañas de modo: Iniciar Sesión vs Darse de Alta -->
+            <div class="bg-slate-200/90 p-1.5 rounded-2xl flex gap-1 shadow-inner">
+                <button id="tab-login-entrar" onclick="cambiarPestanaLogin('entrar')" class="flex-1 py-2.5 text-center font-extrabold text-xs sm:text-sm rounded-xl bg-white text-red-700 shadow-sm transition">
+                    Iniciar Sesión
+                </button>
+                <button id="tab-login-registro" onclick="cambiarPestanaLogin('registro')" class="flex-1 py-2.5 text-center font-extrabold text-xs sm:text-sm rounded-xl text-slate-600 hover:text-slate-900 transition">
+                    Registro de Alumnos
+                </button>
+            </div>
+
+            <!-- 1.A FORMULARIO INICIAR SESIÓN -->
+            <div id="modo-login-entrar" class="bg-white p-6 sm:p-8 rounded-2xl shadow-md border border-slate-200 space-y-5">
+                <form id="form-login-general" class="space-y-4">
+                    <div>
+                        <label class="block font-bold text-xs uppercase tracking-wider text-slate-700 mb-1">Matrícula o Usuario:</label>
+                        <input type="text" id="login_gen_usuario" required placeholder="Ej. uvm12345 o tu nombre" class="w-full border border-slate-300 p-3 rounded-xl focus:ring-2 focus:ring-red-500 focus:outline-none text-sm font-medium">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-xs uppercase tracking-wider text-slate-700 mb-1">Contraseña:</label>
+                        <input type="password" id="login_gen_pass" required placeholder="••••••••" class="w-full border border-slate-300 p-3 rounded-xl focus:ring-2 focus:ring-red-500 focus:outline-none text-sm font-medium">
+                    </div>
+                    <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl font-black text-sm shadow-md transition transform active:scale-98">
+                        Ingresar a Mi Panel
+                    </button>
+                </form>
+
+                <div class="pt-4 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-2 text-xs">
+                    <button type="button" onclick="cambiarPestanaLogin('registro')" class="text-red-600 font-bold hover:underline">
+                        ¿No tienes cuenta? Regístrate como estudiante
+                    </button>
+                    <button type="button" onclick="abrirModalInvitado()" class="text-amber-700 font-bold hover:underline flex items-center gap-1">
+                        Evaluador Invitado (Calificar con Clave)
+                    </button>
+                </div>
+            </div>
+
+            <!-- 1.B FORMULARIO DARSE DE ALTA (ALUMNOS EN MAYÚSCULAS) -->
+            <div id="modo-login-registro" class="hidden bg-white p-6 sm:p-8 rounded-2xl shadow-md border border-slate-200 space-y-5">
+                <div class="bg-red-50 border border-red-200 rounded-xl p-3.5 text-xs text-red-900 leading-relaxed">
+                    <p class="font-bold flex items-center gap-1">Registro para Estudiantes:</p>
+                    <p class="mt-0.5 text-red-700">
+                        Cada persona que se registre entrará automáticamente como <strong>Estudiante</strong>. El administrador promoverá a profesores y jueces. Todas las letras del nombre se convertirán en <strong>MAYÚSCULAS</strong>.
+                    </p>
+                </div>
+
+                <form id="form-registro-alumno" class="space-y-4">
+                    <!-- Nombre Completo con conversión obligatoria a MAYÚSCULAS -->
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="block font-bold text-xs uppercase tracking-wider text-slate-700">Nombre Completo del Alumno:</label>
+                            <span class="text-[10px] bg-red-100 text-red-800 px-2 py-0.5 rounded font-black">MAYÚSCULAS AUTOMÁTICAS</span>
+                        </div>
+                        <input type="text" id="reg_nombre" required placeholder="Ej. GABRIEL GUERRERO" oninput="this.value = this.value.toUpperCase()" class="w-full border border-slate-300 p-3 rounded-xl uppercase font-bold text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none text-sm">
+                        <p class="text-[11px] text-gray-500 mt-1">Ejemplo: alumno: gabriel guerrero ➔ se convertirá a <strong>GABRIEL GUERRERO</strong></p>
+                    </div>
+
+                    <!-- Matrícula / Usuario -->
+                    <div>
+                        <label class="block font-bold text-xs uppercase tracking-wider text-slate-700 mb-1">Matrícula o Usuario:</label>
+                        <input type="text" id="reg_matricula" required placeholder="Ej. 840012345 o tu usuario UVM" class="w-full border border-slate-300 p-3 rounded-xl focus:ring-2 focus:ring-red-500 focus:outline-none text-sm font-semibold">
+                    </div>
+
+                    <!-- Carrera y Semestre -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block font-bold text-xs uppercase tracking-wider text-slate-700 mb-1">Área / Carrera:</label>
+                            <select id="reg_carrera" required class="w-full border border-slate-300 p-3 rounded-xl bg-white text-sm font-semibold focus:ring-2 focus:ring-red-500 focus:outline-none">
+                                <option value="Ingeniería">Ingeniería</option>
+                                <option value="Diseño">Diseño</option>
+                                <option value="Negocios">Negocios</option>
+                                <option value="Ciencias de la Salud">Ciencias de la Salud</option>
+                                <option value="Ciencias Sociales">Ciencias Sociales</option>
+                                <option value="Hospitalidad y Turismo">Hospitalidad y Turismo</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block font-bold text-xs uppercase tracking-wider text-slate-700 mb-1">Semestre:</label>
+                            <input type="number" id="reg_semestre" min="1" max="10" value="1" required class="w-full border border-slate-300 p-3 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-red-500 focus:outline-none">
+                        </div>
+                    </div>
+
+                    <!-- Contraseña -->
+                    <div>
+                        <label class="block font-bold text-xs uppercase tracking-wider text-slate-700 mb-1">Contraseña:</label>
+                        <input type="password" id="reg_pass" required placeholder="••••••••" class="w-full border border-slate-300 p-3 rounded-xl focus:ring-2 focus:ring-red-500 focus:outline-none text-sm">
+                    </div>
+
+                    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-black text-sm shadow-md transition transform active:scale-98">
+                        Registrarse como Estudiante
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- ============================================================== -->
+        <!-- 2. DASHBOARD DE ALUMNOS (PANEL PERSONAL DEL ESTUDIANTE)        -->
+        <!-- ============================================================== -->
+        <div id="vista-dashboard-alumno" class="hidden space-y-6">
+            
+            <!-- Banner de Bienvenida -->
+            <div class="bg-gradient-to-r from-red-700 to-red-900 text-white p-6 sm:p-8 rounded-3xl shadow-lg flex flex-col md:flex-row justify-between md:items-center gap-4">
+                <div>
+                    <div class="inline-flex items-center gap-1.5 bg-red-500/40 text-red-100 text-xs px-3 py-1 rounded-full font-bold mb-2 backdrop-blur-sm">
+                        <span>Panel del Estudiante</span>
+                    </div>
+                    <h2 class="text-2xl sm:text-3xl font-black leading-tight">
+                        ¡Hola, <span id="dash-alumno-nombre">ALUMNO</span>!
+                    </h2>
+                    <p class="text-xs sm:text-sm text-red-200 mt-1 font-medium">
+                        Carrera: <span id="dash-alumno-carrera" class="font-bold text-white"></span> • Semestre: <span id="dash-alumno-semestre" class="font-bold text-white"></span> • Matrícula: <span id="dash-alumno-matricula" class="font-bold text-white"></span>
+                    </p>
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                    <button onclick="prepararRegistroCartel(); verVista('registro')" class="bg-white text-red-800 hover:bg-red-50 px-4 py-2.5 rounded-xl font-extrabold text-xs sm:text-sm shadow-md transition transform active:scale-95 flex items-center gap-1.5">
+                        <span>Inscribir Cartel</span>
+                    </button>
+                    <button onclick="cargarRanking(); verVista('ranking')" class="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2.5 rounded-xl font-extrabold text-xs sm:text-sm shadow-md transition flex items-center gap-1.5">
+                        <span>Ver Ranking</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Sección: Mis Carteles Registrados -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80 space-y-4">
+                <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b pb-3">
+                    <div>
+                        <h3 class="text-lg font-black text-slate-800 flex items-center gap-2">
+                            Mis Carteles y Proyectos Registrados
+                        </h3>
+                        <p class="text-xs text-gray-500">Consulta la clave única de tu cartel para mostrarla a los profesores jueces en tu stand.</p>
+                    </div>
+                    <button onclick="cargarDashboardAlumno()" class="text-xs text-red-600 font-bold hover:underline self-start sm:self-auto">
+                        Actualizar estatus
+                    </button>
+                </div>
+
+                <!-- Lista dinámica de carteles -->
+                <div id="contenedor-mis-carteles" class="space-y-4">
+                    <!-- Rellenado por cargarDashboardAlumno() -->
+                </div>
+            </div>
+
+            <!-- Sección: Rúbrica de Evaluación UVM (Para que no haya chanchullo) -->
+            <div class="bg-gradient-to-br from-slate-50 to-red-50/40 p-6 rounded-2xl border border-red-100 space-y-4">
+                <div>
+                    <h4 class="font-black text-slate-800 text-base flex items-center gap-2">
+                        Rúbrica Oficial de Evaluación (Escala 1 a 5 Estrellas)
+                    </h4>
+                    <p class="text-xs text-slate-600 mt-0.5">
+                        Los profesores jueces calificarán tu proyecto en tu stand conforme a estos 4 rubros reglamentarios:
+                    </p>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                    <div class="bg-white p-3.5 rounded-xl border border-red-100 shadow-sm space-y-1">
+                        <span class="font-black text-red-950 block text-sm">1. Originalidad</span>
+                        <p class="text-slate-500">Creatividad de la propuesta, innovación técnica y aporte significativo.</p>
+                    </div>
+                    <div class="bg-white p-3.5 rounded-xl border border-red-100 shadow-sm space-y-1">
+                        <span class="font-black text-red-950 block text-sm">2. Calidad Estética</span>
+                        <p class="text-slate-500">Diseño visual profesional, limpieza, legibilidad gráfica y orden.</p>
+                    </div>
+                    <div class="bg-white p-3.5 rounded-xl border border-red-100 shadow-sm space-y-1">
+                        <span class="font-black text-red-950 block text-sm">3. Exposición Oral</span>
+                        <p class="text-slate-500">Fluidez, claridad al hablar y dominio absoluto del tema ante preguntas.</p>
+                    </div>
+                    <div class="bg-white p-3.5 rounded-xl border border-red-100 shadow-sm space-y-1">
+                        <span class="font-black text-red-950 block text-sm">4. Vestimenta Formal</span>
+                        <p class="text-slate-500">Presentación personal formal, vestimenta adecuada y seriedad profesional.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================== -->
+        <!-- 3. VISTA REGISTRO DE CARTELES (ALUMNOS EN MAYÚSCULAS)           -->
+        <!-- ============================================================== -->
+        <div id="vista-registro" class="hidden bg-white p-6 sm:p-8 rounded-2xl shadow-md border border-slate-200/80 max-w-3xl mx-auto space-y-6">
+            <div class="border-b pb-4 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                <div>
+                    <div class="inline-flex items-center gap-2 bg-red-50 text-red-700 px-3 py-1 rounded-full text-xs font-bold mb-1">
+                        <span>Formulario de Inscripción</span>
+                    </div>
+                    <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-800">Inscripción de Cartel</h2>
+                    <p class="text-sm text-gray-500 mt-0.5">Registra el proyecto de tu equipo para participar en la evaluación de carteles académicos.</p>
+                </div>
+                <button type="button" onclick="irInicioSegunRol()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-lg font-bold transition self-start sm:self-auto">
+                    ← Volver a Mi Panel
+                </button>
+            </div>
+
+            <form id="form-registro" class="space-y-5" enctype="multipart/form-data">
+                
+                <!-- Título del Cartel -->
+                <div>
+                    <label class="block font-bold text-sm text-slate-700 mb-1">Título del Cartel:</label>
+                    <input type="text" id="titulo_cartel" required placeholder="Ej. Diseño de un Sistema Automatizado de Captación Pluvial" class="w-full border border-slate-300 p-2.5 rounded-lg focus:ring-2 focus:ring-red-500 focus:outline-none">
+                </div>
+
+                <!-- Nombre del Equipo -->
+                <div>
+                    <label class="block font-bold text-sm text-slate-700 mb-1">Nombre del Equipo o Proyecto:</label>
+                    <input type="text" id="nombre_equipo" required placeholder="Ej. Los Hidro-Innovadores" class="w-full border border-slate-300 p-2.5 rounded-lg focus:ring-2 focus:ring-red-500 focus:outline-none">
+                </div>
+
+                <!-- ALUMNOS PARTICIPANTES: ENTRADAS DINÁMICAS (REQUERIMIENTO: Alumno: tal + Añadir integrante +) -->
+                <!-- Requerimiento explícito: todas las letras se hacen mayúsculas (ej. gabriel guerrero -> GABRIEL GUERRERO) -->
+                <div class="bg-red-50/70 p-4 sm:p-5 rounded-2xl border border-red-200 space-y-3">
+                    <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-1">
+                        <div>
+                            <label class="block font-bold text-sm text-red-950">
+                                Integrantes / Alumnos del Cartel:
+                            </label>
+                            <p class="text-xs text-red-700 mt-0.5">
+                                Agrega a cada integrante individualmente. Todas las letras se convertirán automáticamente en <strong>MAYÚSCULAS</strong>.
+                            </p>
+                        </div>
+                        <span class="text-xs bg-red-200 text-red-900 px-2.5 py-0.5 rounded-full font-bold self-start sm:self-auto">
+                            MAYÚSCULAS AUTOMÁTICAS
+                        </span>
+                    </div>
+
+                    <!-- Contenedor dinámico donde se agregan los campos de alumno -->
+                    <div id="contenedor-alumnos" class="space-y-2.5">
+                        <!-- Generado dinámicamente con agregarCampoAlumno() -->
+                    </div>
+
+                    <!-- Botón añadir integrante + -->
+                    <div class="pt-1">
+                        <button type="button" onclick="agregarCampoAlumno()" class="inline-flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl text-xs font-extrabold shadow-sm transition transform active:scale-95">
+                            <span>+ Añadir integrante</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Carrera y Semestre -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block font-bold text-sm text-slate-700 mb-1">Área / Carrera del Cartel:</label>
+                        <select id="carrera" required class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-medium focus:ring-2 focus:ring-red-500 focus:outline-none">
+                            <option value="">-- Selecciona el Área --</option>
+                            <option value="Ingeniería">Ingeniería</option>
+                            <option value="Diseño">Diseño</option>
+                            <option value="Negocios">Negocios</option>
+                            <option value="Ciencias de la Salud">Ciencias de la Salud</option>
+                            <option value="Ciencias Sociales">Ciencias Sociales</option>
+                            <option value="Hospitalidad y Turismo">Hospitalidad y Turismo</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-sm text-slate-700 mb-1">Semestre (1 al 10):</label>
+                        <input type="number" id="semestre" min="1" max="10" required placeholder="Ej. 4" class="w-full border border-slate-300 p-2.5 rounded-lg focus:ring-2 focus:ring-red-500 focus:outline-none">
+                        <p class="text-xs text-gray-500 mt-1">Nivel 1 (1°-3°), Nivel 2 (4°-6°), Nivel 3 (7°-10°)</p>
+                    </div>
+                </div>
+
+                <!-- Profesor Asesor -->
+                <div>
+                    <label class="block font-bold text-sm text-slate-700 mb-1">Profesor Asesor del Equipo (Opcional):</label>
+                    <select id="select-asesor" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white focus:ring-2 focus:ring-red-500 focus:outline-none">
+                        <option value="">Sin Profesor Asesor Expreso</option>
+                    </select>
+                </div>
+
+                <!-- Aviso de Clave de Acceso Única -->
+                <div class="bg-amber-50/80 p-4 rounded-xl border border-amber-200 flex items-start gap-3">
+                    <div>
+                        <p class="font-bold text-xs text-amber-950">Clave de acceso de tu stand asignada automáticamente</p>
+                        <p class="text-xs text-amber-800 mt-0.5 leading-relaxed">
+                            El servidor generará una clave única (ej. <strong>CART-4B8X</strong>) para tu cartel. Esta clave la mostrarás a los profesores jueces en tu stand para que califiquen tu proyecto.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Archivo PDF -->
+                <div>
+                    <label class="block font-bold text-sm text-slate-700 mb-1">Subir Cartel en Archivo PDF:</label>
+                    <input type="file" id="archivo_pdf" accept="application/pdf" required class="w-full border border-slate-300 p-2.5 rounded-lg bg-white file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-bold file:bg-red-50 file:text-red-700 hover:file:bg-red-100">
+                </div>
+
+                <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl font-extrabold text-base shadow-md transition transform active:scale-98">
+                    Inscribir Cartel en el Sistema
+                </button>
+            </form>
+        </div>
+
+        <!-- ============================================================== -->
+        <!-- 4. DASHBOARD DE PROFESORES Y JUECES                             -->
+        <!-- ============================================================== -->
+        <div id="vista-dashboard-profesor" class="hidden space-y-6">
+            
+            <!-- Banner del Profesor -->
+            <div class="bg-gradient-to-r from-red-800 to-rose-950 text-white p-6 sm:p-8 rounded-3xl shadow-lg flex flex-col md:flex-row justify-between md:items-center gap-4">
+                <div>
+                    <div class="inline-flex items-center gap-1.5 bg-red-500/40 text-red-100 text-xs px-3 py-1 rounded-full font-bold mb-2 backdrop-blur-sm">
+                        <span>Panel del Evaluador</span>
+                    </div>
+                    <h2 class="text-2xl sm:text-3xl font-black leading-tight">
+                        ¡Bienvenido(a), <span id="dash-profe-nombre">PROFESOR</span>!
+                    </h2>
+                    <p class="text-xs sm:text-sm text-red-200 mt-1 font-medium">
+                        Área: <span id="dash-profe-carrera" class="font-bold text-white"></span> • Juez Asignado a: <span id="dash-profe-nivel" class="font-bold text-white"></span>
+                    </p>
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                    <button onclick="abrirModalInvitado()" class="bg-amber-500 hover:bg-amber-600 text-slate-900 px-4 py-2.5 rounded-xl font-extrabold text-xs sm:text-sm shadow-md transition flex items-center gap-1.5">
+                        <span>Evaluar con Clave (Suplencia)</span>
+                    </button>
+                    <button onclick="cargarRanking(); verVista('ranking')" class="bg-white/20 hover:bg-white/30 text-white px-4 py-2.5 rounded-xl font-extrabold text-xs sm:text-sm transition flex items-center gap-1.5">
+                        <span>Ranking</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Lista de Carteles Asignados -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80 space-y-4">
+                <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b pb-3">
+                    <div>
+                        <h3 class="text-lg font-black text-slate-800 flex items-center gap-2">
+                            Carteles Asignados para Evaluar
+                        </h3>
+                        <p class="text-xs text-gray-500">Haz clic en "Calificar Cartel" para registrar la evaluación con estrellas de 1 a 5.</p>
+                    </div>
+                    <button onclick="cargarDashboardProfesor()" class="text-xs text-red-600 font-bold hover:underline self-start sm:self-auto">
+                        Actualizar lista
+                    </button>
+                </div>
+
+                <div id="lista-carteles-profesor" class="space-y-3">
+                    <!-- Rellenado por cargarDashboardProfesor() -->
+                </div>
+            </div>
+
+            <!-- Formulario de Evaluación por Estrellas (Profesor Asignado) -->
+            <div id="area-evaluacion-profesor" class="hidden bg-white p-6 rounded-2xl shadow-md border-2 border-red-300 space-y-5">
+                <div class="flex flex-col sm:flex-row justify-between items-start gap-4 border-b pb-4">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span id="cartel-eval-clave" class="font-mono text-xs font-black bg-amber-100 text-amber-900 px-2.5 py-0.5 rounded-md border border-amber-200"></span>
+                            <span id="cartel-eval-nivel" class="text-xs font-bold bg-red-100 text-red-800 px-2 py-0.5 rounded"></span>
+                        </div>
+                        <h3 class="text-xl font-black text-red-900 mt-1" id="cartel-eval-titulo"></h3>
+                        <p class="text-xs text-slate-600 font-bold" id="cartel-eval-equipo"></p>
+                        
+                        <div class="mt-2 bg-red-50/70 p-2.5 rounded-lg border border-red-100 text-xs">
+                            <span class="font-bold text-red-900">Alumnos participantes:</span>
+                            <span id="cartel-eval-participantes" class="text-slate-800 ml-1 font-bold"></span>
+                        </div>
+                    </div>
+                    <a id="btn-eval-ver-pdf" href="#" target="_blank" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-1 shadow whitespace-nowrap self-start">
+                        Ver PDF Cartel
+                    </a>
+                </div>
+
+                <form id="form-evaluar-profesor" class="space-y-4">
+                    <input type="hidden" id="eval-cartel-id">
+
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h4 class="font-bold text-slate-800 text-sm">Rúbrica de Calificación (1 a 5 Estrellas)</h4>
+                            <p class="text-xs text-gray-500">Selecciona de 1 a 5 estrellas para cada uno de los 4 rubros requeridos.</p>
+                        </div>
+                        <span id="eval-resumen-puntaje" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                            Califica los 4 rubros
+                        </span>
+                    </div>
+
+                    <!-- 4 Rubros con Estrellas (1 a 5) -->
+                    <div class="space-y-3">
+                        <!-- Rubro 1: Originalidad -->
+                        <div class="p-3.5 bg-slate-50 hover:bg-red-50/40 rounded-xl border border-slate-200 transition">
+                            <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-1 mb-2">
+                                <div>
+                                    <span class="font-bold text-slate-800 text-sm">1. Originalidad</span>
+                                    <p class="text-xs text-slate-500">Creatividad, innovación y propuesta novedosa del proyecto.</p>
+                                </div>
+                                <span id="eval-r1-badge" class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-500 border border-slate-200 self-start sm:self-auto">Sin calificar</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <div id="eval-r1-estrellas" class="flex items-center gap-1">
+                                    <button type="button" class="star-btn text-3xl text-slate-300 cursor-pointer focus:outline-none" title="1 estrella">★</button>
+                                    <button type="button" class="star-btn text-3xl text-slate-300 cursor-pointer focus:outline-none" title="2 estrellas">★</button>
+                                    <button type="button" class="star-btn text-3xl text-slate-300 cursor-pointer focus:outline-none" title="3 estrellas">★</button>
+                                    <button type="button" class="star-btn text-3xl text-slate-300 cursor-pointer focus:outline-none" title="4 estrellas">★</button>
+                                    <button type="button" class="star-btn text-3xl text-slate-300 cursor-pointer focus:outline-none" title="5 estrellas">★</button>
+                                </div>
+                                <input type="hidden" id="eval-r1" value="0">
+                            </div>
+                        </div>
+
+                        <!-- Rubro 2: Estética y Diseño -->
+                        <div class="p-3.5 bg-slate-50 hover:bg-red-50/40 rounded-xl border border-slate-200 transition">
+                            <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-1 mb-2">
+                                <div>
+                                    <span class="font-bold text-slate-800 text-sm">2. Calidad Estética y Diseño</span>
+                                    <p class="text-xs text-slate-500">Diseño visual, estética gráfica, orden, limpieza y atractivo del cartel.</p>
+                                </div>
+                                <span id="eval-r2-badge" class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-500 border border-slate-200 self-start sm:self-auto">Sin calificar</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <div id="eval-r2-estrellas" class="flex items-center gap-1">
+                                    <button type="button" class="star-btn text-3xl text-slate-300 cursor-pointer focus:outline-none" title="1 estrella">★</button>
+                                    <button type="button" class="star-btn text-3xl text-slate-300 cursor-pointer focus:outline-none" title="2 estrellas">★</button>
+                                    <button type="button" class="star-btn text-3xl text-slate-300 cursor-pointer focus:outline-none" title="3 estrellas">★</button>
+                                    <button type="button" class="star-btn text-3xl text-slate-300 cursor-pointer focus:outline-none" title="4 estrellas">★</button>
+                                    <button type="button" class="star-btn text-3xl text-slate-300 cursor-pointer focus:outline-none" title="5 estrellas">★</button>
+                                </div>
+                                <input type="hidden" id="eval-r2" value="0">
+                            </div>
+                        </div>
+
+                        <!-- Rubro 3: Exposición y Dominio del Tema -->
+                        <div class="p-3.5 bg-slate-50 hover:bg-red-50/40 rounded-xl border border-slate-200 transition">
+                            <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-1 mb-2">
+                                <div>
+                                    <span class="font-bold text-slate-800 text-sm">3. Exposición Oral</span>
+                                    <p class="text-xs text-slate-500">Claridad al hablar, dicción, fluidez y dominio del tema durante la explicación.</p>
+                                </div>
+                                <span id="eval-r3-badge" class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-500 border border-slate-200 self-start sm:self-auto">Sin calificar</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <div id="eval-r3-estrellas" class="flex items-center gap-1">
+                                    <button type="button" class="star-btn text-3xl text-slate-300 cursor-pointer focus:outline-none" title="1 estrella">★</button>
+                                    <button type="button" class="star-btn text-3xl text-slate-300 cursor-pointer focus:outline-none" title="2 estrellas">★</button>
+                                    <button type="button" class="star-btn text-3xl text-slate-300 cursor-pointer focus:outline-none" title="3 estrellas">★</button>
+                                    <button type="button" class="star-btn text-3xl text-slate-300 cursor-pointer focus:outline-none" title="4 estrellas">★</button>
+                                    <button type="button" class="star-btn text-3xl text-slate-300 cursor-pointer focus:outline-none" title="5 estrellas">★</button>
+                                </div>
+                                <input type="hidden" id="eval-r3" value="0">
+                            </div>
+                        </div>
+
+                        <!-- Rubro 4: Vestimenta Formal -->
+                        <div class="p-3.5 bg-slate-50 hover:bg-red-50/40 rounded-xl border border-slate-200 transition">
+                            <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-1 mb-2">
+                                <div>
+                                    <span class="font-bold text-slate-800 text-sm">4. Vestimenta y Formalidad</span>
+                                    <p class="text-xs text-slate-500">Presentación personal, vestimenta formal y presencia profesional del equipo.</p>
+                                </div>
+                                <span id="eval-r4-badge" class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-500 border border-slate-200 self-start sm:self-auto">Sin calificar</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <div id="eval-r4-estrellas" class="flex items-center gap-1">
+                                    <button type="button" class="star-btn text-3xl text-slate-300 cursor-pointer focus:outline-none" title="1 estrella">★</button>
+                                    <button type="button" class="star-btn text-3xl text-slate-300 cursor-pointer focus:outline-none" title="2 estrellas">★</button>
+                                    <button type="button" class="star-btn text-3xl text-slate-300 cursor-pointer focus:outline-none" title="3 estrellas">★</button>
+                                    <button type="button" class="star-btn text-3xl text-slate-300 cursor-pointer focus:outline-none" title="4 estrellas">★</button>
+                                    <button type="button" class="star-btn text-3xl text-slate-300 cursor-pointer focus:outline-none" title="5 estrellas">★</button>
+                                </div>
+                                <input type="hidden" id="eval-r4" value="0">
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-extrabold text-sm shadow transition">
+                        Guardar Calificación del Cartel
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- ============================================================== -->
+        <!-- 5. VISTA LOGIN ADMINISTRADOR (BOTÓN PERMANENTE EN HEADER)       -->
+        <!-- ============================================================== -->
+        <div id="vista-admin-login" class="hidden bg-white p-6 sm:p-8 rounded-2xl shadow-md border border-slate-200 max-w-md mx-auto space-y-4">
+            <div class="text-center mb-2">
+                <h2 class="text-2xl font-black text-slate-800 mt-1">Acceso Administrador</h2>
+                <p class="text-xs text-gray-500">Ingresa tus credenciales maestras de administración.</p>
+            </div>
+            <form id="form-admin-login" class="space-y-4">
+                <div>
+                    <label class="block font-medium text-xs uppercase tracking-wider text-slate-700 mb-1">Usuario Admin:</label>
+                    <input type="text" id="admin_user" value="admin" required class="w-full border border-slate-300 p-2.5 rounded-lg focus:ring-2 focus:ring-slate-500 focus:outline-none text-sm font-semibold">
+                </div>
+                <div>
+                    <label class="block font-medium text-xs uppercase tracking-wider text-slate-700 mb-1">Contraseña:</label>
+                    <input type="password" id="admin_pass" required placeholder="••••••••" class="w-full border border-slate-300 p-2.5 rounded-lg focus:ring-2 focus:ring-slate-500 focus:outline-none text-sm font-semibold">
+                </div>
+                <button type="submit" class="w-full bg-slate-800 hover:bg-slate-900 text-white py-2.5 rounded-lg font-bold transition shadow">
+                    Ingresar como Administrador
+                </button>
+            </form>
+        </div>
+
+        <!-- ============================================================== -->
+        <!-- 6. DASHBOARD GENERAL DEL ADMINISTRADOR                          -->
+        <!-- (Requerimiento: admin elije a los profes y estudiantes)         -->
+        <!-- ============================================================== -->
+        <div id="vista-admin-dashboard" class="hidden space-y-6">
+            
+            <!-- Barra Superior Admin -->
+            <div class="flex flex-col sm:flex-row justify-between sm:items-center bg-slate-800 text-white p-5 rounded-2xl shadow-md gap-3">
+                <div>
+                    <h2 class="text-xl sm:text-2xl font-black flex items-center gap-2">
+                        Panel de Control Maestro UVM
+                    </h2>
+                    <p class="text-xs text-slate-300 mt-0.5">Gestión de usuarios (estudiantes y profesores), asignaciones de jueces y carteles.</p>
+                </div>
+                <button onclick="cerrarSesion()" class="text-xs bg-red-600 hover:bg-red-700 text-white px-3.5 py-2 rounded-xl font-bold transition self-start sm:self-auto shadow">
+                    Salir Admin
+                </button>
+            </div>
+
+            <!-- 4 Métricas Globales -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                <div class="bg-white p-4 rounded-xl shadow-sm border text-center">
+                    <p class="text-gray-500 text-[11px] font-bold uppercase tracking-wider">Carteles</p>
+                    <p id="metric-carteles" class="text-2xl sm:text-3xl font-black text-red-600 mt-1">0</p>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow-sm border text-center">
+                    <p class="text-gray-500 text-[11px] font-bold uppercase tracking-wider">Profesores Jueces</p>
+                    <p id="metric-profesores" class="text-2xl sm:text-3xl font-black text-red-600 mt-1">0</p>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow-sm border text-center">
+                    <p class="text-gray-500 text-[11px] font-bold uppercase tracking-wider">Estudiantes</p>
+                    <p id="metric-estudiantes" class="text-2xl sm:text-3xl font-black text-emerald-600 mt-1">0</p>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow-sm border text-center">
+                    <p class="text-gray-500 text-[11px] font-bold uppercase tracking-wider">Evaluaciones</p>
+                    <p id="metric-evaluaciones" class="text-2xl sm:text-3xl font-black text-amber-600 mt-1">0</p>
+                </div>
+            </div>
+
+            <!-- Pestañas internas del Panel Admin -->
+            <div class="flex flex-wrap gap-2 border-b border-slate-200 pb-2">
+                <button id="tab-admin-usuarios" onclick="verPestanaAdmin('usuarios')" class="px-4 py-2 rounded-xl text-xs font-black shadow-sm transition bg-red-600 text-white">
+                    Usuarios (Alumnos & Profesores)
+                </button>
+                <button id="tab-admin-carteles" onclick="verPestanaAdmin('carteles')" class="px-4 py-2 rounded-xl text-xs font-semibold bg-white text-gray-700 hover:bg-gray-100 border shadow-sm transition">
+                    Carteles & Claves
+                </button>
+                <button id="tab-admin-reparto" onclick="verPestanaAdmin('reparto')" class="px-4 py-2 rounded-xl text-xs font-semibold bg-white text-gray-700 hover:bg-gray-100 border shadow-sm transition">
+                    Reparto Automático de Jueces
+                </button>
+                <button id="tab-admin-ranking" onclick="verPestanaAdmin('ranking')" class="px-4 py-2 rounded-xl text-xs font-semibold bg-white text-gray-700 hover:bg-gray-100 border shadow-sm transition">
+                    Ranking Oficial
+                </button>
+            </div>
+
+            <!-- ============================================================== -->
+            <!-- ADMIN SUB-PESTAÑA 1: GESTIÓN DE USUARIOS (ALUMNOS Y PROFESORES)-->
+            <!-- (Requerimiento: admin elije a los profes y estudiantes)         -->
+            <!-- ============================================================== -->
+            <div id="admin-sec-usuarios" class="space-y-4">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border space-y-4">
+                    <div class="flex flex-col md:flex-row justify-between md:items-center gap-3 border-b pb-4">
+                        <div>
+                            <h3 class="text-lg font-black text-slate-800">Directorio de Usuarios Registrados</h3>
+                            <p class="text-xs text-gray-500 mt-0.5">
+                                Aquí puedes <strong>promover estudiantes a profesores jueces</strong>, cambiar sus niveles y áreas, o agregar nuevos usuarios.
+                            </p>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button onclick="abrirModalCrearUsuario()" class="bg-red-600 hover:bg-red-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow transition flex items-center gap-1.5">
+                                <span>+ Dar de Alta Usuario</span>
+                            </button>
+                            <button onclick="cargarAdminUsuarios()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs font-bold transition">
+                                Recargar
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Buscador y Filtros de Rol -->
+                    <div class="flex flex-col sm:flex-row justify-between gap-3">
+                        <div class="relative flex-1 max-w-md">
+                            <input type="text" id="filtro-usuarios-busqueda" oninput="filtrarAdminUsuarios()" placeholder="Buscar por nombre (MAYÚSCULAS) o matrícula..." class="w-full border border-slate-300 pl-3 pr-3 py-2 rounded-xl text-xs bg-white focus:ring-2 focus:ring-red-500 focus:outline-none">
+                        </div>
+                        <div class="flex gap-1.5">
+                            <button id="filtro-rol-todos" onclick="filtrarRolUsuarios('todos')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-red-600 text-white shadow-sm">
+                                Todos
+                            </button>
+                            <button id="filtro-rol-estudiante" onclick="filtrarRolUsuarios('estudiante')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-slate-600 border hover:bg-slate-50">
+                                Estudiantes
+                            </button>
+                            <button id="filtro-rol-profesor" onclick="filtrarRolUsuarios('profesor')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-slate-600 border hover:bg-slate-50">
+                                Profesores / Jueces
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Tabla de Usuarios -->
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-100 text-slate-600 text-xs uppercase tracking-wider border-b">
+                                    <th class="p-3">Nombre del Usuario</th>
+                                    <th class="p-3">Matrícula / ID</th>
+                                    <th class="p-3">Rol Actual</th>
+                                    <th class="p-3">Área / Carrera</th>
+                                    <th class="p-3">Nivel Asignado</th>
+                                    <th class="p-3 text-center">Acciones del Admin</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-tabla-usuarios" class="text-xs">
+                                <!-- Se llena dinámicamente con renderizarTablaUsuarios() -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================================== -->
+            <!-- ADMIN SUB-PESTAÑA 2: CARTELES REGISTRADOS Y DIRECTORIO CLAVES  -->
+            <!-- ============================================================== -->
+            <div id="admin-sec-carteles" class="hidden space-y-4">
+                <!-- Directorio Rápido de Claves -->
+                <div class="bg-gradient-to-r from-amber-50 to-orange-50 p-5 rounded-2xl border border-amber-200/80 shadow-sm space-y-3">
+                    <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+                        <div>
+                            <h3 class="font-black text-amber-950 text-base flex items-center gap-1.5">
+                                Directorio de Claves de Acceso de los Carteles
+                            </h3>
+                            <p class="text-xs text-amber-800">
+                                Haz clic en cualquier clave para copiarla al portapapeles y dársela al profesor o maestro invitado.
+                            </p>
+                        </div>
+                        <span id="badge-total-claves" class="text-xs font-bold bg-amber-200 text-amber-900 px-3 py-1 rounded-full self-start sm:self-auto">
+                            0 carteles disponibles
+                        </span>
+                    </div>
+                    <div id="admin-directorio-claves" class="flex flex-wrap gap-2 pt-1 max-h-48 overflow-y-auto">
+                        <!-- Rellenado dinámicamente -->
+                    </div>
+                </div>
+
+                <!-- Tabla de Carteles -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border space-y-4">
+                    <div class="border-b pb-3 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                        <div>
+                            <h3 class="text-lg font-bold text-slate-800">Carteles Registrados (Claves y Alumnos)</h3>
+                            <p class="text-xs text-gray-500 mt-0.5">Consulta la clave única de cada cartel y los nombres de sus participantes en mayúsculas.</p>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <input type="text" id="busqueda-admin-carteles" oninput="filtrarAdminCarteles()" placeholder="Buscar por clave, título o alumno..." class="border border-slate-300 pl-3 pr-3 py-1.5 rounded-lg text-xs w-64 bg-white focus:ring-2 focus:ring-red-500 focus:outline-none">
+                            <button onclick="eliminarTodosCarteles()" class="bg-red-100 hover:bg-red-200 text-red-700 border border-red-300 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1">
+                                Limpiar Carteles
+                            </button>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-100 text-slate-600 text-xs uppercase tracking-wider border-b">
+                                    <th class="p-2.5 w-36">Clave</th>
+                                    <th class="p-2.5">Cartel & Alumnos Participantes</th>
+                                    <th class="p-2.5">Área / Nivel</th>
+                                    <th class="p-2.5 text-center">Evaluaciones</th>
+                                    <th class="p-2.5 text-center">PDF</th>
+                                    <th class="p-2.5 text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-tabla-carteles"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================================== -->
+            <!-- ADMIN SUB-PESTAÑA 3: REPARTO Y BALANCEO DE JUECES             -->
+            <!-- ============================================================== -->
+            <div id="admin-sec-reparto" class="hidden space-y-4">
+                <!-- Reparto de Carteles -->
+                <div class="bg-red-50 border-l-4 border-red-600 p-5 rounded-2xl flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                    <div>
+                        <p class="font-extrabold text-red-900 text-base">Reparto Automático de Carteles a Profesores Jueces</p>
+                        <p class="text-xs text-red-700 mt-1">Asigna automáticamente 3 profesores por cada cartel respetando Área y Nivel académico.</p>
+                    </div>
+                    <button onclick="repartirCarteles()" class="bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-xl font-bold text-xs shadow transition whitespace-nowrap">
+                        Repartir Carteles
+                    </button>
+                </div>
+
+                <!-- Balanceo Aleatorio -->
+                <div class="bg-rose-50 border-l-4 border-rose-600 p-5 rounded-2xl flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                    <div>
+                        <p class="font-extrabold text-red-900 text-base">Balanceo Aleatorio de Niveles de Profesores</p>
+                        <p class="text-xs text-red-700 mt-1">Distribuye equitativamente los niveles 1, 2 y 3 entre los profesores de cada área.</p>
+                    </div>
+                    <button onclick="randomizarNivelesProfesores()" class="bg-red-700 hover:bg-red-800 text-white px-5 py-2.5 rounded-xl font-bold text-xs shadow transition whitespace-nowrap">
+                        Balancear Niveles
+                    </button>
+                </div>
+            </div>
+
+            <!-- ============================================================== -->
+            <!-- ADMIN SUB-PESTAÑA 4: RANKING DENTRO DEL PANEL ADMIN            -->
+            <!-- ============================================================== -->
+            <div id="admin-sec-ranking" class="hidden space-y-4">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border space-y-4">
+                    <div class="flex justify-between items-center border-b pb-3">
+                        <h3 class="text-lg font-black text-slate-800">Ranking en Tiempo Real</h3>
+                        <button onclick="cargarRanking()" class="text-xs text-red-600 font-bold hover:underline">
+                            Actualizar Posiciones
+                        </button>
+                    </div>
+                    <div id="admin-contenedor-ranking" class="space-y-6"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================== -->
+        <!-- 7. VISTA RANKING PÚBLICO (ACCESIBLE PARA TODOS)                 -->
+        <!-- ============================================================== -->
+        <div id="vista-ranking" class="hidden space-y-6">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h2 class="text-2xl sm:text-3xl font-black text-slate-800 flex items-center gap-2">
+                        Tablas de Posiciones (Ranking por Nivel)
+                    </h2>
+                    <p class="text-xs text-gray-500 mt-1">
+                        Resultados y calificaciones con promedio de estrellas (1 a 5) y nombres de los participantes en mayúsculas.
+                    </p>
+                </div>
+                <button onclick="cargarRanking()" class="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-bold text-xs shadow transition">
+                    Actualizar Rankings
+                </button>
+            </div>
+
+            <!-- Filtros de Pestañas (Tabs) -->
+            <div class="flex flex-wrap gap-2">
+                <button id="tab-todos" onclick="filtrarRanking('todos')" class="tab-ranking-btn px-4 py-2 rounded-lg font-bold text-xs bg-red-600 text-white shadow">
+                    Todos los Niveles
+                </button>
+                <button id="tab-1" onclick="filtrarRanking(1)" class="tab-ranking-btn px-4 py-2 rounded-lg font-semibold text-xs bg-white text-gray-700 hover:bg-gray-100 border shadow-sm">
+                    Nivel 1 (1° a 3° Sem.)
+                </button>
+                <button id="tab-2" onclick="filtrarRanking(2)" class="tab-ranking-btn px-4 py-2 rounded-lg font-semibold text-xs bg-white text-gray-700 hover:bg-gray-100 border shadow-sm">
+                    Nivel 2 (4° a 6° Sem.)
+                </button>
+                <button id="tab-3" onclick="filtrarRanking(3)" class="tab-ranking-btn px-4 py-2 rounded-lg font-semibold text-xs bg-white text-gray-700 hover:bg-gray-100 border shadow-sm">
+                    Nivel 3 (7° Sem. en adelante)
+                </button>
+            </div>
+
+            <!-- Tablas de Ranking -->
+            <div id="contenedor-tablas-ranking" class="space-y-8"></div>
+        </div>
+
+    </main>
+
+    <!-- ============================================================== -->
+    <!-- MODAL 1: PROMOVER O ASIGNAR ROL A USUARIO (ADMIN)               -->
+    <!-- (Requerimiento: admin elije a los profes y estudiantes)         -->
+    <!-- ============================================================== -->
+    <div id="modal-promover-usuario" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border space-y-4">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h3 class="font-black text-lg text-slate-800">Modificar Rol de Usuario</h3>
+                    <p id="modal-promover-subtitulo" class="text-xs text-gray-500 font-semibold"></p>
+                </div>
+                <button onclick="cerrarModalPromover()" class="text-gray-400 hover:text-gray-600 text-lg font-bold">✕</button>
+            </div>
+
+            <form id="form-promover-usuario" class="space-y-4">
+                <input type="hidden" id="modal-promover-id">
+                
+                <div>
+                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Rol en el Sistema:</label>
+                    <select id="modal-promover-rol" onchange="toggleCamposProfesorModal(this.value)" class="w-full border p-2.5 rounded-xl text-xs font-bold bg-white text-slate-800 focus:ring-2 focus:ring-red-500">
+                        <option value="estudiante">Estudiante (Alumno)</option>
+                        <option value="profesor">Profesor / Juez Evaluador</option>
+                    </select>
+                </div>
+
+                <div id="modal-grupo-profesor" class="space-y-3 bg-red-50/70 p-3.5 rounded-xl border border-red-200">
+                    <div>
+                        <label class="block font-bold text-xs uppercase text-red-900 mb-1">Área / Carrera:</label>
+                        <select id="modal-promover-carrera" class="w-full border p-2 rounded-lg text-xs font-semibold bg-white text-slate-700">
+                            <option value="Ingeniería">Ingeniería</option>
+                            <option value="Diseño">Diseño</option>
+                            <option value="Negocios">Negocios</option>
+                            <option value="Ciencias de la Salud">Ciencias de la Salud</option>
+                            <option value="Ciencias Sociales">Ciencias Sociales</option>
+                            <option value="Hospitalidad y Turismo">Hospitalidad y Turismo</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block font-bold text-xs uppercase text-red-900 mb-1">Nivel Asignado:</label>
+                        <select id="modal-promover-nivel" class="w-full border p-2 rounded-lg text-xs font-semibold bg-white text-slate-700">
+                            <option value="1">Nivel 1 (1° a 3° Semestre)</option>
+                            <option value="2">Nivel 2 (4° a 6° Semestre)</option>
+                            <option value="3">Nivel 3 (7° Semestre en adelante)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="cerrarModalPromover()" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-xl text-xs font-bold shadow">
+                        Guardar Cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- MODAL 2: CREAR USUARIO MANUALMENTE (ADMIN)                     -->
+    <!-- ============================================================== -->
+    <div id="modal-crear-usuario" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border space-y-4">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h3 class="font-black text-lg text-slate-800">Alta Manual de Usuario</h3>
+                    <p class="text-xs text-gray-500">Registra directamente a un alumno o profesor.</p>
+                </div>
+                <button onclick="cerrarModalCrearUsuario()" class="text-gray-400 hover:text-gray-600 text-lg font-bold">✕</button>
+            </div>
+
+            <form id="form-crear-usuario-admin" class="space-y-3">
+                <div>
+                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Nombre Completo:</label>
+                    <input type="text" id="admin_nuevo_nombre" required placeholder="Ej. GABRIEL GUERRERO" oninput="this.value = this.value.toUpperCase()" class="w-full border p-2.5 rounded-xl uppercase font-bold text-xs text-slate-800 focus:ring-2 focus:ring-red-500">
+                    <p class="text-[10px] text-gray-500 mt-0.5">Se guardará automáticamente en MAYÚSCULAS.</p>
+                </div>
+                <div>
+                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Matrícula o Usuario:</label>
+                    <input type="text" id="admin_nuevo_matricula" required placeholder="Ej. uvm12345" class="w-full border p-2.5 rounded-xl font-medium text-xs text-slate-800 focus:ring-2 focus:ring-red-500">
+                </div>
+                <div>
+                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Rol a Asignar:</label>
+                    <select id="admin_nuevo_rol" class="w-full border p-2.5 rounded-xl text-xs font-bold bg-white text-slate-800 focus:ring-2 focus:ring-red-500">
+                        <option value="estudiante">Estudiante (Alumno)</option>
+                        <option value="profesor">Profesor / Juez Evaluador</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Área / Carrera:</label>
+                        <select id="admin_nuevo_carrera" class="w-full border p-2 rounded-lg text-xs font-semibold bg-white text-slate-700">
+                            <option value="Ingeniería">Ingeniería</option>
+                            <option value="Diseño">Diseño</option>
+                            <option value="Negocios">Negocios</option>
+                            <option value="Ciencias de la Salud">Ciencias de la Salud</option>
+                            <option value="Ciencias Sociales">Ciencias Sociales</option>
+                            <option value="Hospitalidad y Turismo">Hospitalidad y Turismo</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Nivel (Si es Profe):</label>
+                        <select id="admin_nuevo_nivel" class="w-full border p-2 rounded-lg text-xs font-semibold bg-white text-slate-700">
+                            <option value="1">Nivel 1</option>
+                            <option value="2">Nivel 2</option>
+                            <option value="3">Nivel 3</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Contraseña:</label>
+                    <input type="password" id="admin_nuevo_pass" required placeholder="••••••••" class="w-full border p-2.5 rounded-xl text-xs font-medium focus:ring-2 focus:ring-red-500">
+                </div>
+
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="cerrarModalCrearUsuario()" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-xl text-xs font-bold shadow">
+                        Crear Usuario
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- MODAL 3: EVALUACIÓN MAESTRO INVITADO (CLAVE DEL CARTEL)         -->
+    <!-- ============================================================== -->
+    <div id="modal-evaluar-invitado" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white rounded-2xl p-6 sm:p-8 max-w-xl w-full shadow-2xl border border-amber-200 space-y-5 my-8">
+            <div class="flex justify-between items-start">
+                <div>
+                    <span class="inline-block bg-amber-100 text-amber-900 font-black text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-wider mb-1">Evaluador Invitado / Suplencia</span>
+                    <h3 class="font-black text-xl text-slate-800">Evaluación con Clave de Stand</h3>
+                    <p class="text-xs text-gray-500 mt-0.5">Ingresa tu nombre y la clave de acceso del cartel para calificarlo en su mesa.</p>
+                </div>
+                <button onclick="cerrarModalInvitado()" class="text-gray-400 hover:text-gray-600 text-xl font-bold">✕</button>
+            </div>
+
+            <div class="space-y-3 border-b pb-4">
+                <div>
+                    <label class="block font-bold text-xs text-slate-700 mb-1">Tu Nombre Completo:</label>
+                    <input type="text" id="invitado_nombre" placeholder="Ej. MTRO. ROBERTO MENDOZA" oninput="this.value = this.value.toUpperCase()" class="w-full border p-2.5 rounded-xl uppercase font-bold text-xs text-slate-800 focus:ring-2 focus:ring-amber-500">
+                </div>
+                <div>
+                    <label class="block font-bold text-xs text-slate-700 mb-1">Clave Única del Cartel:</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="invitado_clave" placeholder="Ej. CART-53BQ" class="w-full border border-amber-300 p-2.5 rounded-xl font-mono font-black text-amber-900 uppercase tracking-widest text-sm focus:ring-2 focus:ring-amber-500">
+                        <button type="button" onclick="cargarCartelPorClaveModal()" class="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 rounded-xl font-bold text-xs shadow whitespace-nowrap">
+                            Buscar
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Área del cartel encontrado y rúbrica -->
+            <div id="invitado-area-cartel" class="hidden space-y-4">
+                <div class="bg-red-50/70 p-4 rounded-xl border border-red-200">
+                    <span id="invitado-cartel-badge-nivel" class="inline-block px-2.5 py-0.5 rounded text-[11px] font-bold bg-red-200 text-red-800 mb-1"></span>
+                    <h4 id="invitado-cartel-titulo" class="text-base font-black text-red-950"></h4>
+                    <p id="invitado-cartel-equipo" class="text-xs font-bold text-red-800 mt-0.5"></p>
+                    <p id="invitado-cartel-participantes" class="text-xs text-slate-700 mt-1 font-bold bg-white/80 p-2 rounded border border-red-100"></p>
+                    <div class="mt-2 text-right">
+                        <a id="invitado-btn-pdf" href="#" target="_blank" class="text-blue-600 hover:underline text-xs font-bold">Ver Cartel PDF</a>
+                    </div>
+                </div>
+
+                <div id="invitado-alerta-completo" class="hidden bg-emerald-50 border border-emerald-300 text-emerald-900 p-3 rounded-xl text-xs font-bold">
+                    Este cartel ya cuenta con sus 3 evaluaciones completadas.
+                </div>
+
+                <form id="form-evaluar-invitado" class="space-y-4">
+                    <div>
+                        <label class="block font-bold text-xs text-slate-700 mb-1">¿A qué profesor estás supliendo? (Opcional):</label>
+                        <select id="invitado-select-suplir" class="w-full border border-amber-300 p-2 rounded-lg text-xs font-semibold bg-white text-slate-700">
+                            <option value="">Evaluador Invitado Adicional</option>
+                        </select>
+                    </div>
+
+                    <!-- Estrellas invitado -->
+                    <div class="space-y-3">
+                        <div class="p-3 bg-slate-50 rounded-xl border">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="font-bold text-xs">1. Originalidad</span>
+                                <span id="invitado-r1-badge" class="text-[10px] text-slate-500">Sin calificar</span>
+                            </div>
+                            <div id="invitado-r1-estrellas" class="flex gap-1">
+                                <button type="button" class="star-btn text-2xl text-slate-300">★</button>
+                                <button type="button" class="star-btn text-2xl text-slate-300">★</button>
+                                <button type="button" class="star-btn text-2xl text-slate-300">★</button>
+                                <button type="button" class="star-btn text-2xl text-slate-300">★</button>
+                                <button type="button" class="star-btn text-2xl text-slate-300">★</button>
+                            </div>
+                            <input type="hidden" id="invitado-r1" value="0">
+                        </div>
+
+                        <div class="p-3 bg-slate-50 rounded-xl border">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="font-bold text-xs">2. Calidad Estética y Diseño</span>
+                                <span id="invitado-r2-badge" class="text-[10px] text-slate-500">Sin calificar</span>
+                            </div>
+                            <div id="invitado-r2-estrellas" class="flex gap-1">
+                                <button type="button" class="star-btn text-2xl text-slate-300">★</button>
+                                <button type="button" class="star-btn text-2xl text-slate-300">★</button>
+                                <button type="button" class="star-btn text-2xl text-slate-300">★</button>
+                                <button type="button" class="star-btn text-2xl text-slate-300">★</button>
+                                <button type="button" class="star-btn text-2xl text-slate-300">★</button>
+                            </div>
+                            <input type="hidden" id="invitado-r2" value="0">
+                        </div>
+
+                        <div class="p-3 bg-slate-50 rounded-xl border">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="font-bold text-xs">3. Exposición Oral</span>
+                                <span id="invitado-r3-badge" class="text-[10px] text-slate-500">Sin calificar</span>
+                            </div>
+                            <div id="invitado-r3-estrellas" class="flex gap-1">
+                                <button type="button" class="star-btn text-2xl text-slate-300">★</button>
+                                <button type="button" class="star-btn text-2xl text-slate-300">★</button>
+                                <button type="button" class="star-btn text-2xl text-slate-300">★</button>
+                                <button type="button" class="star-btn text-2xl text-slate-300">★</button>
+                                <button type="button" class="star-btn text-2xl text-slate-300">★</button>
+                            </div>
+                            <input type="hidden" id="invitado-r3" value="0">
+                        </div>
+
+                        <div class="p-3 bg-slate-50 rounded-xl border">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="font-bold text-xs">4. Vestimenta y Formalidad</span>
+                                <span id="invitado-r4-badge" class="text-[10px] text-slate-500">Sin calificar</span>
+                            </div>
+                            <div id="invitado-r4-estrellas" class="flex gap-1">
+                                <button type="button" class="star-btn text-2xl text-slate-300">★</button>
+                                <button type="button" class="star-btn text-2xl text-slate-300">★</button>
+                                <button type="button" class="star-btn text-2xl text-slate-300">★</button>
+                                <button type="button" class="star-btn text-2xl text-slate-300">★</button>
+                                <button type="button" class="star-btn text-2xl text-slate-300">★</button>
+                            </div>
+                            <input type="hidden" id="invitado-r4" value="0">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full bg-amber-600 hover:bg-amber-700 text-white py-3 rounded-xl font-bold text-xs shadow">
+                        Guardar Evaluación del Invitado
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="bg-slate-800 text-slate-400 text-xs py-5 text-center mt-12 border-t border-slate-700">
+        <p>Sistema de Evaluación de Carteles UVM • Rúbrica de 4 Rubros (1 a 5 Estrellas) • Generador de Claves</p>
+    </footer>
+
+    <!-- ============================================================== -->
+    <!-- JAVASCRIPT PRINCIPAL                                            -->
+    <!-- ============================================================== -->
+    <script>
+        // ESTADO GLOBAL DE SESIÓN Y VISTAS
+        let usuarioActual = null;
+        let cartelInvitadoActual = null;
+        let cartelesAdminCache = [];
+        let usuariosAdminCache = [];
+        let filtroRolActual = 'todos';
+        let datosRanking = [];
+        let nivelFiltroActual = 'todos';
+
+        // Helper para convertir cualquier texto a MAYÚSCULAS COMPLETAS (Requerimiento)
+        function convertirMayusculas(str) {
+            if (!str) return '';
+            return str.trim().toUpperCase();
+        }
+
+        // Generador de Claves Aleatorias para Carteles
+        function generarClaveAleatoria() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let codigo = '';
+            for (let i = 0; i < 4; i++) {
+                codigo += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return `CART-${codigo}`;
+        }
+
+        // ==============================================================
+        // GESTIÓN DINÁMICA DE INTEGRANTES (TODOS EN MAYÚSCULAS)
+        // ==============================================================
+        let contadorAlumnos = 0;
+
+        function agregarCampoAlumno(valorInicial = '') {
+            contadorAlumnos++;
+            const id = contadorAlumnos;
+            const cont = document.getElementById('contenedor-alumnos');
+            if (!cont) return;
+
+            const div = document.createElement('div');
+            div.id = `fila-alumno-${id}`;
+            div.className = 'fila-alumno flex items-center gap-2 bg-white p-2.5 rounded-xl border border-red-100 shadow-sm transition hover:border-red-300';
+            div.innerHTML = `
+                <span class="label-alumno font-bold text-xs text-red-700 min-w-[70px] pl-1">Alumno:</span>
+                <input type="text" name="alumno_item" required placeholder="NOMBRE Y APELLIDOS (EJ. GABRIEL GUERRERO)" value="${valorInicial}" oninput="this.value = this.value.toUpperCase()" class="input-alumno-item flex-1 border border-slate-200 p-2 rounded-lg text-sm font-bold uppercase focus:ring-2 focus:ring-red-500 focus:outline-none">
+                <button type="button" onclick="eliminarCampoAlumno('fila-alumno-${id}')" class="btn-eliminar-alumno text-red-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-lg text-xs font-bold transition" title="Eliminar alumno">
+                    ✕
+                </button>
+            `;
+            cont.appendChild(div);
+
+            const input = div.querySelector('input');
+            input.addEventListener('blur', () => {
+                input.value = input.value.toUpperCase();
+            });
+
+            renumerarAlumnos();
+            if (!valorInicial) input.focus();
+        }
+
+        function eliminarCampoAlumno(filaId) {
+            const filas = document.querySelectorAll('.fila-alumno');
+            if (filas.length <= 1) {
+                alert("El cartel debe tener al menos un alumno participante registrado.");
+                return;
+            }
+            const el = document.getElementById(filaId);
+            if (el) el.remove();
+            renumerarAlumnos();
+        }
+
+        function renumerarAlumnos() {
+            const filas = document.querySelectorAll('.fila-alumno');
+            filas.forEach((f, idx) => {
+                const lbl = f.querySelector('.label-alumno');
+                if (lbl) lbl.innerText = `Alumno ${idx + 1}:`;
+                const btn = f.querySelector('.btn-eliminar-alumno');
+                if (btn) {
+                    btn.style.display = filas.length > 1 ? 'inline-block' : 'none';
+                }
+            });
+        }
+
+        function reiniciarCamposAlumnos(nombrePrefill = '') {
+            const cont = document.getElementById('contenedor-alumnos');
+            if (cont) {
+                cont.innerHTML = '';
+                contadorAlumnos = 0;
+                agregarCampoAlumno(nombrePrefill);
+            }
+        }
+
+        function copiarAlPortapapeles(texto) {
+            if (!texto || texto === 'Sin clave') return;
+            navigator.clipboard.writeText(texto).then(() => {
+                alert(`Clave "${texto}" copiada al portapapeles.`);
+            }).catch(() => {
+                prompt("Copia esta clave manualmente:", texto);
+            });
+        }
+
+        // ==============================================================
+        // GESTIÓN DE SESIÓN Y VISTAS
+        // ==============================================================
+        window.onload = () => {
+            // Inicializar estrellas para evaluación de profesores y de invitados
+            configurarSistemaEstrellas('eval');
+            configurarSistemaEstrellas('invitado');
+
+            // Cargar asesores
+            cargarProfesoresSelects();
+
+            // Revisar si existe sesión previa persistida
+            verificarSesion();
+        };
+
+        function verificarSesion() {
+            const sesionStr = localStorage.getItem('carteles_uvm_usuario');
+            if (sesionStr) {
+                try {
+                    usuarioActual = JSON.parse(sesionStr);
+                    renderizarNavegacion();
+
+                    if (usuarioActual.rol === 'estudiante') {
+                        cargarDashboardAlumno();
+                        verVista('dashboard-alumno');
+                    } else if (usuarioActual.rol === 'profesor') {
+                        cargarDashboardProfesor();
+                        verVista('dashboard-profesor');
+                    } else if (usuarioActual.rol === 'admin') {
+                        cargarAdminDashboard();
+                        verVista('admin-dashboard');
+                    } else {
+                        verVista('login-general');
+                    }
+                    return;
+                } catch (e) {
+                    localStorage.removeItem('carteles_uvm_usuario');
+                }
+            }
+
+            usuarioActual = null;
+            renderizarNavegacion();
+            verVista('login-general');
+        }
+
+        function cerrarSesion() {
+            localStorage.removeItem('carteles_uvm_usuario');
+            usuarioActual = null;
+            renderizarNavegacion();
+            verVista('login-general');
+        }
+
+        function irInicioSegunRol() {
+            if (!usuarioActual) {
+                verVista('login-general');
+            } else if (usuarioActual.rol === 'estudiante') {
+                cargarDashboardAlumno();
+                verVista('dashboard-alumno');
+            } else if (usuarioActual.rol === 'profesor') {
+                cargarDashboardProfesor();
+                verVista('dashboard-profesor');
+            } else if (usuarioActual.rol === 'admin') {
+                cargarAdminDashboard();
+                verVista('admin-dashboard');
+            }
+        }
+
+        function renderizarNavegacion() {
+            const cont = document.getElementById('nav-container-botones');
+            if (!cont) return;
+
+            let html = '';
+
+            if (!usuarioActual) {
+                // No logueado
+                html = `
+                    <button id="nav-btn-login-general" onclick="verVista('login-general')" class="nav-btn bg-white text-red-800 shadow px-3.5 py-1.5 rounded-lg transition hover:bg-red-50 font-bold">
+                        Iniciar Sesión / Registro
+                    </button>
+                    <button id="nav-btn-ranking" onclick="cargarRanking(); verVista('ranking')" class="nav-btn bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 rounded-lg transition shadow">
+                        Ranking
+                    </button>
+                    <!-- BOTÓN ADMIN SIEMPRE VISIBLE EN LA PARTE DE ARRIBA (REQUERIMIENTO) -->
+                    <button id="nav-btn-admin-login" onclick="verVista('admin-login')" class="nav-btn bg-slate-800 hover:bg-slate-900 text-white px-3.5 py-1.5 rounded-lg transition font-bold shadow flex items-center gap-1">
+                        Admin
+                    </button>
+                `;
+            } else if (usuarioActual.rol === 'estudiante') {
+                // Alumno Logueado
+                html = `
+                    <button id="nav-btn-dashboard-alumno" onclick="cargarDashboardAlumno(); verVista('dashboard-alumno')" class="nav-btn bg-white text-red-800 shadow px-3.5 py-1.5 rounded-lg transition font-bold">
+                        Mi Dashboard
+                    </button>
+                    <button id="nav-btn-registro" onclick="prepararRegistroCartel(); verVista('registro')" class="nav-btn bg-red-600/80 hover:bg-red-600 text-white px-3.5 py-1.5 rounded-lg transition">
+                        Inscribir Cartel
+                    </button>
+                    <button id="nav-btn-ranking" onclick="cargarRanking(); verVista('ranking')" class="nav-btn bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 rounded-lg transition shadow">
+                        Ranking
+                    </button>
+                    <span class="bg-red-900/60 text-red-100 px-3 py-1.5 rounded-lg text-xs font-bold border border-red-400/40 flex items-center gap-1.5">
+                        ${usuarioActual.nombre} <span class="bg-emerald-500 text-white text-[10px] px-1.5 py-0.2 rounded font-black">ALUMNO</span>
+                    </span>
+                    <button onclick="cerrarSesion()" class="bg-red-500/80 hover:bg-red-600 text-white px-2.5 py-1.5 rounded-lg text-xs font-bold transition">
+                        Salir
+                    </button>
+                    <!-- BOTÓN ADMIN ARRIBA -->
+                    <button id="nav-btn-admin-login" onclick="verVista('admin-login')" class="nav-btn bg-slate-800 hover:bg-slate-900 text-white px-3.5 py-1.5 rounded-lg transition font-bold shadow flex items-center gap-1">
+                        Admin
+                    </button>
+                `;
+            } else if (usuarioActual.rol === 'profesor') {
+                // Profesor Logueado
+                html = `
+                    <button id="nav-btn-dashboard-profesor" onclick="cargarDashboardProfesor(); verVista('dashboard-profesor')" class="nav-btn bg-white text-red-800 shadow px-3.5 py-1.5 rounded-lg transition font-bold">
+                        Mis Carteles Asignados
+                    </button>
+                    <button onclick="abrirModalInvitado()" class="nav-btn bg-amber-600 hover:bg-amber-700 text-white px-3.5 py-1.5 rounded-lg transition shadow">
+                        Evaluar con Clave
+                    </button>
+                    <button id="nav-btn-ranking" onclick="cargarRanking(); verVista('ranking')" class="nav-btn bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 rounded-lg transition shadow">
+                        Ranking
+                    </button>
+                    <span class="bg-red-900/60 text-red-100 px-3 py-1.5 rounded-lg text-xs font-bold border border-red-400/40 flex items-center gap-1.5">
+                        Prof. ${usuarioActual.nombre} <span class="bg-red-700 text-white text-[10px] px-1.5 py-0.2 rounded font-black">NIVEL ${usuarioActual.nivel_asignado || 1}</span>
+                    </span>
+                    <button onclick="cerrarSesion()" class="bg-red-500/80 hover:bg-red-600 text-white px-2.5 py-1.5 rounded-lg text-xs font-bold transition">
+                        Salir
+                    </button>
+                    <!-- BOTÓN ADMIN ARRIBA -->
+                    <button id="nav-btn-admin-login" onclick="verVista('admin-login')" class="nav-btn bg-slate-800 hover:bg-slate-900 text-white px-3.5 py-1.5 rounded-lg transition font-bold shadow flex items-center gap-1">
+                        Admin
+                    </button>
+                `;
+            } else if (usuarioActual.rol === 'admin') {
+                // Admin Logueado
+                html = `
+                    <button id="nav-btn-admin-dashboard" onclick="verVista('admin-dashboard')" class="nav-btn bg-white text-red-800 shadow px-3.5 py-1.5 rounded-lg transition font-bold">
+                        Panel Maestro Admin
+                    </button>
+                    <button onclick="verPestanaAdmin('usuarios'); verVista('admin-dashboard');" class="nav-btn bg-red-600/80 hover:bg-red-600 text-white px-3.5 py-1.5 rounded-lg transition">
+                        Alumnos & Profes
+                    </button>
+                    <button onclick="verPestanaAdmin('carteles'); verVista('admin-dashboard');" class="nav-btn bg-red-600/80 hover:bg-red-600 text-white px-3.5 py-1.5 rounded-lg transition">
+                        Carteles
+                    </button>
+                    <button id="nav-btn-ranking" onclick="cargarRanking(); verVista('ranking')" class="nav-btn bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 rounded-lg transition shadow">
+                        Ranking
+                    </button>
+                    <span class="bg-slate-900 text-amber-300 px-3 py-1.5 rounded-lg text-xs font-black border border-slate-700 flex items-center gap-1">
+                        ADMINISTRADOR
+                    </span>
+                    <button onclick="cerrarSesion()" class="bg-red-600 hover:bg-red-700 text-white px-2.5 py-1.5 rounded-lg text-xs font-bold transition">
+                        Salir Admin
+                    </button>
+                `;
+            }
+
+            cont.innerHTML = html;
+        }
+
+        function verVista(vista) {
+            const vistas = [
+                'login-general',
+                'dashboard-alumno',
+                'registro',
+                'dashboard-profesor',
+                'admin-login',
+                'admin-dashboard',
+                'ranking'
+            ];
+
+            vistas.forEach(v => {
+                const el = document.getElementById(`vista-${v}`);
+                if (el) el.classList.add('hidden');
+            });
+
+            const vistaActiva = document.getElementById(`vista-${vista}`);
+            if (vistaActiva) vistaActiva.classList.remove('hidden');
+
+            renderizarNavegacion();
+
+            if (vista === 'registro') cargarProfesoresSelects();
+            if (vista === 'admin-dashboard') cargarAdminDashboard();
+            if (vista === 'ranking') cargarRanking();
+            if (vista === 'dashboard-alumno') cargarDashboardAlumno();
+            if (vista === 'dashboard-profesor') cargarDashboardProfesor();
+        }
+
+        function cambiarPestanaLogin(modo) {
+            const tabEntrar = document.getElementById('tab-login-entrar');
+            const tabRegistro = document.getElementById('tab-login-registro');
+            const boxEntrar = document.getElementById('modo-login-entrar');
+            const boxRegistro = document.getElementById('modo-login-registro');
+
+            if (modo === 'entrar') {
+                tabEntrar.className = 'flex-1 py-2.5 text-center font-extrabold text-xs sm:text-sm rounded-xl bg-white text-red-700 shadow-sm transition';
+                tabRegistro.className = 'flex-1 py-2.5 text-center font-extrabold text-xs sm:text-sm rounded-xl text-slate-600 hover:text-slate-900 transition';
+                boxEntrar.classList.remove('hidden');
+                boxRegistro.classList.add('hidden');
+            } else {
+                tabRegistro.className = 'flex-1 py-2.5 text-center font-extrabold text-xs sm:text-sm rounded-xl bg-white text-red-700 shadow-sm transition';
+                tabEntrar.className = 'flex-1 py-2.5 text-center font-extrabold text-xs sm:text-sm rounded-xl text-slate-600 hover:text-slate-900 transition';
+                boxRegistro.classList.remove('hidden');
+                boxEntrar.classList.add('hidden');
+            }
+        }
+
+        // ==============================================================
+        // 1. INICIAR SESIÓN Y REGISTRO GENERAL
+        // ==============================================================
+        document.getElementById('form-login-general').onsubmit = async (e) => {
+            e.preventDefault();
+            const usuario = document.getElementById('login_gen_usuario').value.trim();
+            const password = document.getElementById('login_gen_pass').value;
+
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ usuario, password })
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    usuarioActual = data.usuario;
+                    localStorage.setItem('carteles_uvm_usuario', JSON.stringify(usuarioActual));
+                    document.getElementById('form-login-general').reset();
+                    
+                    if (usuarioActual.rol === 'estudiante') {
+                        cargarDashboardAlumno();
+                        verVista('dashboard-alumno');
+                    } else if (usuarioActual.rol === 'profesor') {
+                        cargarDashboardProfesor();
+                        verVista('dashboard-profesor');
+                    } else if (usuarioActual.rol === 'admin') {
+                        cargarAdminDashboard();
+                        verVista('admin-dashboard');
+                    }
+                } else {
+                    alert(data.error || "Usuario o contraseña incorrectos.");
+                }
+            } catch (err) {
+                alert("Error de conexión con el servidor: " + err.message);
+            }
+        };
+
+        // Registro de Alumnos: nombre en mayúsculas automático
+        document.getElementById('form-registro-alumno').onsubmit = async (e) => {
+            e.preventDefault();
+            const nombre = document.getElementById('reg_nombre').value.trim().toUpperCase();
+            const matricula = document.getElementById('reg_matricula').value.trim();
+            const carrera = document.getElementById('reg_carrera').value;
+            const semestre = document.getElementById('reg_semestre').value;
+            const password = document.getElementById('reg_pass').value;
+
+            try {
+                const res = await fetch('/api/registro', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nombre, matricula, carrera, semestre, password })
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    alert(data.mensaje);
+                    usuarioActual = data.usuario;
+                    localStorage.setItem('carteles_uvm_usuario', JSON.stringify(usuarioActual));
+                    document.getElementById('form-registro-alumno').reset();
+                    cargarDashboardAlumno();
+                    verVista('dashboard-alumno');
+                } else {
+                    alert(data.error || "No se pudo completar el registro.");
+                }
+            } catch (err) {
+                alert("Error al conectar: " + err.message);
+            }
+        };
+
+        // ==============================================================
+        // 2. DASHBOARD DE ALUMNOS (CARTELES PERSONALES Y CLAVES)
+        // ==============================================================
+        async function cargarDashboardAlumno() {
+            if (!usuarioActual || usuarioActual.rol !== 'estudiante') return;
+
+            document.getElementById('dash-alumno-nombre').innerText = usuarioActual.nombre;
+            document.getElementById('dash-alumno-carrera').innerText = usuarioActual.carrera || 'Ingeniería';
+            document.getElementById('dash-alumno-semestre').innerText = usuarioActual.semestre || '1';
+            document.getElementById('dash-alumno-matricula').innerText = usuarioActual.matricula;
+
+            const cont = document.getElementById('contenedor-mis-carteles');
+            cont.innerHTML = '<p class="text-xs text-gray-500 italic py-4 text-center">Cargando tus carteles...</p>';
+
+            try {
+                const res = await fetch(`/api/estudiantes/${usuarioActual.id}/carteles`);
+                const carteles = await res.json();
+
+                if (!Array.isArray(carteles) || carteles.length === 0) {
+                    cont.innerHTML = `
+                        <div class="text-center py-8 px-4 bg-slate-50 rounded-2xl border border-dashed border-slate-300">
+                            
+                            <h4 class="font-bold text-slate-700 text-sm mt-2">Aún no has registrado ningún cartel</h4>
+                            <p class="text-xs text-slate-500 mt-1 max-w-sm mx-auto">Inscribe tu cartel académico para obtener tu clave de stand y participar en las evaluaciones.</p>
+                            <button onclick="prepararRegistroCartel(); verVista('registro')" class="mt-4 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl text-xs font-extrabold shadow transition">
+                                Inscribir Mi Cartel Ahora
+                            </button>
+                        </div>
+                    `;
+                    return;
+                }
+
+                cont.innerHTML = carteles.map(c => {
+                    const totalEval = Number(c.num_evaluaciones || 0);
+                    let badgeEval = '';
+                    if (totalEval >= 3) {
+                        badgeEval = `<span class="bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs px-2.5 py-1 rounded-full font-bold">3 de 3 Evaluaciones Completadas</span>`;
+                    } else if (totalEval > 0) {
+                        badgeEval = `<span class="bg-amber-100 text-amber-900 border border-amber-300 text-xs px-2.5 py-1 rounded-full font-bold">${totalEval} de 3 Evaluaciones</span>`;
+                    } else {
+                        badgeEval = `<span class="bg-slate-100 text-slate-600 border border-slate-200 text-xs px-2.5 py-1 rounded-full font-semibold">Esperando evaluación (0/3)</span>`;
+                    }
+
+                    return `
+                        <div class="border border-slate-200 rounded-2xl p-5 bg-white shadow-sm hover:border-red-300 transition space-y-4">
+                            <div class="flex flex-col sm:flex-row justify-between sm:items-start gap-3">
+                                <div>
+                                    <div class="flex flex-wrap items-center gap-2 mb-1">
+                                        <span class="font-mono text-xs font-black bg-amber-100 text-amber-950 border border-amber-300 px-3 py-1 rounded-lg shadow-sm">
+                                            CLAVE: ${c.clave}
+                                        </span>
+                                        <button onclick="copiarAlPortapapeles('${c.clave}')" class="text-xs bg-white hover:bg-amber-50 text-amber-800 border border-amber-300 px-2 py-1 rounded-lg font-bold transition shadow-sm" title="Copiar clave de cartel">
+                                            Copiar Clave
+                                        </button>
+                                        <span class="text-xs font-bold bg-red-50 text-red-700 px-2.5 py-1 rounded-lg border border-red-200">
+                                            Nivel ${c.nivel} • ${c.carrera || 'General'}
+                                        </span>
+                                    </div>
+                                    <h4 class="text-lg font-black text-slate-900 leading-snug mt-2">${c.titulo_cartel}</h4>
+                                    <p class="text-xs font-bold text-red-900 mt-0.5">Equipo: ${c.nombre_equipo}</p>
+                                </div>
+                                <div class="self-start sm:self-auto">
+                                    ${badgeEval}
+                                </div>
+                            </div>
+
+                            <!-- Integrantes en mayúsculas -->
+                            <div class="bg-red-50/70 p-3 rounded-xl border border-red-100 text-xs">
+                                <span class="font-black text-red-950">Alumnos Participantes:</span>
+                                <p class="text-slate-800 font-bold mt-0.5">${c.participantes || 'No especificados'}</p>
+                            </div>
+
+                            <div class="flex flex-wrap justify-between items-center gap-2 pt-2 border-t border-slate-100 text-xs">
+                                <span class="text-slate-500 font-medium">
+                                    Asesor: <strong>${c.asesor_nombre || 'Sin Asesor Expreso'}</strong>
+                                </span>
+                                ${c.archivo_url 
+                                    ? `<a href="${c.archivo_url}" target="_blank" class="inline-flex items-center gap-1 bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg font-bold border border-blue-200 transition">Ver Cartel PDF</a>` 
+                                    : `<span class="text-gray-400">Sin archivo subido</span>`
+                                }
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (err) {
+                cont.innerHTML = '<p class="text-red-500 text-xs italic">Error al cargar tus carteles.</p>';
+            }
+        }
+
+        function prepararRegistroCartel() {
+            // Reiniciar formulario y rellenar al primer alumno con el usuario actual si es estudiante
+            document.getElementById('form-registro').reset();
+            const nombreAlumnoInicial = (usuarioActual && usuarioActual.rol === 'estudiante') 
+                ? usuarioActual.nombre 
+                : '';
+            reiniciarCamposAlumnos(nombreAlumnoInicial);
+            if (usuarioActual && usuarioActual.carrera) {
+                document.getElementById('carrera').value = usuarioActual.carrera;
+            }
+            if (usuarioActual && usuarioActual.semestre) {
+                document.getElementById('semestre').value = usuarioActual.semestre;
+            }
+            cargarProfesoresSelects();
+        }
+
+        // ==============================================================
+        // 3. REGISTRO DE CARTELES
+        // ==============================================================
+        document.getElementById('form-registro').onsubmit = async (e) => {
+            e.preventDefault();
+
+            const nomEquipo = document.getElementById('nombre_equipo').value.trim();
+            const titulo = document.getElementById('titulo_cartel').value.trim();
+
+            // Recopilar nombres de alumnos en MAYÚSCULAS
+            const inputsAlumnos = document.querySelectorAll('.input-alumno-item');
+            const nombresAlumnos = [];
+            inputsAlumnos.forEach(inp => {
+                const val = inp.value.trim().toUpperCase();
+                if (val) nombresAlumnos.push(val);
+            });
+
+            if (nombresAlumnos.length === 0) {
+                alert("Por favor añade al menos un alumno participante en el cartel.");
+                return;
+            }
+
+            const participantes = nombresAlumnos.join(', ');
+
+            const formData = new FormData();
+            formData.append('nombre_equipo', nomEquipo);
+            formData.append('participantes', participantes);
+            formData.append('carrera', document.getElementById('carrera').value);
+            formData.append('semestre', document.getElementById('semestre').value);
+            formData.append('titulo_cartel', titulo);
+            formData.append('profesor_asesor_id', document.getElementById('select-asesor').value);
+            formData.append('archivo_pdf', document.getElementById('archivo_pdf').files[0]);
+            if (usuarioActual) {
+                formData.append('usuario_id', usuarioActual.id);
+            }
+
+            try {
+                const res = await fetch('/api/carteles', { method: 'POST', body: formData });
+                const data = await res.json();
+
+                if (res.ok) {
+                    alert(`¡Cartel registrado con éxito!\n\nClave de Acceso Asignada: ${data.clave}\nAlumnos Registrados (${nombresAlumnos.length}):\n• ${nombresAlumnos.join('\n• ')}\n\nGuarda esta clave para que los profesores o evaluadores puedan calificar el proyecto en tu stand.`);
+                    document.getElementById('form-registro').reset();
+                    reiniciarCamposAlumnos();
+                    
+                    if (usuarioActual && usuarioActual.rol === 'estudiante') {
+                        cargarDashboardAlumno();
+                        verVista('dashboard-alumno');
+                    } else {
+                        verVista('admin-dashboard');
+                    }
+                } else {
+                    alert(data.error || 'Error al registrar cartel');
+                }
+            } catch (err) {
+                alert('Error al conectar con el servidor: ' + err.message);
+            }
+        };
+
+        async function cargarProfesoresSelects() {
+            try {
+                const res = await fetch('/api/profesores');
+                if (!res.ok) return;
+                const profes = await res.json();
+                if (!Array.isArray(profes)) return;
+
+                const selectAsesor = document.getElementById('select-asesor');
+                if (selectAsesor) {
+                    const options = profes.map(p => `<option value="${p.id}">${p.nombre} (${p.carrera || 'General'} - Nivel ${p.nivel_asignado})</option>`).join('');
+                    selectAsesor.innerHTML = '<option value="">Sin Profesor Asesor Expreso</option>' + options;
+                }
+            } catch (err) {}
+        }
+
+        // ==============================================================
+        // 4. DASHBOARD DE PROFESORES / JUECES
+        // ==============================================================
+        async function cargarDashboardProfesor() {
+            if (!usuarioActual || usuarioActual.rol !== 'profesor') return;
+
+            document.getElementById('dash-profe-nombre').innerText = usuarioActual.nombre;
+            document.getElementById('dash-profe-carrera').innerText = usuarioActual.carrera || 'Ingeniería';
+            document.getElementById('dash-profe-nivel').innerText = `Nivel ${usuarioActual.nivel_asignado || 1}`;
+
+            const cont = document.getElementById('lista-carteles-profesor');
+            document.getElementById('area-evaluacion-profesor').classList.add('hidden');
+            cont.innerHTML = '<p class="text-xs text-gray-500 italic py-4 text-center">Cargando carteles asignados...</p>';
+
+            const profId = usuarioActual.profesor_id || usuarioActual.id;
+
+            try {
+                const res = await fetch(`/api/profesores/${profId}/carteles-asignados`);
+                const carteles = await res.json();
+
+                if (!Array.isArray(carteles) || carteles.length === 0) {
+                    cont.innerHTML = `
+                        <div class="text-center py-6 px-4 bg-gray-50 rounded-xl text-gray-500 text-xs">
+                            
+                            <p class="font-bold mt-1">No tienes carteles pendientes por evaluar</p>
+                            <p class="text-gray-400 mt-0.5">Ya calificaste todos tus carteles asignados o el administrador aún no ha ejecutado el reparto de asignaciones.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                cont.innerHTML = carteles.map(c => `
+                    <div class="border p-4 rounded-xl flex flex-col sm:flex-row justify-between sm:items-center gap-3 hover:bg-gray-50 transition bg-white shadow-sm">
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="font-mono text-xs font-black bg-amber-100 text-amber-900 px-2 py-0.5 rounded border border-amber-200">
+                                    ${c.clave || 'Sin clave'}
+                                </span>
+                                <span class="text-xs font-bold text-red-700 bg-red-50 px-2 py-0.5 rounded">
+                                    ${c.carrera || 'General'} • Nivel ${c.nivel}
+                                </span>
+                            </div>
+                            <p class="font-bold text-slate-800 text-base leading-snug">${c.titulo_cartel}</p>
+                            <p class="text-xs text-gray-500 mt-0.5 font-medium">Equipo: ${c.nombre_equipo}</p>
+                            <p class="text-xs text-red-950 mt-1"><strong>Alumnos:</strong> ${c.participantes || 'No registrados'}</p>
+                        </div>
+                        <button onclick='prepararEvaluacionProfesor(${JSON.stringify(c)})' class="bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow transition self-end sm:self-auto whitespace-nowrap">
+                            Calificar Cartel
+                        </button>
+                    </div>
+                `).join('');
+
+            } catch (err) {
+                cont.innerHTML = '<p class="text-red-500 text-xs italic">Error al cargar asignaciones.</p>';
+            }
+        }
+
+        function prepararEvaluacionProfesor(cartel) {
+            document.getElementById('eval-cartel-id').value = cartel.id;
+            document.getElementById('cartel-eval-titulo').innerText = cartel.titulo_cartel;
+            document.getElementById('cartel-eval-equipo').innerText = `Equipo: ${cartel.nombre_equipo} | Área: ${cartel.carrera || 'General'}`;
+            document.getElementById('cartel-eval-participantes').innerText = cartel.participantes || 'No especificados';
+            document.getElementById('cartel-eval-clave').innerText = `${cartel.clave || 'CART-XXXX'}`;
+            document.getElementById('cartel-eval-nivel').innerText = `Nivel ${cartel.nivel}`;
+            document.getElementById('btn-eval-ver-pdf').href = cartel.archivo_url;
+            
+            reiniciarEstrellas('eval');
+            document.getElementById('area-evaluacion-profesor').classList.remove('hidden');
+            document.getElementById('area-evaluacion-profesor').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        document.getElementById('form-evaluar-profesor').onsubmit = async (e) => {
+            e.preventDefault();
+
+            const cartelId = parseInt(document.getElementById('eval-cartel-id').value);
+            const r1 = parseInt(document.getElementById('eval-r1').value);
+            const r2 = parseInt(document.getElementById('eval-r2').value);
+            const r3 = parseInt(document.getElementById('eval-r3').value);
+            const r4 = parseInt(document.getElementById('eval-r4').value);
+
+            if (!r1 || !r2 || !r3 || !r4) {
+                return alert("Por favor califica todos los 4 rubros (1 a 5 estrellas) antes de guardar.");
+            }
+
+            const profId = usuarioActual.profesor_id || usuarioActual.id;
+
+            const body = {
+                cartel_id: cartelId,
+                profesor_id: profId,
+                r1, r2, r3, r4
+            };
+
+            try {
+                const res = await fetch('/api/evaluar', { 
+                    method: 'POST', 
+                    headers: {'Content-Type': 'application/json'}, 
+                    body: JSON.stringify(body) 
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    alert('¡Evaluación guardada exitosamente!');
+                    document.getElementById('form-evaluar-profesor').reset();
+                    reiniciarEstrellas('eval');
+                    cargarDashboardProfesor();
+                } else {
+                    alert(data.error);
+                }
+            } catch (err) {
+                alert("Error de conexión: " + err.message);
+            }
+        };
+
+        // ==============================================================
+        // 5. SISTEMA DE CALIFICACIÓN POR ESTRELLAS (1 A 5)
+        // ==============================================================
+        function configurarSistemaEstrellas(prefijo) {
+            const rubros = ['r1', 'r2', 'r3', 'r4'];
+            const etiquetas = {
+                1: '1/5 - Deficiente',
+                2: '2/5 - Regular',
+                3: '3/5 - Bueno',
+                4: '4/5 - Muy Bueno',
+                5: '5/5 - Excelente'
+            };
+
+            rubros.forEach(r => {
+                const contenedor = document.getElementById(`${prefijo}-${r}-estrellas`);
+                if (!contenedor) return;
+                const botones = contenedor.querySelectorAll('.star-btn');
+                const input = document.getElementById(`${prefijo}-${r}`);
+                const badge = document.getElementById(`${prefijo}-${r}-badge`);
+
+                function pintar(hastaValor) {
+                    botones.forEach((btn, idx) => {
+                        if (idx < hastaValor) {
+                            btn.className = 'star-btn text-2xl sm:text-3xl text-amber-400 cursor-pointer focus:outline-none drop-shadow-sm';
+                        } else {
+                            btn.className = 'star-btn text-2xl sm:text-3xl text-slate-300 cursor-pointer focus:outline-none';
+                        }
+                    });
+                }
+
+                botones.forEach((btn, idx) => {
+                    const valor = idx + 1;
+                    btn.onmouseenter = () => pintar(valor);
+                    btn.onmouseleave = () => pintar(parseInt(input.value) || 0);
+                    btn.onclick = () => {
+                        input.value = valor;
+                        pintar(valor);
+                        if (badge) {
+                            badge.innerText = etiquetas[valor] || `${valor} estrellas`;
+                            badge.className = 'px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-300';
+                        }
+                        actualizarResumenPuntaje(prefijo);
+                    };
+                });
+            });
+        }
+
+        function reiniciarEstrellas(prefijo) {
+            ['r1', 'r2', 'r3', 'r4'].forEach(r => {
+                const input = document.getElementById(`${prefijo}-${r}`);
+                if (input) input.value = '0';
+                const cont = document.getElementById(`${prefijo}-${r}-estrellas`);
+                if (cont) {
+                    cont.querySelectorAll('.star-btn').forEach(btn => {
+                        btn.className = 'star-btn text-2xl sm:text-3xl text-slate-300 cursor-pointer focus:outline-none';
+                    });
+                }
+                const badge = document.getElementById(`${prefijo}-${r}-badge`);
+                if (badge) {
+                    badge.innerText = 'Sin calificar';
+                    badge.className = 'px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-500 border border-slate-200';
+                }
+            });
+            actualizarResumenPuntaje(prefijo);
+        }
+
+        function actualizarResumenPuntaje(prefijo) {
+            const rubros = ['r1', 'r2', 'r3', 'r4'];
+            let total = 0;
+            let completos = 0;
+            rubros.forEach(r => {
+                const v = parseInt(document.getElementById(`${prefijo}-${r}`)?.value) || 0;
+                if (v > 0) {
+                    total += v;
+                    completos++;
+                }
+            });
+
+            const resumenEl = document.getElementById(`${prefijo}-resumen-puntaje`);
+            if (resumenEl) {
+                if (completos === 4) {
+                    const prom = (total / 4).toFixed(2);
+                    resumenEl.innerHTML = `<strong>${prom} / 5.0</strong> (${total} / 20 pts)`;
+                    resumenEl.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-sm';
+                } else {
+                    resumenEl.innerText = `${completos} de 4 rubros calificados`;
+                    resumenEl.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200';
+                }
+            }
+        }
+
+        // ==============================================================
+        // 6. LOGIN Y DASHBOARD DEL ADMINISTRADOR
+        // ==============================================================
+        document.getElementById('form-admin-login').onsubmit = async (e) => {
+            e.preventDefault();
+            const usuario = document.getElementById('admin_user').value.trim();
+            const password = document.getElementById('admin_pass').value;
+
+            try {
+                const res = await fetch('/api/admin/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ usuario, password })
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    usuarioActual = { id: 1, nombre: 'ADMINISTRADOR GENERAL', matricula: 'admin', rol: 'admin', carrera: 'General' };
+                    localStorage.setItem('carteles_uvm_usuario', JSON.stringify(usuarioActual));
+                    document.getElementById('form-admin-login').reset();
+                    cargarAdminDashboard();
+                    verVista('admin-dashboard');
+                } else {
+                    alert(data.error);
+                }
+            } catch (err) {
+                alert("Error de conexión: " + err.message);
+            }
+        };
+
+        function verPestanaAdmin(pestana) {
+            ['usuarios', 'carteles', 'reparto', 'ranking'].forEach(p => {
+                const sec = document.getElementById(`admin-sec-${p}`);
+                const tab = document.getElementById(`tab-admin-${p}`);
+                if (sec) sec.classList.add('hidden');
+                if (tab) {
+                    tab.className = "px-4 py-2 rounded-xl text-xs font-semibold bg-white text-gray-700 hover:bg-gray-100 border shadow-sm transition";
+                }
+            });
+
+            const secActiva = document.getElementById(`admin-sec-${pestana}`);
+            const tabActiva = document.getElementById(`tab-admin-${pestana}`);
+            if (secActiva) secActiva.classList.remove('hidden');
+            if (tabActiva) {
+                tabActiva.className = "px-4 py-2 rounded-xl text-xs font-black shadow-sm transition bg-red-600 text-white";
+            }
+
+            if (pestana === 'usuarios') cargarAdminUsuarios();
+            if (pestana === 'carteles') cargarAdminCarteles();
+            if (pestana === 'ranking') cargarRankingAdmin();
+        }
+
+        async function cargarAdminDashboard() {
+            try {
+                const resMetricas = await fetch('/api/admin/metricas');
+                const metricas = await resMetricas.json();
+                document.getElementById('metric-carteles').innerText = metricas.carteles || 0;
+                document.getElementById('metric-profesores').innerText = metricas.profesores || 0;
+                document.getElementById('metric-estudiantes').innerText = metricas.estudiantes || 0;
+                document.getElementById('metric-evaluaciones').innerText = metricas.evaluaciones || 0;
+
+                cargarAdminUsuarios();
+                cargarAdminCarteles();
+            } catch (err) {
+                console.error("Error al cargar dashboard admin:", err);
+            }
+        }
+
+        // --- GESTIÓN DE USUARIOS POR EL ADMINISTRADOR ---
+        async function cargarAdminUsuarios() {
+            try {
+                const res = await fetch('/api/admin/usuarios');
+                usuariosAdminCache = await res.json();
+                renderizarTablaUsuarios(usuariosAdminCache);
+            } catch (err) {
+                console.error("Error al cargar usuarios admin:", err);
+            }
+        }
+
+        function filtrarRolUsuarios(rol) {
+            filtroRolActual = rol;
+            ['todos', 'estudiante', 'profesor'].forEach(r => {
+                const btn = document.getElementById(`filtro-rol-${r}`);
+                if (!btn) return;
+                if (r === rol) {
+                    btn.className = "px-3 py-1.5 rounded-lg text-xs font-bold bg-red-600 text-white shadow-sm";
+                } else {
+                    btn.className = "px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-slate-600 border hover:bg-slate-50";
+                }
+            });
+            filtrarAdminUsuarios();
+        }
+
+        function filtrarAdminUsuarios() {
+            const termino = (document.getElementById('filtro-usuarios-busqueda')?.value || '').toLowerCase().trim();
+            
+            const filtrados = usuariosAdminCache.filter(u => {
+                const coincideRol = (filtroRolActual === 'todos') || (u.rol === filtroRolActual);
+                const nombre = (u.nombre || '').toLowerCase();
+                const mat = (u.matricula || '').toLowerCase();
+                const coincideTermino = !termino || nombre.includes(termino) || mat.includes(termino);
+                return coincideRol && coincideTermino;
+            });
+
+            renderizarTablaUsuarios(filtrados);
+        }
+
+        function renderizarTablaUsuarios(usuarios) {
+            const tbody = document.getElementById('admin-tabla-usuarios');
+            if (!tbody) return;
+
+            if (!Array.isArray(usuarios) || usuarios.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-gray-400 italic">No se encontraron usuarios con ese criterio.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = usuarios.map(u => {
+                let badgeRol = '';
+                if (u.rol === 'admin') {
+                    badgeRol = `<span class="bg-slate-800 text-white px-2 py-0.5 rounded font-black text-[10px]">ADMIN</span>`;
+                } else if (u.rol === 'profesor') {
+                    badgeRol = `<span class="bg-red-100 text-red-900 border border-red-300 px-2 py-0.5 rounded font-extrabold text-[10px]">PROFESOR JUEZ</span>`;
+                } else {
+                    badgeRol = `<span class="bg-emerald-100 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded font-extrabold text-[10px]">ESTUDIANTE</span>`;
+                }
+
+                let nivelTexto = u.rol === 'profesor' ? `Nivel ${u.nivel_asignado || 1}` : '-';
+
+                // Acciones de administración
+                let botonesAccion = '';
+                if (u.rol === 'estudiante') {
+                    botonesAccion = `
+                        <button onclick='abrirModalPromover(${JSON.stringify(u)})' class="bg-red-700 hover:bg-red-800 text-white px-2.5 py-1 rounded-lg font-bold text-[11px] shadow-sm transition">
+                            Promover a Profe Juez
+                        </button>
+                        <button onclick="eliminarUsuarioAdmin(${u.id}, '${u.nombre}')" class="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-2 py-1 rounded-lg font-bold text-[11px] transition">
+                            Eliminar
+                        </button>
+                    `;
+                } else if (u.rol === 'profesor') {
+                    botonesAccion = `
+                        <button onclick='abrirModalPromover(${JSON.stringify(u)})' class="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 px-2.5 py-1 rounded-lg font-bold text-[11px] transition">
+                            Editar Rol / Nivel
+                        </button>
+                        <button onclick="cambiarRolDirecto(${u.id}, 'estudiante', '${u.nombre}')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-1 rounded-lg font-bold text-[11px] transition" title="Cambiar a Estudiante">
+                            A Estudiante
+                        </button>
+                        <button onclick="eliminarUsuarioAdmin(${u.id}, '${u.nombre}')" class="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-2 py-1 rounded-lg font-bold text-[11px] transition">
+                            Eliminar
+                        </button>
+                    `;
+                } else {
+                    botonesAccion = `<span class="text-gray-400 text-[11px] italic">Admin Maestro</span>`;
+                }
+
+                return `
+                    <tr class="border-b hover:bg-gray-50 transition">
+                        <td class="p-3 font-bold text-slate-800 uppercase">${u.nombre}</td>
+                        <td class="p-3 font-mono text-slate-600 font-semibold">${u.matricula}</td>
+                        <td class="p-3">${badgeRol}</td>
+                        <td class="p-3 font-semibold text-slate-700">${u.carrera || 'General'}</td>
+                        <td class="p-3 font-bold text-red-700">${nivelTexto}</td>
+                        <td class="p-3 text-center space-x-1 whitespace-nowrap">${botonesAccion}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function abrirModalPromover(user) {
+            document.getElementById('modal-promover-id').value = user.id;
+            document.getElementById('modal-promover-subtitulo').innerText = `${user.nombre} (${user.matricula})`;
+            document.getElementById('modal-promover-rol').value = user.rol === 'profesor' ? 'profesor' : 'profesor';
+            document.getElementById('modal-promover-carrera').value = user.carrera || 'Ingeniería';
+            document.getElementById('modal-promover-nivel').value = user.nivel_asignado || 1;
+            toggleCamposProfesorModal('profesor');
+            document.getElementById('modal-promover-usuario').classList.remove('hidden');
+        }
+
+        function cerrarModalPromover() {
+            document.getElementById('modal-promover-usuario').classList.add('hidden');
+        }
+
+        function toggleCamposProfesorModal(rol) {
+            const grupo = document.getElementById('modal-grupo-profesor');
+            if (rol === 'profesor') grupo.classList.remove('hidden');
+            else grupo.classList.add('hidden');
+        }
+
+        document.getElementById('form-promover-usuario').onsubmit = async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('modal-promover-id').value;
+            const rol = document.getElementById('modal-promover-rol').value;
+            const carrera = document.getElementById('modal-promover-carrera').value;
+            const nivel_asignado = document.getElementById('modal-promover-nivel').value;
+
+            try {
+                const res = await fetch(`/api/admin/usuarios/${id}/rol`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ rol, carrera, nivel_asignado })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    alert(data.mensaje);
+                    cerrarModalPromover();
+                    cargarAdminUsuarios();
+                    cargarAdminDashboard();
+                } else {
+                    alert(data.error);
+                }
+            } catch (err) {
+                alert("Error al actualizar rol: " + err.message);
+            }
+        };
+
+        async function cambiarRolDirecto(id, nuevoRol, nombre) {
+            if (!confirm(`¿Deseas cambiar el rol de ${nombre} a ${nuevoRol.toUpperCase()}?`)) return;
+            try {
+                const res = await fetch(`/api/admin/usuarios/${id}/rol`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ rol: nuevoRol })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    alert(data.mensaje);
+                    cargarAdminUsuarios();
+                    cargarAdminDashboard();
+                } else {
+                    alert(data.error);
+                }
+            } catch (err) {
+                alert("Error: " + err.message);
+            }
+        }
+
+        async function eliminarUsuarioAdmin(id, nombre) {
+            if (!confirm(`¿Estás seguro de eliminar al usuario ${nombre}?`)) return;
+            try {
+                const res = await fetch(`/api/admin/usuarios/${id}`, { method: 'DELETE' });
+                const data = await res.json();
+                if (res.ok) {
+                    alert(data.mensaje);
+                    cargarAdminUsuarios();
+                    cargarAdminDashboard();
+                } else {
+                    alert(data.error);
+                }
+            } catch (err) {
+                alert("Error al eliminar: " + err.message);
+            }
+        }
+
+        function abrirModalCrearUsuario() {
+            document.getElementById('form-crear-usuario-admin').reset();
+            document.getElementById('modal-crear-usuario').classList.remove('hidden');
+        }
+
+        function cerrarModalCrearUsuario() {
+            document.getElementById('modal-crear-usuario').classList.add('hidden');
+        }
+
+        document.getElementById('form-crear-usuario-admin').onsubmit = async (e) => {
+            e.preventDefault();
+            const nombre = document.getElementById('admin_nuevo_nombre').value.trim().toUpperCase();
+            const matricula = document.getElementById('admin_nuevo_matricula').value.trim();
+            const rol = document.getElementById('admin_nuevo_rol').value;
+            const carrera = document.getElementById('admin_nuevo_carrera').value;
+            const nivel_asignado = document.getElementById('admin_nuevo_nivel').value;
+            const password = document.getElementById('admin_nuevo_pass').value;
+
+            try {
+                const res = await fetch('/api/admin/usuarios', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nombre, matricula, rol, carrera, nivel_asignado, password })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    alert(data.mensaje);
+                    cerrarModalCrearUsuario();
+                    cargarAdminUsuarios();
+                    cargarAdminDashboard();
+                } else {
+                    alert(data.error);
+                }
+            } catch (err) {
+                alert("Error: " + err.message);
+            }
+        };
+
+        // --- CARTELES Y CLAVES EN PANEL ADMIN ---
+        async function cargarAdminCarteles() {
+            try {
+                const res = await fetch('/api/admin/carteles');
+                cartelesAdminCache = await res.json();
+                renderizarAdminCarteles(cartelesAdminCache);
+                renderizarDirectorioClaves(cartelesAdminCache);
+            } catch (err) {
+                console.error("Error al cargar carteles en admin:", err);
+            }
+        }
+
+        function renderizarDirectorioClaves(carteles) {
+            const cont = document.getElementById('admin-directorio-claves');
+            const badge = document.getElementById('badge-total-claves');
+            if (!cont) return;
+
+            if (!Array.isArray(carteles) || carteles.length === 0) {
+                cont.innerHTML = '<span class="text-xs text-amber-800 italic">No hay carteles registrados aún.</span>';
+                if (badge) badge.innerText = '0 carteles registrados';
+                return;
+            }
+
+            if (badge) badge.innerText = `${carteles.length} carteles registrados`;
+
+            cont.innerHTML = carteles.map(c => `
+                <button type="button" onclick="copiarAlPortapapeles('${c.clave}')" class="group flex items-center gap-1.5 bg-white hover:bg-amber-100 text-amber-950 border border-amber-300 px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-sm" title="Clic para copiar clave de ${c.titulo_cartel}">
+                    <span class="font-mono text-xs font-black text-amber-800">${c.clave}</span>
+                    <span class="text-slate-600 font-semibold max-w-[140px] truncate">${c.titulo_cartel}</span>
+                    <span class="text-[10px] bg-amber-100 group-hover:bg-amber-200 px-1 py-0.5 rounded text-amber-800 font-extrabold">Copiar</span>
+                </button>
+            `).join('');
+        }
+
+        function filtrarAdminCarteles() {
+            const termino = (document.getElementById('busqueda-admin-carteles')?.value || '').toLowerCase().trim();
+            if (!termino) {
+                renderizarAdminCarteles(cartelesAdminCache);
+                return;
+            }
+
+            const filtrados = cartelesAdminCache.filter(c => {
+                const clave = (c.clave || '').toLowerCase();
+                const titulo = (c.titulo_cartel || '').toLowerCase();
+                const equipo = (c.nombre_equipo || '').toLowerCase();
+                const part = (c.participantes || '').toLowerCase();
+                return clave.includes(termino) || titulo.includes(termino) || equipo.includes(termino) || part.includes(termino);
+            });
+
+            renderizarAdminCarteles(filtrados);
+        }
+
+        function renderizarAdminCarteles(carteles) {
+            const tbody = document.getElementById('admin-tabla-carteles');
+            if (!tbody) return;
+
+            if (!Array.isArray(carteles) || carteles.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-gray-400 italic text-xs">No se encontraron carteles con ese criterio.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = carteles.map(c => `
+                <tr class="border-b hover:bg-gray-50 transition text-xs">
+                    <td class="p-2.5">
+                        <div class="flex items-center gap-1.5">
+                            <span class="font-mono font-black text-xs text-amber-900 bg-amber-100 border border-amber-300 px-2.5 py-1 rounded-md shadow-sm select-all">
+                                ${c.clave || 'Sin clave'}
+                            </span>
+                            <button onclick="copiarAlPortapapeles('${c.clave}')" class="text-xs bg-white hover:bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-1 rounded transition shadow-sm" title="Copiar clave">
+                                Copiar
+                            </button>
+                        </div>
+                    </td>
+                    <td class="p-2.5">
+                        <span class="font-extrabold text-slate-800 text-sm block leading-snug">${c.titulo_cartel}</span>
+                        <span class="text-xs text-gray-500 font-bold">Equipo: ${c.nombre_equipo}</span>
+                        <div class="text-[11px] text-red-950 mt-1 bg-red-50/70 p-2 rounded-lg border border-red-100">
+                            <strong>Alumnos:</strong> ${c.participantes || 'No registrados'}
+                        </div>
+                    </td>
+                    <td class="p-2.5">
+                        <span class="inline-block px-2 py-0.5 rounded font-semibold bg-red-50 text-red-700 border border-red-200">
+                            ${c.carrera || 'General'}
+                        </span>
+                        <span class="block text-gray-500 font-bold mt-0.5">Nivel ${c.nivel} (Sem. ${c.semestre})</span>
+                    </td>
+                    <td class="p-2.5 text-center">
+                        <span class="font-bold text-xs ${Number(c.num_evaluaciones) >= 3 ? 'text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200' : 'text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200'}">
+                            ${c.num_evaluaciones}/3
+                        </span>
+                    </td>
+                    <td class="p-2.5 text-center">
+                        ${c.archivo_url 
+                            ? `<a href="${c.archivo_url}" target="_blank" class="text-blue-600 hover:underline font-bold text-xs">PDF</a>` 
+                            : `<span class="text-gray-400">-</span>`
+                        }
+                    </td>
+                    <td class="p-2.5 text-center space-x-1 whitespace-nowrap">
+                        <button onclick="eliminarCartel(${c.id}, '${c.titulo_cartel.replace(/'/g, "\\'")}')" class="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-2.5 py-1 rounded font-bold transition text-xs" title="Eliminar cartel">
+                            Eliminar Eliminar
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function eliminarCartel(id, titulo) {
+            if (!confirm(`¿Estás seguro de eliminar el cartel "${titulo}"? Se removerán sus evaluaciones y el archivo.`)) return;
+            const res = await fetch(`/api/carteles/${id}`, { method: 'DELETE' });
+            const data = await res.json();
+            if (res.ok) {
+                alert(data.mensaje);
+                cargarAdminDashboard();
+            } else {
+                alert(data.error);
+            }
+        }
+
+        async function eliminarTodosCarteles() {
+            if (!confirm("ADVERTENCIA: ¿Estás seguro de eliminar TODOS los carteles antiguos? Esto borrará todos los carteles, sus archivos y evaluaciones.")) return;
+            if (!confirm("Confirmación definitiva: ¿Eliminar todos los carteles?")) return;
+            const res = await fetch('/api/admin/carteles/todos', { method: 'DELETE' });
+            const data = await res.json();
+            if (res.ok) {
+                alert(data.mensaje);
+                cargarAdminDashboard();
+            } else {
+                alert(data.error);
+            }
+        }
+
+        async function repartirCarteles() {
+            if (!confirm("¿Deseas repartir automáticamente los carteles registrados entre los profesores jueces según su área y nivel?")) return;
+            const res = await fetch('/api/admin/repartir-carteles', { method: 'POST' });
+            const data = await res.json();
+            alert(data.mensaje || data.error);
+            cargarAdminDashboard();
+        }
+
+        async function randomizarNivelesProfesores() {
+            if (!confirm("¿Deseas balancear aleatoriamente los niveles de todos los profesores jueces?")) return;
+            const res = await fetch('/api/admin/profesores/randomizar-niveles', { method: 'POST' });
+            const data = await res.json();
+            if (res.ok) {
+                alert(data.mensaje);
+                cargarAdminDashboard();
+            } else {
+                alert(data.error);
+            }
+        }
+
+        // ==============================================================
+        // 7. MAESTRO INVITADO (EVALUACIÓN CON CLAVE EN MODAL)
+        // ==============================================================
+        function abrirModalInvitado() {
+            document.getElementById('modal-evaluar-invitado').classList.remove('hidden');
+            document.getElementById('invitado_clave').value = '';
+            document.getElementById('invitado-area-cartel').classList.add('hidden');
+            reiniciarEstrellas('invitado');
+        }
+
+        function cerrarModalInvitado() {
+            document.getElementById('modal-evaluar-invitado').classList.add('hidden');
+        }
+
+        async function cargarCartelPorClaveModal() {
+            const clave = document.getElementById('invitado_clave').value.trim().toUpperCase();
+            const nombre = document.getElementById('invitado_nombre').value.trim().toUpperCase();
+
+            if (!clave) return alert("Por favor ingresa la clave del cartel.");
+            if (!nombre) return alert("Por favor escribe tu nombre como maestro evaluador.");
+
+            try {
+                const res = await fetch(`/api/carteles/clave/${encodeURIComponent(clave)}`);
+                const data = await res.json();
+
+                if (!res.ok) {
+                    alert(data.error || "No se encontró el cartel con esa clave.");
+                    return;
+                }
+
+                cartelInvitadoActual = data;
+                const c = data.cartel;
+
+                document.getElementById('invitado-cartel-titulo').innerText = c.titulo_cartel;
+                document.getElementById('invitado-cartel-equipo').innerText = `Equipo: ${c.nombre_equipo} | Área: ${c.carrera || 'General'}`;
+                document.getElementById('invitado-cartel-participantes').innerHTML = `<strong>Alumnos:</strong> ${c.participantes || 'No especificados'}`;
+                document.getElementById('invitado-cartel-badge-nivel').innerText = `Nivel ${c.nivel} (${c.total_evaluaciones}/3 evaluaciones recibidas)`;
+                document.getElementById('invitado-btn-pdf').href = c.archivo_url;
+
+                // Llenar selector de profesores ausentes
+                const selSuplir = document.getElementById('invitado-select-suplir');
+                selSuplir.innerHTML = '<option value="">Evaluador Invitado Adicional</option>';
+                
+                if (Array.isArray(data.asignados)) {
+                    data.asignados.forEach(p => {
+                        const estado = p.ya_evaluo ? 'Ya evaluó' : 'Pendiente (Ausente)';
+                        selSuplir.innerHTML += `<option value="${p.id}" ${!p.ya_evaluo ? 'selected' : ''}>Suplir a: ${p.nombre} (${estado})</option>`;
+                    });
+                }
+
+                reiniciarEstrellas('invitado');
+
+                const alertaCompleto = document.getElementById('invitado-alerta-completo');
+                const formEval = document.getElementById('form-evaluar-invitado');
+
+                if (!data.puede_evaluar) {
+                    alertaCompleto.classList.remove('hidden');
+                    formEval.classList.add('hidden');
+                } else {
+                    alertaCompleto.classList.add('hidden');
+                    formEval.classList.remove('hidden');
+                }
+
+                document.getElementById('invitado-area-cartel').classList.remove('hidden');
+
+            } catch (err) {
+                alert("Error al buscar cartel: " + err.message);
+            }
+        }
+
+        document.getElementById('form-evaluar-invitado').onsubmit = async (e) => {
+            e.preventDefault();
+
+            const clave = document.getElementById('invitado_clave').value.trim().toUpperCase();
+            const nombre = document.getElementById('invitado_nombre').value.trim().toUpperCase();
+            const suplirId = document.getElementById('invitado-select-suplir').value;
+
+            const r1 = parseInt(document.getElementById('invitado-r1').value);
+            const r2 = parseInt(document.getElementById('invitado-r2').value);
+            const r3 = parseInt(document.getElementById('invitado-r3').value);
+            const r4 = parseInt(document.getElementById('invitado-r4').value);
+
+            if (!r1 || !r2 || !r3 || !r4) {
+                return alert("Por favor califica todos los 4 rubros (1 a 5 estrellas) antes de guardar.");
+            }
+
+            try {
+                const res = await fetch('/api/evaluar-invitado', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        clave,
+                        nombre_maestro: nombre,
+                        suplir_profesor_id: suplirId || null,
+                        r1, r2, r3, r4
+                    })
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    alert(`${data.mensaje}\nCalificación registrada con éxito.`);
+                    cerrarModalInvitado();
+                    if (usuarioActual && usuarioActual.rol === 'profesor') cargarDashboardProfesor();
+                    if (usuarioActual && usuarioActual.rol === 'admin') cargarAdminDashboard();
+                } else {
+                    alert(data.error || "Error al registrar la evaluación");
+                }
+            } catch (err) {
+                alert("Error al enviar evaluación: " + err.message);
+            }
+        };
+
+        // ==============================================================
+        // 8. RANKING GENERAL POR NIVELES
+        // ==============================================================
+        const configNiveles = [
+            { nivel: 1, titulo: "Nivel 1: Primeros Semestres", subtitulo: "1° a 3° Semestre", icono: "", borde: "border-blue-500", badgeClase: "bg-blue-100 text-blue-800 border-blue-200" },
+            { nivel: 2, titulo: "Nivel 2: Semestres Intermedios", subtitulo: "4° a 6° Semestre", icono: "", borde: "border-red-500", badgeClase: "bg-red-100 text-red-800 border-red-200" },
+            { nivel: 3, titulo: "Nivel 3: Semestres Avanzados", subtitulo: "7° Semestre en adelante", icono: "", borde: "border-emerald-500", badgeClase: "bg-emerald-100 text-emerald-800 border-emerald-200" }
+        ];
+
+        function filtrarRanking(filtro) {
+            nivelFiltroActual = filtro;
+            ['todos', 1, 2, 3].forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                if (!btn) return;
+                if (String(t) === String(filtro)) {
+                    btn.className = "tab-ranking-btn px-4 py-2 rounded-lg font-bold text-xs bg-red-600 text-white shadow";
+                } else {
+                    btn.className = "tab-ranking-btn px-4 py-2 rounded-lg font-semibold text-xs bg-white text-gray-700 hover:bg-gray-100 border shadow-sm";
+                }
+            });
+            renderizarRankings();
+        }
+
+        async function cargarRanking() {
+            try {
+                const res = await fetch('/api/dashboard/ranking');
+                datosRanking = await res.json();
+                renderizarRankings();
+            } catch (err) {
+                console.error("Error al cargar rankings:", err);
+            }
+        }
+
+        function cargarRankingAdmin() {
+            cargarRanking();
+            const cont = document.getElementById('admin-contenedor-ranking');
+            if (cont) {
+                cont.innerHTML = document.getElementById('contenedor-tablas-ranking')?.innerHTML || '';
+            }
+        }
+
+        function renderizarRankings() {
+            const contenedor = document.getElementById('contenedor-tablas-ranking');
+            if (!contenedor) return;
+
+            const nivelesAMostrar = configNiveles.filter(cfg => {
+                if (nivelFiltroActual === 'todos') return true;
+                return String(cfg.nivel) === String(nivelFiltroActual);
+            });
+
+            contenedor.innerHTML = nivelesAMostrar.map(cfg => {
+                const carteles = datosRanking.filter(c => Number(c.nivel) === cfg.nivel);
+
+                carteles.sort((a, b) => {
+                    const promA = a.promedio_final !== null && a.promedio_final !== undefined ? parseFloat(a.promedio_final) : -1;
+                    const promB = b.promedio_final !== null && b.promedio_final !== undefined ? parseFloat(b.promedio_final) : -1;
+                    if (promB !== promA) return promB - promA;
+                    return Number(b.num_evaluaciones || 0) - Number(a.num_evaluaciones || 0);
+                });
+
+                let lugarConteo = 0;
+                let cuerpoTabla = '';
+
+                if (carteles.length === 0) {
+                    cuerpoTabla = `<tr><td colspan="6" class="p-8 text-center text-gray-400 italic bg-gray-50/50">Aún no hay carteles registrados en este nivel.</td></tr>`;
+                } else {
+                    cuerpoTabla = carteles.map(r => {
+                        const tieneEvaluaciones = Number(r.num_evaluaciones || 0) > 0 && r.promedio_final !== null;
+                        let badgePosicion = '';
+                        if (tieneEvaluaciones) {
+                            lugarConteo++;
+                            if (lugarConteo === 1) badgePosicion = `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-black bg-amber-100 text-amber-900 border border-amber-300 shadow-sm">1° Lugar</span>`;
+                            else if (lugarConteo === 2) badgePosicion = `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-black bg-slate-200 text-slate-800 border border-slate-300 shadow-sm">2° Lugar</span>`;
+                            else if (lugarConteo === 3) badgePosicion = `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-black bg-orange-100 text-orange-900 border border-orange-300 shadow-sm">3° Lugar</span>`;
+                            else badgePosicion = `<span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-bold bg-gray-100 text-gray-700">#${lugarConteo}</span>`;
+                        } else {
+                            badgePosicion = `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium text-gray-400 bg-gray-50 border border-dashed border-gray-200">En espera</span>`;
+                        }
+
+                        let badgeEvaluaciones = '';
+                        const totalEval = Number(r.num_evaluaciones || 0);
+                        if (totalEval >= 3) badgeEvaluaciones = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">3/3 Listo</span>`;
+                        else if (totalEval > 0) badgeEvaluaciones = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">${totalEval}/3 En curso</span>`;
+                        else badgeEvaluaciones = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">0/3 Pendiente</span>`;
+
+                        let promedioTexto = '';
+                        if (r.promedio_final !== null && r.promedio_final !== undefined) {
+                            const estrellas = r.promedio_estrellas ? parseFloat(r.promedio_estrellas).toFixed(2) : (parseFloat(r.promedio_final) / 4).toFixed(2);
+                            promedioTexto = `
+                                <div>
+                                    <span class="text-base font-black text-amber-500">${estrellas}</span>
+                                    <span class="text-xs text-gray-400 font-bold">/ 5.0</span>
+                                </div>
+                                <div class="text-[11px] text-gray-500 font-semibold">(${parseFloat(r.promedio_final).toFixed(1)} / 20 pts)</div>
+                            `;
+                        } else {
+                            promedioTexto = `<span class="text-xs text-gray-400 italic">0.00 pts</span>`;
+                        }
+
+                        return `
+                            <tr class="border-b hover:bg-gray-50 transition">
+                                <td class="p-3 text-center">${badgePosicion}</td>
+                                <td class="p-3">
+                                    <div class="flex items-center gap-1.5 mb-0.5">
+                                        <span class="font-mono text-[11px] font-black bg-amber-100 text-amber-900 border border-amber-300 px-1.5 py-0.2 rounded">
+                                            ${r.clave || 'Sin clave'}
+                                        </span>
+                                    </div>
+                                    <div class="font-bold text-gray-900 text-sm leading-tight">${r.titulo_cartel}</div>
+                                </td>
+                                <td class="p-3">
+                                    <div class="text-xs font-bold text-gray-800">${r.nombre_equipo}</div>
+                                    <div class="text-xs text-red-600 font-semibold">${r.carrera || 'General'}</div>
+                                    <div class="text-[11px] text-slate-800 font-bold mt-1 bg-gray-50 p-1.5 rounded border border-gray-100">
+                                        <strong>Alumnos:</strong> ${r.participantes || 'No registrados'}
+                                    </div>
+                                </td>
+                                <td class="p-3 text-center">
+                                    ${r.archivo_url 
+                                        ? `<a href="${r.archivo_url}" target="_blank" class="inline-flex items-center gap-1 bg-red-50 hover:bg-red-100 text-red-700 px-2.5 py-1 rounded text-xs font-bold border border-red-200 transition">PDF</a>` 
+                                        : `<span class="text-gray-400 text-xs">Sin archivo</span>`
+                                    }
+                                </td>
+                                <td class="p-3 text-center">${badgeEvaluaciones}</td>
+                                <td class="p-3 text-right whitespace-nowrap">${promedioTexto}</td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+
+                return `
+                    <div class="bg-white rounded-2xl shadow-sm border-t-4 ${cfg.borde} overflow-hidden border">
+                        <div class="p-4 sm:p-5 border-b bg-gray-50/50 flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+                            <div>
+                                <h3 class="text-lg font-black text-slate-800 flex items-center gap-2">
+                                    ${cfg.titulo}
+                                </h3>
+                                <p class="text-xs text-gray-500 mt-0.5">${cfg.subtitulo}</p>
+                            </div>
+                            <span class="inline-flex items-center self-start sm:self-auto px-3 py-1 rounded-full text-xs font-bold border ${cfg.badgeClase}">
+                                ${carteles.length} ${carteles.length === 1 ? 'Cartel' : 'Carteles'}
+                            </span>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-slate-100 text-slate-600 text-xs uppercase tracking-wider border-b">
+                                        <th class="p-3 text-center w-28">Posición</th>
+                                        <th class="p-3">Título / Clave</th>
+                                        <th class="p-3">Equipo & Alumnos</th>
+                                        <th class="p-3 text-center w-24">Archivo</th>
+                                        <th class="p-3 text-center w-32">Evaluaciones</th>
+                                        <th class="p-3 text-right w-36">Calificación</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${cuerpoTabla}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Si está visible en el dashboard del admin, actualizarlo allí también
+            const adminCont = document.getElementById('admin-contenedor-ranking');
+            if (adminCont) {
+                adminCont.innerHTML = contenedor.innerHTML;
+            }
+        }
+    </script>
+</body>
+</html>
