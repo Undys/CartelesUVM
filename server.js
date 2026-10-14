@@ -1,27 +1,58 @@
-require('dotenv').config();
 const express = require('express');
 const mysql = require('mysql2/promise');
 const cors = require('cors');
 const path = require('path');
 const multer = require('multer');
-const { createClient } = require('@supabase/supabase-js');
+const fs = require('fs');
+const crypto = require('crypto');
+
+// Cargar variables de entorno desde .env (evita exponer credenciales en GitHub)
+if (typeof process.loadEnvFile === 'function') {
+    try {
+        process.loadEnvFile();
+    } catch (e) {
+        // El archivo .env es opcional en tiempo de ejecución
+    }
+} else if (fs.existsSync(path.join(__dirname, '.env'))) {
+    try {
+        const envContent = fs.readFileSync(path.join(__dirname, '.env'), 'utf8');
+        envContent.split(/\r?\n/).forEach(line => {
+            const trimmed = line.trim();
+            if (trimmed && !trimmed.startsWith('#')) {
+                const idx = trimmed.indexOf('=');
+                if (idx > -1) {
+                    const k = trimmed.substring(0, idx).trim();
+                    const v = trimmed.substring(idx + 1).trim().replace(/^['"](.*)['"]$/, '$1');
+                    if (k && !process.env[k]) process.env[k] = v;
+                }
+            }
+        });
+    } catch (e) {
+        console.warn('Advertencia al procesar .env:', e.message);
+    }
+}
 
 const app = express();
 app.use(express.json());
 app.use(cors());
 
-// Servir archivos estáticos del frontend
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Cliente de Supabase Storage
-const supabase = createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_KEY
-);
+const uploadsDir = path.join(__dirname, 'public', 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+}
 
-// Multer en memoria para enviar directamente el PDF a Supabase Storage
-const upload = multer({
-    storage: multer.memoryStorage(),
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => cb(null, uploadsDir),
+    filename: (req, file, cb) => {
+        const ext = path.extname(file.originalname);
+        cb(null, Date.now() + '-' + Math.round(Math.random() * 1E9) + ext);
+    }
+});
+
+const upload = multer({ 
+    storage: storage,
     fileFilter: (req, file, cb) => {
         if (file.mimetype === 'application/pdf') cb(null, true);
         else cb(new Error('Solo se permiten archivos PDF'));
@@ -30,7 +61,7 @@ const upload = multer({
 
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
-// Helper para convertir nombres y apellidos a Title Case
+// Helper para convertir nombres y apellidos a mayúscula inicial (Title Case)
 function capitalizarNombre(str) {
     if (!str) return '';
     return str.replace(/\b([a-záéíóúñü])([a-záéíóúñü]*)/gi, (m, primera, resto) => {
@@ -38,7 +69,7 @@ function capitalizarNombre(str) {
     });
 }
 
-// Helper para convertir nombres de alumnos a MAYÚSCULAS COMPLETAS
+// Helper para convertir nombres de alumnos a MAYÚSCULAS COMPLETAS (Requerimiento: gabriel guerrero -> GABRIEL GUERRERO)
 function convertirMayusculas(str) {
     if (!str) return '';
     return str.trim().toUpperCase();
@@ -57,93 +88,35 @@ function generarClaveAleatoria() {
 let pool;
 async function conectarBD() {
     pool = mysql.createPool({
-        host: process.env.DB_HOST,
-        port: process.env.DB_PORT || 4000,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME || 'test',
-        ssl: { rejectUnauthorized: false }, // Requerido por TiDB Cloud
+        host: process.env.DB_HOST || 'localhost',
+        user: process.env.DB_USER || 'root',
+        password: process.env.DB_PASSWORD || '',
+        database: process.env.DB_NAME || 'evaluaciones_db',
         waitForConnections: true,
         connectionLimit: 10
     });
-    console.log('✅ Conectado exitosamente a TiDB Cloud');
+    console.log('✅ Conectado exitosamente a MySQL (XAMPP)');
 
     try {
-        // Asegurar tablas iniciales si aún no existen
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS profesores (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                nombre VARCHAR(250) NOT NULL,
-                carrera VARCHAR(100) NOT NULL DEFAULT 'Ingeniería',
-                nivel_asignado INT DEFAULT 1,
-                password VARCHAR(255) NOT NULL
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-        `);
-
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS carteles (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                usuario_id INT NULL,
-                nombre_equipo VARCHAR(250) NULL,
-                participantes TEXT NULL,
-                carrera VARCHAR(100) NOT NULL,
-                semestre INT NOT NULL,
-                nivel INT NOT NULL,
-                titulo_cartel VARCHAR(255) NOT NULL,
-                clave VARCHAR(50) NULL,
-                archivo_url TEXT NULL,
-                profesor_asesor_id INT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-        `);
-
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS asignaciones (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                cartel_id INT NOT NULL,
-                profesor_id INT NOT NULL
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-        `);
-
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS evaluaciones (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                cartel_id INT NOT NULL,
-                profesor_id INT NOT NULL,
-                r1 INT NOT NULL,
-                r2 INT NOT NULL,
-                r3 INT NOT NULL,
-                r4 INT NOT NULL,
-                r5 INT DEFAULT 0,
-                puntaje_total INT GENERATED ALWAYS AS (r1 + r2 + r3 + r4 + r5) STORED,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-        `);
-
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS administradores (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                usuario VARCHAR(100) UNIQUE NOT NULL,
-                password VARCHAR(255) NOT NULL
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-        `);
-
         // 1. Columna carrera en profesores
         const [pCols] = await pool.query("SHOW COLUMNS FROM profesores LIKE 'carrera'");
         if (pCols.length === 0) {
             await pool.query("ALTER TABLE profesores ADD COLUMN carrera VARCHAR(100) NOT NULL DEFAULT 'Ingeniería' AFTER nombre");
+            console.log('Columna carrera agregada a profesores');
         }
 
         // 2. Columna participantes en carteles
         const [cPart] = await pool.query("SHOW COLUMNS FROM carteles LIKE 'participantes'");
         if (cPart.length === 0) {
             await pool.query("ALTER TABLE carteles ADD COLUMN participantes TEXT NULL AFTER nombre_equipo");
+            console.log('Columna participantes agregada a carteles');
         }
 
         // 3. Columna clave en carteles
         const [cClave] = await pool.query("SHOW COLUMNS FROM carteles LIKE 'clave'");
         if (cClave.length === 0) {
             await pool.query("ALTER TABLE carteles ADD COLUMN clave VARCHAR(50) NULL AFTER titulo_cartel");
+            console.log('Columna clave agregada a carteles');
         }
 
         // 4. Asegurar claves y participantes en carteles existentes
@@ -154,7 +127,37 @@ async function conectarBD() {
             await pool.query("UPDATE carteles SET clave = ?, participantes = ? WHERE id = ?", [nuevaClave, nuevosPart, c.id]);
         }
 
-        // 5. Tabla general de usuarios
+        // 5. Permitir r5 con default 0 en evaluaciones para el cálculo de 4 rubros
+        try {
+            await pool.query("ALTER TABLE evaluaciones MODIFY COLUMN r5 INT(11) DEFAULT 0");
+        } catch (e) {
+            console.warn('Modificación columna r5:', e.message);
+        }
+
+        // 6. Normalizar evaluaciones viejas a escala de 1 a 5 estrellas si existían de 0 a 20
+        try {
+            const [evalsAntiguas] = await pool.query("SELECT id, r1, r2, r3, r4 FROM evaluaciones WHERE r1 > 5 OR r2 > 5 OR r3 > 5 OR r4 > 5");
+            for (const ev of evalsAntiguas) {
+                const normR1 = Math.min(5, Math.max(1, Math.round(ev.r1 / 4)));
+                const normR2 = Math.min(5, Math.max(1, Math.round(ev.r2 / 4)));
+                const normR3 = Math.min(5, Math.max(1, Math.round(ev.r3 / 4)));
+                const normR4 = Math.min(5, Math.max(1, Math.round(ev.r4 / 4)));
+                await pool.query("UPDATE evaluaciones SET r1 = ?, r2 = ?, r3 = ?, r4 = ?, r5 = 0 WHERE id = ?", [normR1, normR2, normR3, normR4, ev.id]);
+            }
+        } catch (e) {
+            console.warn('Normalización de evaluaciones:', e.message);
+        }
+
+        // 7. Capitalizar nombres existentes de profesores
+        const [profes] = await pool.query("SELECT id, nombre FROM profesores");
+        for (const p of profes) {
+            const nombreCap = capitalizarNombre(p.nombre);
+            if (nombreCap !== p.nombre) {
+                await pool.query("UPDATE profesores SET nombre = ? WHERE id = ?", [nombreCap, p.id]);
+            }
+        }
+
+        // 8. Tabla general de usuarios (alumnos, profesores y administradores)
         await pool.query(`
             CREATE TABLE IF NOT EXISTS usuarios (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -167,16 +170,17 @@ async function conectarBD() {
                 nivel_asignado INT DEFAULT 1,
                 profesor_id INT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
         `);
 
-        // 6. Columna usuario_id en carteles
+        // 9. Columna usuario_id en carteles para relacionar al alumno creador
         const [uCols] = await pool.query("SHOW COLUMNS FROM carteles LIKE 'usuario_id'");
         if (uCols.length === 0) {
             await pool.query("ALTER TABLE carteles ADD COLUMN usuario_id INT NULL AFTER id");
+            console.log('Columna usuario_id agregada a carteles');
         }
 
-        // 7. Sincronizar profesores en usuarios
+        // 10. Sincronizar profesores existentes en la tabla usuarios si aún no están
         const [todosProfes] = await pool.query("SELECT * FROM profesores");
         for (const p of todosProfes) {
             const mat = 'prof_' + p.id;
@@ -189,15 +193,52 @@ async function conectarBD() {
             }
         }
 
-        // 8. Asegurar usuario admin general
-        const [admExist] = await pool.query("SELECT id FROM usuarios WHERE matricula = 'admin'");
-        if (admExist.length === 0) {
+        // 11. Asegurar la existencia de al menos un administrador sin contraseñas fijas en el código
+        const [adminsExist] = await pool.query("SELECT id, matricula FROM usuarios WHERE rol = 'admin'");
+        const adminUserEnv = (process.env.ADMIN_USER || 'admin').trim();
+        const adminPassEnv = process.env.ADMIN_PASSWORD ? process.env.ADMIN_PASSWORD.trim() : null;
+
+        if (adminsExist.length === 0) {
+            if (adminPassEnv) {
+                await pool.query(
+                    "INSERT INTO usuarios (nombre, matricula, password, rol, carrera, nivel_asignado) VALUES ('ADMINISTRADOR GENERAL', ?, ?, 'admin', 'General', 1)",
+                    [adminUserEnv, adminPassEnv]
+                );
+                console.log(`✅ Administrador inicial '${adminUserEnv}' configurado desde variables de entorno (.env).`);
+            } else {
+                const passAleatoria = 'Admin_' + crypto.randomBytes(4).toString('hex');
+                await pool.query(
+                    "INSERT INTO usuarios (nombre, matricula, password, rol, carrera, nivel_asignado) VALUES ('ADMINISTRADOR GENERAL', ?, ?, 'admin', 'General', 1)",
+                    [adminUserEnv, passAleatoria]
+                );
+                console.log('\n╔════════════════════════════════════════════════════════════════════════════╗');
+                console.log('║ 🔐 SEGURIDAD: Administrador inicial generado (sin contraseña en el código):║');
+                console.log(`║    Usuario:    ${adminUserEnv.padEnd(58)}║`);
+                console.log(`║    Contraseña: ${passAleatoria.padEnd(58)}║`);
+                console.log('║                                                                            ║');
+                console.log('║ 💡 Para definir tu propia contraseña sin exponerla en GitHub:              ║');
+                console.log('║    Crea un archivo .env con: ADMIN_PASSWORD=TuContraseñaSecreta            ║');
+                console.log('║    (El archivo .env está protegido por .gitignore y nunca se sube a GitHub)║');
+                console.log('╚════════════════════════════════════════════════════════════════════════════╝\n');
+            }
+        } else if (adminPassEnv) {
+            // Sincronizar contraseña si fue establecida explícitamente en .env
             await pool.query(
-                "INSERT INTO usuarios (nombre, matricula, password, rol, carrera, nivel_asignado) VALUES ('ADMINISTRADOR GENERAL', 'admin', 'admin123', 'admin', 'General', 1)"
+                "UPDATE usuarios SET password = ? WHERE (matricula = ? OR id = ?) AND rol = 'admin'",
+                [adminPassEnv, adminUserEnv, adminsExist[0].id]
             );
+            console.log(`🔒 Contraseña del administrador '${adminUserEnv}' sincronizada desde .env.`);
         }
 
-        console.log('✅ Esquema y tablas actualizados en TiDB Cloud.');
+        // 12. Asegurar que participantes en carteles estén en MAYÚSCULAS
+        const [cartelesMayus] = await pool.query("SELECT id, participantes FROM carteles WHERE participantes IS NOT NULL");
+        for (const c of cartelesMayus) {
+            if (c.participantes && c.participantes !== c.participantes.toUpperCase()) {
+                await pool.query("UPDATE carteles SET participantes = ? WHERE id = ?", [c.participantes.toUpperCase(), c.id]);
+            }
+        }
+
+        console.log('✅ Esquema y datos actualizados correctamente.');
     } catch (e) {
         console.warn('Verificación de esquema BD:', e.message);
     }
@@ -206,24 +247,29 @@ conectarBD();
 
 // --- ENDPOINTS AUTENTICACIÓN Y GESTIÓN DE USUARIOS ---
 
+// Registro general de alumnos / usuarios (Por defecto con rol 'estudiante' y nombre en MAYÚSCULAS)
 app.post('/api/registro', async (req, res) => {
     try {
         const { nombre, matricula, password, carrera, semestre } = req.body;
+        
         if (!nombre || !matricula || !password) {
             return res.status(400).json({ error: "Nombre completo, matrícula/usuario y contraseña son obligatorios." });
         }
 
+        // Requerimiento: todas las letras se hacen mayúsculas (ej. gabriel guerrero -> GABRIEL GUERRERO)
         const nombreMayus = convertirMayusculas(nombre);
         const mat = matricula.trim();
         const pass = password.trim();
         const carreraVal = (carrera && carrera.trim()) ? carrera.trim() : 'Ingeniería';
         const semVal = parseInt(semestre) || 1;
 
+        // Verificar si la matrícula o usuario ya existe
         const [existente] = await pool.query('SELECT id FROM usuarios WHERE LOWER(TRIM(matricula)) = LOWER(?)', [mat]);
         if (existente.length > 0) {
             return res.status(400).json({ error: "Esa matrícula o usuario ya se encuentra registrado." });
         }
 
+        // Requerimiento: cada persona que se de de alta entra como estudiante
         const [result] = await pool.query(
             'INSERT INTO usuarios (nombre, matricula, password, rol, carrera, semestre) VALUES (?, ?, ?, ?, ?, ?)',
             [nombreMayus, mat, pass, 'estudiante', carreraVal, semVal]
@@ -245,6 +291,7 @@ app.post('/api/registro', async (req, res) => {
     }
 });
 
+// Login general (para Alumnos, Profesores/Jueces y Administradores)
 app.post('/api/login', async (req, res) => {
     try {
         const idf = (req.body.usuario || req.body.identificador || req.body.matricula || '').trim();
@@ -254,6 +301,7 @@ app.post('/api/login', async (req, res) => {
             return res.status(400).json({ error: "Ingresa tu usuario/matrícula y contraseña." });
         }
 
+        // 1. Buscar en tabla usuarios
         const [rows] = await pool.query(
             'SELECT id, nombre, matricula, password, rol, carrera, semestre, nivel_asignado, profesor_id FROM usuarios WHERE (LOWER(TRIM(matricula)) = LOWER(?) OR LOWER(TRIM(nombre)) = LOWER(?))',
             [idf, idf]
@@ -265,20 +313,26 @@ app.post('/api/login', async (req, res) => {
             return res.json({ mensaje: "Acceso correcto", usuario: u });
         }
 
-        const [admins] = await pool.query('SELECT * FROM administradores WHERE usuario = ? AND password = ?', [idf, pass]);
-        if (admins.length > 0) {
-            return res.json({
-                mensaje: "Acceso concedido como Administrador",
-                usuario: {
-                    id: admins[0].id,
-                    nombre: 'ADMINISTRADOR GENERAL',
-                    matricula: admins[0].usuario,
-                    rol: 'admin',
-                    carrera: 'General'
-                }
-            });
+        // 2. Si no coincide, verificar si es admin en tabla legacy administradores (si existe)
+        try {
+            const [admins] = await pool.query('SELECT * FROM administradores WHERE usuario = ? AND password = ?', [idf, pass]);
+            if (admins.length > 0) {
+                return res.json({
+                    mensaje: "Acceso concedido como Administrador",
+                    usuario: {
+                        id: admins[0].id || 1,
+                        nombre: admins[0].nombre || 'ADMINISTRADOR GENERAL',
+                        matricula: admins[0].usuario,
+                        rol: 'admin',
+                        carrera: 'General'
+                    }
+                });
+            }
+        } catch (e) {
+            // Tabla legacy administradores no existe, continuar
         }
 
+        // 3. Verificar si es un profesor registrado en la tabla profesores directamente
         const [profes] = await pool.query(
             'SELECT id, nombre, carrera, nivel_asignado, password FROM profesores WHERE (LOWER(TRIM(nombre)) = LOWER(?) OR id = ?) AND password = ?',
             [idf, isNaN(idf) ? -1 : parseInt(idf), pass]
@@ -286,6 +340,7 @@ app.post('/api/login', async (req, res) => {
 
         if (profes.length > 0) {
             const p = profes[0];
+            // Asegurar que exista en usuarios
             const [uCheck] = await pool.query('SELECT id, rol FROM usuarios WHERE profesor_id = ?', [p.id]);
             let uId = uCheck.length > 0 ? uCheck[0].id : null;
             if (!uId) {
@@ -315,6 +370,7 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
+// Obtener carteles del alumno (para su dashboard personal)
 app.get('/api/estudiantes/:id/carteles', async (req, res) => {
     try {
         const usuarioId = req.params.id;
@@ -341,6 +397,7 @@ app.get('/api/estudiantes/:id/carteles', async (req, res) => {
     }
 });
 
+// Listar todos los usuarios para el Admin (Alumnos, Profesores y Admins)
 app.get('/api/admin/usuarios', async (req, res) => {
     try {
         const [rows] = await pool.query(`
@@ -356,6 +413,7 @@ app.get('/api/admin/usuarios', async (req, res) => {
     }
 });
 
+// Admin da de alta a un usuario manualmente (eligiendo si es estudiante o profesor)
 app.post('/api/admin/usuarios', async (req, res) => {
     try {
         const { nombre, matricula, password, rol, carrera, semestre, nivel_asignado } = req.body;
@@ -398,43 +456,62 @@ app.post('/api/admin/usuarios', async (req, res) => {
     }
 });
 
+// Admin cambia el rol de un usuario (Promover a Profesor / Asignar como Estudiante)
+// Admin cambia el rol de un usuario (Promover a Profesor / Asignar como Estudiante / Promover a Administrador)
 app.put('/api/admin/usuarios/:id/rol', async (req, res) => {
     try {
         const { id } = req.params;
-        const { rol, carrera, nivel_asignado } = req.body;
+        const { rol, carrera, nivel_asignado, password } = req.body;
 
         const [userRows] = await pool.query('SELECT * FROM usuarios WHERE id = ?', [id]);
         if (userRows.length === 0) return res.status(404).json({ error: "Usuario no encontrado." });
         const user = userRows[0];
 
-        const nuevoRol = rol || 'estudiante';
-        const nuevaCarrera = carrera || user.carrera || 'Ingeniería';
+        const rolesValidos = ['estudiante', 'profesor', 'admin'];
+        const nuevoRol = rolesValidos.includes(rol) ? rol : 'estudiante';
+        const nuevaCarrera = (carrera && carrera.trim()) ? carrera.trim() : (nuevoRol === 'admin' ? 'General' : (user.carrera || 'Ingeniería'));
         const nuevoNivel = parseInt(nivel_asignado) || user.nivel_asignado || 1;
+        const passActualizada = (password && password.trim()) ? password.trim() : user.password;
+
+        // Protección: Evitar degradar al único administrador del sistema
+        if (user.rol === 'admin' && nuevoRol !== 'admin') {
+            const [[{ totalAdmins }]] = await pool.query("SELECT COUNT(*) as totalAdmins FROM usuarios WHERE rol = 'admin'");
+            if (totalAdmins <= 1) {
+                return res.status(400).json({ error: "No es posible quitar el rol de Administrador porque es el único administrador registrado en el sistema." });
+            }
+        }
 
         let profId = user.profesor_id;
 
         if (nuevoRol === 'profesor') {
+            // Si no estaba en la tabla profesores, registrarlo
             if (!profId) {
                 const [pIns] = await pool.query(
                     'INSERT INTO profesores (nombre, carrera, nivel_asignado, password) VALUES (?, ?, ?, ?)',
-                    [user.nombre, nuevaCarrera, nuevoNivel, user.password || '123456']
+                    [user.nombre, nuevaCarrera, nuevoNivel, passActualizada || '123456']
                 );
                 profId = pIns.insertId;
             } else {
+                // Actualizar sus datos en profesores
                 await pool.query(
-                    'UPDATE profesores SET carrera = ?, nivel_asignado = ? WHERE id = ?',
-                    [nuevaCarrera, nuevoNivel, profId]
+                    'UPDATE profesores SET carrera = ?, nivel_asignado = ?, password = ? WHERE id = ?',
+                    [nuevaCarrera, nuevoNivel, passActualizada, profId]
                 );
             }
+        } else if (profId && passActualizada !== user.password) {
+            // Si se cambió la contraseña y tiene cuenta de profesor asociada
+            await pool.query('UPDATE profesores SET password = ? WHERE id = ?', [passActualizada, profId]);
         }
 
         await pool.query(
-            'UPDATE usuarios SET rol = ?, carrera = ?, nivel_asignado = ?, profesor_id = ? WHERE id = ?',
-            [nuevoRol, nuevaCarrera, nuevoNivel, profId, id]
+            'UPDATE usuarios SET rol = ?, carrera = ?, nivel_asignado = ?, profesor_id = ?, password = ? WHERE id = ?',
+            [nuevoRol, nuevaCarrera, nuevoNivel, profId, passActualizada, id]
         );
 
+        const rolTexto = nuevoRol === 'admin' ? 'ADMINISTRADOR' : (nuevoRol === 'profesor' ? 'PROFESOR JUEZ' : 'ESTUDIANTE');
+
         res.json({
-            mensaje: `¡Usuario ${user.nombre} ahora tiene el rol de ${nuevoRol.toUpperCase()}!`,
+            mensaje: `¡Usuario ${user.nombre} ahora tiene el rol de ${rolTexto}!`,
             usuario: { ...user, rol: nuevoRol, carrera: nuevaCarrera, nivel_asignado: nuevoNivel, profesor_id: profId }
         });
     } catch (err) {
@@ -442,25 +519,36 @@ app.put('/api/admin/usuarios/:id/rol', async (req, res) => {
     }
 });
 
+// Admin edita datos de un usuario
 app.put('/api/admin/usuarios/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const { nombre, matricula, carrera, semestre, nivel_asignado, password } = req.body;
+        const { nombre, matricula, carrera, semestre, nivel_asignado, password, rol } = req.body;
 
         const [userRows] = await pool.query('SELECT * FROM usuarios WHERE id = ?', [id]);
         if (userRows.length === 0) return res.status(404).json({ error: "Usuario no encontrado." });
         const user = userRows[0];
+
+        const rolesValidos = ['estudiante', 'profesor', 'admin'];
+        const rolFinal = (rol && rolesValidos.includes(rol)) ? rol : user.rol;
+
+        if (user.rol === 'admin' && rolFinal !== 'admin') {
+            const [[{ totalAdmins }]] = await pool.query("SELECT COUNT(*) as totalAdmins FROM usuarios WHERE rol = 'admin'");
+            if (totalAdmins <= 1) {
+                return res.status(400).json({ error: "No es posible remover el rol de Administrador al único administrador registrado." });
+            }
+        }
 
         const nombreMayus = nombre ? convertirMayusculas(nombre) : user.nombre;
         const mat = matricula ? matricula.trim() : user.matricula;
         const car = carrera || user.carrera;
         const sem = semestre !== undefined ? parseInt(semestre) : user.semestre;
         const niv = nivel_asignado !== undefined ? parseInt(nivel_asignado) : user.nivel_asignado;
-        const pass = password ? password.trim() : user.password;
+        const pass = (password && password.trim()) ? password.trim() : user.password;
 
         await pool.query(
-            'UPDATE usuarios SET nombre = ?, matricula = ?, carrera = ?, semestre = ?, nivel_asignado = ?, password = ? WHERE id = ?',
-            [nombreMayus, mat, car, sem, niv, pass, id]
+            'UPDATE usuarios SET nombre = ?, matricula = ?, carrera = ?, semestre = ?, nivel_asignado = ?, password = ?, rol = ? WHERE id = ?',
+            [nombreMayus, mat, car, sem, niv, pass, rolFinal, id]
         );
 
         if (user.profesor_id) {
@@ -476,12 +564,22 @@ app.put('/api/admin/usuarios/:id', async (req, res) => {
     }
 });
 
+// Admin elimina un usuario
 app.delete('/api/admin/usuarios/:id', async (req, res) => {
     try {
         const { id } = req.params;
         const [u] = await pool.query('SELECT * FROM usuarios WHERE id = ?', [id]);
         if (u.length === 0) return res.status(404).json({ error: "Usuario no encontrado" });
 
+        // Protección: No permitir eliminar al único administrador
+        if (u[0].rol === 'admin') {
+            const [[{ totalAdmins }]] = await pool.query("SELECT COUNT(*) as totalAdmins FROM usuarios WHERE rol = 'admin'");
+            if (totalAdmins <= 1) {
+                return res.status(400).json({ error: "No es posible eliminar al único Administrador del sistema." });
+            }
+        }
+
+        // Si tiene profesor_id y tiene asignaciones o evaluaciones, no borrar directamente o limpiar
         if (u[0].profesor_id) {
             const [asigs] = await pool.query('SELECT id FROM asignaciones WHERE profesor_id = ?', [u[0].profesor_id]);
             const [evals] = await pool.query('SELECT id FROM evaluaciones WHERE profesor_id = ?', [u[0].profesor_id]);
@@ -498,19 +596,53 @@ app.delete('/api/admin/usuarios/:id', async (req, res) => {
     }
 });
 
-// --- ENDPOINTS ADMINISTRADOR ---
+// --- ENDPOINTS ADMINISTRADOR (AUTENTICACIÓN Y METRICAS) ---
 
 app.post('/api/admin/login', async (req, res) => {
     try {
-        const { usuario, password } = req.body;
-        const [rows] = await pool.query('SELECT * FROM administradores WHERE usuario = ? AND password = ?', [usuario, password]);
-        if (rows.length === 0) return res.status(401).json({ error: "Credenciales de administrador incorrectas" });
-        res.json({ mensaje: "Acceso concedido", admin: rows[0].usuario });
+        const idf = (req.body.usuario || '').trim();
+        const pass = (req.body.password || '').trim();
+
+        if (!idf || !pass) {
+            return res.status(400).json({ error: "Por favor ingresa usuario y contraseña de administrador." });
+        }
+
+        // 1. Buscar en la tabla principal usuarios con rol 'admin'
+        const [rows] = await pool.query(
+            'SELECT id, nombre, matricula, rol, carrera, semestre, nivel_asignado FROM usuarios WHERE (LOWER(TRIM(matricula)) = LOWER(?) OR LOWER(TRIM(nombre)) = LOWER(?)) AND password = ? AND rol = "admin"',
+            [idf, idf, pass]
+        );
+
+        if (rows.length > 0) {
+            return res.json({ mensaje: "Acceso concedido", usuario: rows[0] });
+        }
+
+        // 2. Soporte fallback para tabla legacy administradores (si existe)
+        try {
+            const [admins] = await pool.query('SELECT * FROM administradores WHERE usuario = ? AND password = ?', [idf, pass]);
+            if (admins.length > 0) {
+                return res.json({
+                    mensaje: "Acceso concedido",
+                    usuario: {
+                        id: admins[0].id || 1,
+                        nombre: admins[0].nombre || 'ADMINISTRADOR GENERAL',
+                        matricula: admins[0].usuario,
+                        rol: 'admin',
+                        carrera: 'General'
+                    }
+                });
+            }
+        } catch (e) {
+            // Tabla legacy no existe o no tiene datos
+        }
+
+        return res.status(401).json({ error: "Credenciales incorrectas o este usuario no cuenta con privilegios de Administrador." });
     } catch (err) {
         res.status(400).json({ error: err.message });
     }
 });
 
+// Cambiar el nivel de evaluación de un profesor
 app.put('/api/profesores/:id/nivel', async (req, res) => {
     try {
         const { id } = req.params;
@@ -522,6 +654,7 @@ app.put('/api/profesores/:id/nivel', async (req, res) => {
     }
 });
 
+// Cambiar el área / carrera de un profesor
 app.put('/api/profesores/:id/carrera', async (req, res) => {
     try {
         const { id } = req.params;
@@ -533,6 +666,7 @@ app.put('/api/profesores/:id/carrera', async (req, res) => {
     }
 });
 
+// Eliminar a un profesor y limpiar sus relaciones
 app.delete('/api/profesores/:id', async (req, res) => {
     const connection = await pool.getConnection();
     try {
@@ -554,13 +688,21 @@ app.delete('/api/profesores/:id', async (req, res) => {
     }
 });
 
+// Métricas para el Dashboard
 app.get('/api/admin/metricas', async (req, res) => {
     try {
         const [[carteles]] = await pool.query('SELECT COUNT(*) as total FROM carteles');
         const [[profesores]] = await pool.query('SELECT COUNT(*) as total FROM profesores');
         const [[evaluaciones]] = await pool.query('SELECT COUNT(*) as total FROM evaluaciones');
         const [[estudiantes]] = await pool.query("SELECT COUNT(*) as total FROM usuarios WHERE rol = 'estudiante'");
-        res.json({ carteles: carteles.total, profesores: profesores.total, estudiantes: estudiantes.total, evaluaciones: evaluaciones.total });
+        const [[administradores]] = await pool.query("SELECT COUNT(*) as total FROM usuarios WHERE rol = 'admin'");
+        res.json({
+            carteles: carteles.total,
+            profesores: profesores.total,
+            estudiantes: estudiantes.total,
+            administradores: administradores.total,
+            evaluaciones: evaluaciones.total
+        });
     } catch (err) {
         res.status(400).json({ error: err.message });
     }
@@ -598,6 +740,7 @@ app.post('/api/profesores', async (req, res) => {
     }
 });
 
+// Asignar niveles aleatorios y balanceados a todos los profesores
 app.post('/api/admin/profesores/randomizar-niveles', async (req, res) => {
     const connection = await pool.getConnection();
     try {
@@ -660,8 +803,9 @@ app.post('/api/login/profesor', async (req, res) => {
     }
 });
 
-// --- CARTELES, CLAVES Y EVALUACIONES (CON SUPABASE STORAGE) ---
+// --- CARTELES, CLAVES Y EVALUACIONES ---
 
+// Obtener lista completa de carteles para administración
 app.get('/api/admin/carteles', async (req, res) => {
     try {
         const query = `
@@ -681,6 +825,9 @@ app.get('/api/admin/carteles', async (req, res) => {
     }
 });
 
+
+
+// Obtener detalles de un cartel por su clave (para maestros invitados o búsqueda rápida)
 app.get('/api/carteles/clave/:clave', async (req, res) => {
     try {
         const clave = (req.params.clave || '').trim();
@@ -701,6 +848,7 @@ app.get('/api/carteles/clave/:clave', async (req, res) => {
 
         const cartel = carteles[0];
 
+        // Obtener profesores asignados al cartel y quién ya evaluó vs quién está pendiente (para tomar su lugar)
         const [asignados] = await pool.query(
             `SELECT p.id, p.nombre, p.carrera,
                     CASE WHEN e.id IS NOT NULL THEN 1 ELSE 0 END as ya_evaluo
@@ -721,6 +869,7 @@ app.get('/api/carteles/clave/:clave', async (req, res) => {
     }
 });
 
+// Eliminar un cartel individual y sus datos
 app.delete('/api/carteles/:id', async (req, res) => {
     const connection = await pool.getConnection();
     try {
@@ -739,11 +888,11 @@ app.delete('/api/carteles/:id', async (req, res) => {
 
         await connection.commit();
 
-        // Borrar archivo de Supabase Storage si existe
         if (cartel.archivo_url) {
-            const fileName = cartel.archivo_url.split('/').pop();
-            if (fileName) {
-                await supabase.storage.from('carteles-uvm').remove([fileName]);
+            const fileName = path.basename(cartel.archivo_url);
+            const filePath = path.join(uploadsDir, fileName);
+            if (fs.existsSync(filePath)) {
+                try { fs.unlinkSync(filePath); } catch (e) { console.warn("No se pudo borrar archivo:", e.message); }
             }
         }
 
@@ -756,6 +905,7 @@ app.delete('/api/carteles/:id', async (req, res) => {
     }
 });
 
+// Eliminar todos los carteles antiguos (limpieza general)
 app.delete('/api/admin/carteles/todos', async (req, res) => {
     const connection = await pool.getConnection();
     try {
@@ -768,13 +918,14 @@ app.delete('/api/admin/carteles/todos', async (req, res) => {
 
         await connection.commit();
 
-        // Eliminar archivos de Supabase Storage
-        const fileNames = carteles
-            .map(c => c.archivo_url ? c.archivo_url.split('/').pop() : null)
-            .filter(Boolean);
-
-        if (fileNames.length > 0) {
-            await supabase.storage.from('carteles-uvm').remove(fileNames);
+        for (const c of carteles) {
+            if (c.archivo_url) {
+                const fileName = path.basename(c.archivo_url);
+                const filePath = path.join(uploadsDir, fileName);
+                if (fs.existsSync(filePath)) {
+                    try { fs.unlinkSync(filePath); } catch (e) {}
+                }
+            }
         }
 
         res.json({ mensaje: `Se eliminaron ${carteles.length} carteles y se limpiaron todas sus asignaciones y evaluaciones.` });
@@ -786,30 +937,11 @@ app.delete('/api/admin/carteles/todos', async (req, res) => {
     }
 });
 
-// SUBIR CARTEL A SUPABASE STORAGE E INSERTAR EN TIDB CLOUD
+// Registrar nuevo cartel con asignación automática de clave y participantes (Nombres de alumnos en MAYÚSCULAS)
 app.post('/api/carteles', upload.single('archivo_pdf'), async (req, res) => {
     try {
         const { nombre_equipo, participantes, carrera, semestre, titulo_cartel, profesor_asesor_id, usuario_id } = req.body;
-        let archivo_url = '';
-
-        if (req.file) {
-            const ext = path.extname(req.file.originalname) || '.pdf';
-            const fileName = `cartel_${Date.now()}_${Math.round(Math.random() * 1E9)}${ext}`;
-
-            const { data, error: storageError } = await supabase.storage
-                .from('carteles-uvm')
-                .upload(fileName, req.file.buffer, {
-                    contentType: req.file.mimetype
-                });
-
-            if (storageError) throw storageError;
-
-            const { data: publicUrlData } = supabase.storage
-                .from('carteles-uvm')
-                .getPublicUrl(fileName);
-
-            archivo_url = publicUrlData.publicUrl;
-        }
+        const archivo_url = req.file ? `/uploads/${req.file.filename}` : '';
 
         const sem = parseInt(semestre);
         let nivel = 1;
@@ -817,10 +949,12 @@ app.post('/api/carteles', upload.single('archivo_pdf'), async (req, res) => {
         if (sem >= 7) nivel = 3;
 
         const equipoCap = capitalizarNombre((nombre_equipo || '').trim());
+        // Requerimiento: todas las letras de los alumnos se hacen mayúsculas (ej. gabriel guerrero -> GABRIEL GUERRERO)
         const participantesMayus = convertirMayusculas((participantes || '').trim());
         const tituloLimpio = (titulo_cartel || '').trim();
         const usrId = usuario_id ? parseInt(usuario_id) : null;
 
+        // Generar clave única automáticamente en el servidor
         let claveGenerada = generarClaveAleatoria();
         let existeClave = true;
         while (existeClave) {
@@ -841,11 +975,11 @@ app.post('/api/carteles', upload.single('archivo_pdf'), async (req, res) => {
             mensaje: `Cartel registrado con éxito en Nivel ${nivel}. Clave única asignada: ${claveGenerada}` 
         });
     } catch (err) {
-        console.error(err);
         res.status(400).json({ error: err.message });
     }
 });
 
+// Repartir carteles entre profesores jueces
 async function ejecutarRepartoCarteles(req, res) {
     const connection = await pool.getConnection();
     try {
@@ -917,6 +1051,7 @@ app.get('/api/profesores/:profesor_id/carteles-asignados', async (req, res) => {
     }
 });
 
+// Evaluar por profesor asignado (Escala 1 a 5 estrellas en 4 rubros)
 app.post('/api/evaluar', async (req, res) => {
     try {
         const { cartel_id, profesor_id, r1, r2, r3, r4 } = req.body;
@@ -935,6 +1070,7 @@ app.post('/api/evaluar', async (req, res) => {
             return res.status(400).json({ error: "Este cartel ya cuenta con sus 3 evaluaciones completadas." });
         }
 
+        // r5 se envía en 0 para satisfacer la estructura existente de evaluaciones
         const query = `INSERT INTO evaluaciones (cartel_id, profesor_id, r1, r2, r3, r4, r5) VALUES (?, ?, ?, ?, ?, ?, 0)`;
         await pool.query(query, [cartel_id, profesor_id, valR1, valR2, valR3, valR4]);
 
@@ -944,6 +1080,7 @@ app.post('/api/evaluar', async (req, res) => {
     }
 });
 
+// Evaluar por Maestro Invitado mediante Clave (Toma el lugar de un profesor ausente)
 app.post('/api/evaluar-invitado', async (req, res) => {
     const connection = await pool.getConnection();
     try {
@@ -965,6 +1102,7 @@ app.post('/api/evaluar-invitado', async (req, res) => {
             return res.status(400).json({ error: "Todos los rubros deben calificarse de 1 a 5 estrellas." });
         }
 
+        // Buscar cartel por clave
         const [carteles] = await connection.execute(
             'SELECT id, nivel, carrera, titulo_cartel FROM carteles WHERE LOWER(TRIM(clave)) = LOWER(TRIM(?))',
             [clave.trim()]
@@ -975,14 +1113,17 @@ app.post('/api/evaluar-invitado', async (req, res) => {
         }
         const cartel = carteles[0];
 
+        // Validar conteo de evaluaciones (< 3)
         const [[conteo]] = await connection.execute('SELECT COUNT(*) as total FROM evaluaciones WHERE cartel_id = ?', [cartel.id]);
         if (conteo.total >= 3) {
             await connection.rollback();
             return res.status(400).json({ error: "Este cartel ya cuenta con sus 3 evaluaciones completadas." });
         }
 
+        // Nombre del maestro invitado con mayúscula en cada palabra
         const nombreFormateado = capitalizarNombre(nombre_maestro.trim());
 
+        // Buscar o registrar al maestro invitado en la tabla de profesores
         let profesorId;
         const [existentes] = await connection.execute(
             'SELECT id FROM profesores WHERE LOWER(TRIM(nombre)) = LOWER(TRIM(?))',
@@ -998,6 +1139,7 @@ app.post('/api/evaluar-invitado', async (req, res) => {
             profesorId = nuevoProfe.insertId;
         }
 
+        // Verificar si este profesor ya evaluó este cartel
         const [yaEvaluado] = await connection.execute(
             'SELECT id FROM evaluaciones WHERE cartel_id = ? AND profesor_id = ?',
             [cartel.id, profesorId]
@@ -1007,12 +1149,15 @@ app.post('/api/evaluar-invitado', async (req, res) => {
             return res.status(400).json({ error: `El maestro ${nombreFormateado} ya registró una calificación previa para este cartel.` });
         }
 
+        // Si se indicó a qué profesor ausente está supliendo:
         if (suplir_profesor_id) {
+            // Reemplazar la asignación del profesor ausente por la del profesor invitado
             await connection.execute(
                 'UPDATE asignaciones SET profesor_id = ? WHERE cartel_id = ? AND profesor_id = ?',
                 [profesorId, cartel.id, parseInt(suplir_profesor_id)]
             );
         } else {
+            // Verificar si ya tiene asignación, sino registrarla
             const [asigCheck] = await connection.execute(
                 'SELECT id FROM asignaciones WHERE cartel_id = ? AND profesor_id = ?',
                 [cartel.id, profesorId]
@@ -1025,6 +1170,7 @@ app.post('/api/evaluar-invitado', async (req, res) => {
             }
         }
 
+        // Guardar la evaluación
         await connection.execute(
             'INSERT INTO evaluaciones (cartel_id, profesor_id, r1, r2, r3, r4, r5) VALUES (?, ?, ?, ?, ?, ?, 0)',
             [cartel.id, profesorId, valR1, valR2, valR3, valR4]
@@ -1043,6 +1189,7 @@ app.post('/api/evaluar-invitado', async (req, res) => {
     }
 });
 
+// Ranking general por niveles con participantes, clave y promedio de estrellas
 app.get('/api/dashboard/ranking', async (req, res) => {
     try {
         const query = `
@@ -1064,4 +1211,4 @@ app.get('/api/dashboard/ranking', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Servidor listo en puerto ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Servidor listo en http://localhost:${PORT}`));

@@ -563,18 +563,28 @@
             <!-- Barra Superior Admin -->
             <div class="flex flex-col sm:flex-row justify-between sm:items-center bg-slate-800 text-white p-5 rounded-2xl shadow-md gap-3">
                 <div>
-                    <h2 class="text-xl sm:text-2xl font-black flex items-center gap-2">
-                        Panel de Control Maestro UVM
-                    </h2>
-                    <p class="text-xs text-slate-300 mt-0.5">Gestión de usuarios (estudiantes y profesores), asignaciones de jueces y carteles.</p>
+                    <div class="flex items-center gap-2">
+                        <h2 class="text-xl sm:text-2xl font-black">
+                            Panel de Control Maestro UVM
+                        </h2>
+                        <span class="bg-red-600 text-white text-[10px] font-black uppercase px-2 py-0.5 rounded-full tracking-wider">ADMIN</span>
+                    </div>
+                    <p class="text-xs text-slate-300 mt-0.5" id="admin-info-sesion">
+                        Gestión global: asignación de administradores, profesores jueces, alumnos y carteles.
+                    </p>
                 </div>
-                <button onclick="cerrarSesion()" class="text-xs bg-red-600 hover:bg-red-700 text-white px-3.5 py-2 rounded-xl font-bold transition self-start sm:self-auto shadow">
-                    Salir Admin
-                </button>
+                <div class="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+                    <button onclick="abrirModalEditarPerfilAdmin()" class="text-xs bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded-xl font-bold transition flex items-center gap-1.5 shadow-sm">
+                        <span>⚙️ Mi Perfil / Contraseña</span>
+                    </button>
+                    <button onclick="cerrarSesion()" class="text-xs bg-red-600 hover:bg-red-700 text-white px-3.5 py-2 rounded-xl font-bold transition shadow">
+                        Salir Admin
+                    </button>
+                </div>
             </div>
 
-            <!-- 4 Métricas Globales -->
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+            <!-- 5 Métricas Globales -->
+            <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4">
                 <div class="bg-white p-4 rounded-xl shadow-sm border text-center">
                     <p class="text-gray-500 text-[11px] font-bold uppercase tracking-wider">Carteles</p>
                     <p id="metric-carteles" class="text-2xl sm:text-3xl font-black text-red-600 mt-1">0</p>
@@ -588,6 +598,10 @@
                     <p id="metric-estudiantes" class="text-2xl sm:text-3xl font-black text-emerald-600 mt-1">0</p>
                 </div>
                 <div class="bg-white p-4 rounded-xl shadow-sm border text-center">
+                    <p class="text-gray-500 text-[11px] font-bold uppercase tracking-wider">Administradores</p>
+                    <p id="metric-administradores" class="text-2xl sm:text-3xl font-black text-slate-800 mt-1">1</p>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow-sm border text-center col-span-2 sm:col-span-1">
                     <p class="text-gray-500 text-[11px] font-bold uppercase tracking-wider">Evaluaciones</p>
                     <p id="metric-evaluaciones" class="text-2xl sm:text-3xl font-black text-amber-600 mt-1">0</p>
                 </div>
@@ -596,7 +610,7 @@
             <!-- Pestañas internas del Panel Admin -->
             <div class="flex flex-wrap gap-2 border-b border-slate-200 pb-2">
                 <button id="tab-admin-usuarios" onclick="verPestanaAdmin('usuarios')" class="px-4 py-2 rounded-xl text-xs font-black shadow-sm transition bg-red-600 text-white">
-                    Usuarios (Alumnos & Profesores)
+                    Directorio de Usuarios & Roles
                 </button>
                 <button id="tab-admin-carteles" onclick="verPestanaAdmin('carteles')" class="px-4 py-2 rounded-xl text-xs font-semibold bg-white text-gray-700 hover:bg-gray-100 border shadow-sm transition">
                     Carteles & Claves
@@ -619,7 +633,7 @@
                         <div>
                             <h3 class="text-lg font-black text-slate-800">Directorio de Usuarios Registrados</h3>
                             <p class="text-xs text-gray-500 mt-0.5">
-                                Aquí puedes <strong>promover estudiantes a profesores jueces</strong>, cambiar sus niveles y áreas, o agregar nuevos usuarios.
+                                Aquí puedes <strong>hacer administradores a otros usuarios</strong>, promover estudiantes a profesores jueces, cambiar niveles o dar de alta nuevos usuarios.
                             </p>
                         </div>
                         <div class="flex flex-wrap items-center gap-2">
@@ -637,7 +651,7 @@
                         <div class="relative flex-1 max-w-md">
                             <input type="text" id="filtro-usuarios-busqueda" oninput="filtrarAdminUsuarios()" placeholder="Buscar por nombre (MAYÚSCULAS) o matrícula..." class="w-full border border-slate-300 pl-3 pr-3 py-2 rounded-xl text-xs bg-white focus:ring-2 focus:ring-red-500 focus:outline-none">
                         </div>
-                        <div class="flex gap-1.5">
+                        <div class="flex flex-wrap gap-1.5">
                             <button id="filtro-rol-todos" onclick="filtrarRolUsuarios('todos')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-red-600 text-white shadow-sm">
                                 Todos
                             </button>
@@ -646,6 +660,9 @@
                             </button>
                             <button id="filtro-rol-profesor" onclick="filtrarRolUsuarios('profesor')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-slate-600 border hover:bg-slate-50">
                                 Profesores / Jueces
+                            </button>
+                            <button id="filtro-rol-admin" onclick="filtrarRolUsuarios('admin')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-slate-600 border hover:bg-slate-50 flex items-center gap-1">
+                                👑 Admins
                             </button>
                         </div>
                     </div>
@@ -818,7 +835,7 @@
         <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border space-y-4">
             <div class="flex justify-between items-start">
                 <div>
-                    <h3 class="font-black text-lg text-slate-800">Modificar Rol de Usuario</h3>
+                    <h3 class="font-black text-lg text-slate-800">Modificar Rol y Datos de Usuario</h3>
                     <p id="modal-promover-subtitulo" class="text-xs text-gray-500 font-semibold"></p>
                 </div>
                 <button onclick="cerrarModalPromover()" class="text-gray-400 hover:text-gray-600 text-lg font-bold">✕</button>
@@ -832,7 +849,18 @@
                     <select id="modal-promover-rol" onchange="toggleCamposProfesorModal(this.value)" class="w-full border p-2.5 rounded-xl text-xs font-bold bg-white text-slate-800 focus:ring-2 focus:ring-red-500">
                         <option value="estudiante">Estudiante (Alumno)</option>
                         <option value="profesor">Profesor / Juez Evaluador</option>
+                        <option value="admin">👑 Administrador del Sistema</option>
                     </select>
+                </div>
+
+                <!-- Aviso cuando se selecciona Administrador -->
+                <div id="modal-grupo-admin" class="hidden space-y-2 bg-slate-900 text-white p-3.5 rounded-xl border border-slate-700 text-xs">
+                    <div class="flex items-center gap-1.5 font-bold text-amber-400">
+                        <span>👑 Permisos de Administrador Maestro</span>
+                    </div>
+                    <p class="text-[11px] text-slate-300">
+                        Este usuario podrá acceder al Panel de Control Maestro, gestionar carteles, asignar jueces, hacer a otros usuarios administradores y cambiar configuraciones.
+                    </p>
                 </div>
 
                 <div id="modal-grupo-profesor" class="space-y-3 bg-red-50/70 p-3.5 rounded-xl border border-red-200">
@@ -858,6 +886,12 @@
                     </div>
                 </div>
 
+                <div>
+                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Contraseña (Opcional):</label>
+                    <input type="password" id="modal-promover-pass" placeholder="Dejar en blanco para conservar la actual" class="w-full border p-2.5 rounded-xl text-xs font-medium focus:ring-2 focus:ring-red-500">
+                    <p class="text-[10px] text-gray-500 mt-0.5">Ingresa una contraseña sólo si deseas actualizarla o resetearla.</p>
+                </div>
+
                 <div class="flex justify-end gap-2 pt-2">
                     <button type="button" onclick="cerrarModalPromover()" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100">
                         Cancelar
@@ -878,7 +912,7 @@
             <div class="flex justify-between items-start">
                 <div>
                     <h3 class="font-black text-lg text-slate-800">Alta Manual de Usuario</h3>
-                    <p class="text-xs text-gray-500">Registra directamente a un alumno o profesor.</p>
+                    <p class="text-xs text-gray-500">Registra directamente a un alumno, profesor o administrador.</p>
                 </div>
                 <button onclick="cerrarModalCrearUsuario()" class="text-gray-400 hover:text-gray-600 text-lg font-bold">✕</button>
             </div>
@@ -895,11 +929,18 @@
                 </div>
                 <div>
                     <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Rol a Asignar:</label>
-                    <select id="admin_nuevo_rol" class="w-full border p-2.5 rounded-xl text-xs font-bold bg-white text-slate-800 focus:ring-2 focus:ring-red-500">
+                    <select id="admin_nuevo_rol" onchange="toggleCamposCrearUsuarioModal(this.value)" class="w-full border p-2.5 rounded-xl text-xs font-bold bg-white text-slate-800 focus:ring-2 focus:ring-red-500">
                         <option value="estudiante">Estudiante (Alumno)</option>
                         <option value="profesor">Profesor / Juez Evaluador</option>
+                        <option value="admin">👑 Administrador del Sistema</option>
                     </select>
                 </div>
+
+                <div id="admin_nuevo_admin_info" class="hidden bg-slate-900 text-white p-3 rounded-xl border border-slate-700 text-xs">
+                    <p class="font-bold text-amber-400">👑 Privilegios de Administrador</p>
+                    <p class="text-[11px] text-slate-300 mt-0.5">El usuario tendrá acceso administrativo total para gestionar el evento.</p>
+                </div>
+
                 <div class="grid grid-cols-2 gap-2">
                     <div>
                         <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Área / Carrera:</label>
@@ -912,7 +953,7 @@
                             <option value="Hospitalidad y Turismo">Hospitalidad y Turismo</option>
                         </select>
                     </div>
-                    <div>
+                    <div id="admin_nuevo_nivel_contenedor">
                         <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Nivel (Si es Profe):</label>
                         <select id="admin_nuevo_nivel" class="w-full border p-2 rounded-lg text-xs font-semibold bg-white text-slate-700">
                             <option value="1">Nivel 1</option>
@@ -1849,7 +1890,7 @@
                 const data = await res.json();
 
                 if (res.ok) {
-                    usuarioActual = { id: 1, nombre: 'ADMINISTRADOR GENERAL', matricula: 'admin', rol: 'admin', carrera: 'General' };
+                    usuarioActual = data.usuario;
                     localStorage.setItem('carteles_uvm_usuario', JSON.stringify(usuarioActual));
                     document.getElementById('form-admin-login').reset();
                     cargarAdminDashboard();
@@ -1891,13 +1932,31 @@
                 document.getElementById('metric-carteles').innerText = metricas.carteles || 0;
                 document.getElementById('metric-profesores').innerText = metricas.profesores || 0;
                 document.getElementById('metric-estudiantes').innerText = metricas.estudiantes || 0;
+                if (document.getElementById('metric-administradores')) {
+                    document.getElementById('metric-administradores').innerText = metricas.administradores || 0;
+                }
                 document.getElementById('metric-evaluaciones').innerText = metricas.evaluaciones || 0;
+
+                if (usuarioActual) {
+                    const infoSesion = document.getElementById('admin-info-sesion');
+                    if (infoSesion) {
+                        infoSesion.innerText = `Sesión activa: ${usuarioActual.nombre} (${usuarioActual.matricula || 'admin'})`;
+                    }
+                }
 
                 cargarAdminUsuarios();
                 cargarAdminCarteles();
             } catch (err) {
                 console.error("Error al cargar dashboard admin:", err);
             }
+        }
+
+        function abrirModalEditarPerfilAdmin() {
+            if (!usuarioActual) {
+                alert("No hay una sesión activa de administrador.");
+                return;
+            }
+            abrirModalPromover(usuarioActual);
         }
 
         // --- GESTIÓN DE USUARIOS POR EL ADMINISTRADOR ---
@@ -1913,13 +1972,13 @@
 
         function filtrarRolUsuarios(rol) {
             filtroRolActual = rol;
-            ['todos', 'estudiante', 'profesor'].forEach(r => {
+            ['todos', 'estudiante', 'profesor', 'admin'].forEach(r => {
                 const btn = document.getElementById(`filtro-rol-${r}`);
                 if (!btn) return;
                 if (r === rol) {
-                    btn.className = "px-3 py-1.5 rounded-lg text-xs font-bold bg-red-600 text-white shadow-sm";
+                    btn.className = "px-3 py-1.5 rounded-lg text-xs font-bold bg-red-600 text-white shadow-sm flex items-center gap-1";
                 } else {
-                    btn.className = "px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-slate-600 border hover:bg-slate-50";
+                    btn.className = "px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-slate-600 border hover:bg-slate-50 flex items-center gap-1";
                 }
             });
             filtrarAdminUsuarios();
@@ -1951,7 +2010,7 @@
             tbody.innerHTML = usuarios.map(u => {
                 let badgeRol = '';
                 if (u.rol === 'admin') {
-                    badgeRol = `<span class="bg-slate-800 text-white px-2 py-0.5 rounded font-black text-[10px]">ADMIN</span>`;
+                    badgeRol = `<span class="bg-slate-900 text-amber-300 border border-slate-700 px-2 py-0.5 rounded font-black text-[10px] inline-flex items-center gap-1 shadow-sm">👑 ADMIN</span>`;
                 } else if (u.rol === 'profesor') {
                     badgeRol = `<span class="bg-red-100 text-red-900 border border-red-300 px-2 py-0.5 rounded font-extrabold text-[10px]">PROFESOR JUEZ</span>`;
                 } else {
@@ -1960,36 +2019,68 @@
 
                 let nivelTexto = u.rol === 'profesor' ? `Nivel ${u.nivel_asignado || 1}` : '-';
 
+                const uJson = JSON.stringify(u).replace(/"/g, '&quot;');
+                const esSesionActual = usuarioActual && (usuarioActual.id === u.id || usuarioActual.matricula === u.matricula);
+
                 // Acciones de administración
                 let botonesAccion = '';
                 if (u.rol === 'estudiante') {
                     botonesAccion = `
-                        <button onclick='abrirModalPromover(${JSON.stringify(u)})' class="bg-red-700 hover:bg-red-800 text-white px-2.5 py-1 rounded-lg font-bold text-[11px] shadow-sm transition">
-                            Promover a Profe Juez
+                        <button onclick="hacerAdminDirecto(${u.id}, '${u.nombre.replace(/'/g, "\\'")}')" class="bg-slate-800 hover:bg-slate-900 text-amber-300 border border-slate-700 px-2.5 py-1 rounded-lg font-bold text-[11px] shadow-sm transition" title="Hacer a este estudiante Administrador">
+                            👑 Hacer Admin
                         </button>
-                        <button onclick="eliminarUsuarioAdmin(${u.id}, '${u.nombre}')" class="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-2 py-1 rounded-lg font-bold text-[11px] transition">
+                        <button onclick="abrirModalPromover(${uJson})" class="bg-red-700 hover:bg-red-800 text-white px-2.5 py-1 rounded-lg font-bold text-[11px] shadow-sm transition">
+                            Promover a Profe
+                        </button>
+                        <button onclick="eliminarUsuarioAdmin(${u.id}, '${u.nombre.replace(/'/g, "\\'")}')" class="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-2 py-1 rounded-lg font-bold text-[11px] transition">
                             Eliminar
                         </button>
                     `;
                 } else if (u.rol === 'profesor') {
                     botonesAccion = `
-                        <button onclick='abrirModalPromover(${JSON.stringify(u)})' class="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 px-2.5 py-1 rounded-lg font-bold text-[11px] transition">
+                        <button onclick="hacerAdminDirecto(${u.id}, '${u.nombre.replace(/'/g, "\\'")}')" class="bg-slate-800 hover:bg-slate-900 text-amber-300 border border-slate-700 px-2.5 py-1 rounded-lg font-bold text-[11px] shadow-sm transition" title="Hacer a este profesor Administrador">
+                            👑 Hacer Admin
+                        </button>
+                        <button onclick="abrirModalPromover(${uJson})" class="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 px-2.5 py-1 rounded-lg font-bold text-[11px] transition">
                             Editar Rol / Nivel
                         </button>
-                        <button onclick="cambiarRolDirecto(${u.id}, 'estudiante', '${u.nombre}')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-1 rounded-lg font-bold text-[11px] transition" title="Cambiar a Estudiante">
+                        <button onclick="cambiarRolDirecto(${u.id}, 'estudiante', '${u.nombre.replace(/'/g, "\\'")}')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-1 rounded-lg font-bold text-[11px] transition" title="Cambiar a Estudiante">
                             A Estudiante
                         </button>
-                        <button onclick="eliminarUsuarioAdmin(${u.id}, '${u.nombre}')" class="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-2 py-1 rounded-lg font-bold text-[11px] transition">
+                        <button onclick="eliminarUsuarioAdmin(${u.id}, '${u.nombre.replace(/'/g, "\\'")}')" class="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-2 py-1 rounded-lg font-bold text-[11px] transition">
                             Eliminar
                         </button>
                     `;
                 } else {
-                    botonesAccion = `<span class="text-gray-400 text-[11px] italic">Admin Maestro</span>`;
+                    // u.rol === 'admin'
+                    if (esSesionActual) {
+                        botonesAccion = `
+                            <span class="text-[10px] bg-slate-100 text-slate-600 font-extrabold px-2 py-1 rounded-md border mr-1">Tú</span>
+                            <button onclick="abrirModalPromover(${uJson})" class="bg-slate-800 hover:bg-slate-900 text-white px-2.5 py-1 rounded-lg font-bold text-[11px] shadow-sm transition">
+                                ⚙️ Mi Contraseña / Perfil
+                            </button>
+                        `;
+                    } else {
+                        botonesAccion = `
+                            <button onclick="abrirModalPromover(${uJson})" class="bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 px-2.5 py-1 rounded-lg font-bold text-[11px] transition">
+                                Editar / Clave
+                            </button>
+                            <button onclick="cambiarRolDirecto(${u.id}, 'profesor', '${u.nombre.replace(/'/g, "\\'")}')" class="bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 px-2 py-1 rounded-lg font-bold text-[11px] transition" title="Cambiar a Profesor Juez">
+                                Quitar Admin
+                            </button>
+                            <button onclick="eliminarUsuarioAdmin(${u.id}, '${u.nombre.replace(/'/g, "\\'")}')" class="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-2 py-1 rounded-lg font-bold text-[11px] transition">
+                                Eliminar
+                            </button>
+                        `;
+                    }
                 }
 
                 return `
                     <tr class="border-b hover:bg-gray-50 transition">
-                        <td class="p-3 font-bold text-slate-800 uppercase">${u.nombre}</td>
+                        <td class="p-3 font-bold text-slate-800 uppercase flex items-center gap-1.5">
+                            <span>${u.nombre}</span>
+                            ${esSesionActual ? '<span class="text-[9px] bg-red-100 text-red-800 font-black px-1.5 py-0.5 rounded-full">Actual</span>' : ''}
+                        </td>
                         <td class="p-3 font-mono text-slate-600 font-semibold">${u.matricula}</td>
                         <td class="p-3">${badgeRol}</td>
                         <td class="p-3 font-semibold text-slate-700">${u.carrera || 'General'}</td>
@@ -2000,13 +2091,38 @@
             }).join('');
         }
 
+        async function hacerAdminDirecto(id, nombre) {
+            if (!confirm(`¿Estás seguro de otorgar rol de ADMINISTRADOR a ${nombre}?\n\nEste usuario podrá acceder al Panel de Control Maestro, asignar jueces, hacer a otros usuarios administradores y gestionar todo el evento.`)) {
+                return;
+            }
+            try {
+                const res = await fetch(`/api/admin/usuarios/${id}/rol`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ rol: 'admin' })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    alert(data.mensaje);
+                    cargarAdminUsuarios();
+                    cargarAdminDashboard();
+                } else {
+                    alert(data.error);
+                }
+            } catch (err) {
+                alert("Error al otorgar rol de administrador: " + err.message);
+            }
+        }
+
         function abrirModalPromover(user) {
             document.getElementById('modal-promover-id').value = user.id;
             document.getElementById('modal-promover-subtitulo').innerText = `${user.nombre} (${user.matricula})`;
-            document.getElementById('modal-promover-rol').value = user.rol === 'profesor' ? 'profesor' : 'profesor';
+            document.getElementById('modal-promover-rol').value = user.rol;
             document.getElementById('modal-promover-carrera').value = user.carrera || 'Ingeniería';
             document.getElementById('modal-promover-nivel').value = user.nivel_asignado || 1;
-            toggleCamposProfesorModal('profesor');
+            const passInput = document.getElementById('modal-promover-pass');
+            if (passInput) passInput.value = '';
+            toggleCamposProfesorModal(user.rol);
             document.getElementById('modal-promover-usuario').classList.remove('hidden');
         }
 
@@ -2015,9 +2131,16 @@
         }
 
         function toggleCamposProfesorModal(rol) {
-            const grupo = document.getElementById('modal-grupo-profesor');
-            if (rol === 'profesor') grupo.classList.remove('hidden');
-            else grupo.classList.add('hidden');
+            const grupoProfe = document.getElementById('modal-grupo-profesor');
+            const grupoAdmin = document.getElementById('modal-grupo-admin');
+            if (grupoProfe) {
+                if (rol === 'profesor') grupoProfe.classList.remove('hidden');
+                else grupoProfe.classList.add('hidden');
+            }
+            if (grupoAdmin) {
+                if (rol === 'admin') grupoAdmin.classList.remove('hidden');
+                else grupoAdmin.classList.add('hidden');
+            }
         }
 
         document.getElementById('form-promover-usuario').onsubmit = async (e) => {
@@ -2026,16 +2149,22 @@
             const rol = document.getElementById('modal-promover-rol').value;
             const carrera = document.getElementById('modal-promover-carrera').value;
             const nivel_asignado = document.getElementById('modal-promover-nivel').value;
+            const password = document.getElementById('modal-promover-pass')?.value || '';
 
             try {
                 const res = await fetch(`/api/admin/usuarios/${id}/rol`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ rol, carrera, nivel_asignado })
+                    body: JSON.stringify({ rol, carrera, nivel_asignado, password })
                 });
                 const data = await res.json();
                 if (res.ok) {
                     alert(data.mensaje);
+                    // Si el administrador actual modificó su propio perfil o contraseña
+                    if (usuarioActual && (usuarioActual.id == id || usuarioActual.matricula == data.usuario?.matricula)) {
+                        usuarioActual = { ...usuarioActual, ...data.usuario };
+                        localStorage.setItem('carteles_uvm_usuario', JSON.stringify(usuarioActual));
+                    }
                     cerrarModalPromover();
                     cargarAdminUsuarios();
                     cargarAdminDashboard();
@@ -2043,12 +2172,13 @@
                     alert(data.error);
                 }
             } catch (err) {
-                alert("Error al actualizar rol: " + err.message);
+                alert("Error al actualizar usuario: " + err.message);
             }
         };
 
         async function cambiarRolDirecto(id, nuevoRol, nombre) {
-            if (!confirm(`¿Deseas cambiar el rol de ${nombre} a ${nuevoRol.toUpperCase()}?`)) return;
+            const rolTexto = nuevoRol === 'admin' ? 'ADMINISTRADOR' : (nuevoRol === 'profesor' ? 'PROFESOR JUEZ' : 'ESTUDIANTE');
+            if (!confirm(`¿Deseas cambiar el rol de ${nombre} a ${rolTexto}?`)) return;
             try {
                 const res = await fetch(`/api/admin/usuarios/${id}/rol`, {
                     method: 'PUT',
@@ -2087,11 +2217,25 @@
 
         function abrirModalCrearUsuario() {
             document.getElementById('form-crear-usuario-admin').reset();
+            toggleCamposCrearUsuarioModal('estudiante');
             document.getElementById('modal-crear-usuario').classList.remove('hidden');
         }
 
         function cerrarModalCrearUsuario() {
             document.getElementById('modal-crear-usuario').classList.add('hidden');
+        }
+
+        function toggleCamposCrearUsuarioModal(rol) {
+            const nivelCont = document.getElementById('admin_nuevo_nivel_contenedor');
+            const adminInfo = document.getElementById('admin_nuevo_admin_info');
+            if (nivelCont) {
+                if (rol === 'profesor') nivelCont.classList.remove('hidden');
+                else nivelCont.classList.add('hidden');
+            }
+            if (adminInfo) {
+                if (rol === 'admin') adminInfo.classList.remove('hidden');
+                else adminInfo.classList.add('hidden');
+            }
         }
 
         document.getElementById('form-crear-usuario-admin').onsubmit = async (e) => {
