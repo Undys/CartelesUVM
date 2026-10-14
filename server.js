@@ -117,7 +117,7 @@ async function conectarBD() {
     }
 
     pool = mysql.createPool(process.env.DATABASE_URL || poolConfig);
-    console.log(`✅ Conectando a la base de datos (${dbHost}:${dbPort}${sslConfig ? ' con SSL/TLS' : ''})`);
+    console.log(`Conectando a la base de datos (${dbHost}:${dbPort}${sslConfig ? ' con SSL/TLS' : ''})`);
 
     try {
         // 1. Columna carrera en profesores
@@ -226,7 +226,7 @@ async function conectarBD() {
                     "INSERT INTO usuarios (nombre, matricula, password, rol, carrera, nivel_asignado) VALUES ('ADMINISTRADOR GENERAL', ?, ?, 'admin', 'General', 1)",
                     [adminUserEnv, adminPassEnv]
                 );
-                console.log(`✅ Administrador inicial '${adminUserEnv}' configurado desde variables de entorno (.env).`);
+                console.log(`[OK] Administrador inicial '${adminUserEnv}' configurado desde variables de entorno (.env).`);
             } else {
                 const passAleatoria = 'Admin_' + crypto.randomBytes(4).toString('hex');
                 await pool.query(
@@ -234,11 +234,11 @@ async function conectarBD() {
                     [adminUserEnv, passAleatoria]
                 );
                 console.log('\n╔════════════════════════════════════════════════════════════════════════════╗');
-                console.log('║ 🔐 SEGURIDAD: Administrador inicial generado (sin contraseña en el código):║');
+                console.log('║ [SEGURIDAD] Administrador inicial generado (sin contraseña en el código):  ║');
                 console.log(`║    Usuario:    ${adminUserEnv.padEnd(58)}║`);
                 console.log(`║    Contraseña: ${passAleatoria.padEnd(58)}║`);
                 console.log('║                                                                            ║');
-                console.log('║ 💡 Para definir tu propia contraseña sin exponerla en GitHub:              ║');
+                console.log('║ [INFO] Para definir tu propia contraseña sin exponerla en GitHub:          ║');
                 console.log('║    Crea un archivo .env con: ADMIN_PASSWORD=TuContraseñaSecreta            ║');
                 console.log('║    (El archivo .env está protegido por .gitignore y nunca se sube a GitHub)║');
                 console.log('╚════════════════════════════════════════════════════════════════════════════╝\n');
@@ -249,7 +249,7 @@ async function conectarBD() {
                 "UPDATE usuarios SET password = ? WHERE (matricula = ? OR id = ?) AND rol = 'admin'",
                 [adminPassEnv, adminUserEnv, adminsExist[0].id]
             );
-            console.log(`🔒 Contraseña del administrador '${adminUserEnv}' sincronizada desde .env.`);
+            console.log(`[OK] Contraseña del administrador '${adminUserEnv}' sincronizada desde .env.`);
         }
 
         // 12. Asegurar que participantes en carteles estén en MAYÚSCULAS
@@ -260,7 +260,7 @@ async function conectarBD() {
             }
         }
 
-        console.log('✅ Esquema y datos actualizados correctamente.');
+        console.log('[OK] Esquema y datos actualizados correctamente.');
     } catch (e) {
         console.warn('Verificación de esquema BD:', e.message);
     }
@@ -1233,4 +1233,4 @@ app.get('/api/dashboard/ranking', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Servidor listo en http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`Servidor listo en http://localhost:${PORT}`));

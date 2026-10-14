@@ -124,7 +124,7 @@
                             <span class="text-[10px] bg-red-100 text-red-800 px-2 py-0.5 rounded font-black">MAYÚSCULAS AUTOMÁTICAS</span>
                         </div>
                         <input type="text" id="reg_nombre" required placeholder="Ej. GABRIEL GUERRERO" oninput="this.value = this.value.toUpperCase()" class="w-full border border-slate-300 p-3 rounded-xl uppercase font-bold text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none text-sm">
-                        <p class="text-[11px] text-gray-500 mt-1">Ejemplo: alumno: gabriel guerrero ➔ se convertirá a <strong>GABRIEL GUERRERO</strong></p>
+                        <p class="text-[11px] text-gray-500 mt-1">Ejemplo: alumno: gabriel guerrero -&gt; se convertirá a <strong>GABRIEL GUERRERO</strong></p>
                     </div>
 
                     <!-- Matrícula / Usuario -->
@@ -575,7 +575,7 @@
                 </div>
                 <div class="flex flex-wrap items-center gap-2 self-start sm:self-auto">
                     <button onclick="abrirModalEditarPerfilAdmin()" class="text-xs bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded-xl font-bold transition flex items-center gap-1.5 shadow-sm">
-                        <span>⚙️ Mi Perfil / Contraseña</span>
+                        <span>Mi Perfil / Contraseña</span>
                     </button>
                     <button onclick="cerrarSesion()" class="text-xs bg-red-600 hover:bg-red-700 text-white px-3.5 py-2 rounded-xl font-bold transition shadow">
                         Salir Admin
@@ -662,7 +662,7 @@
                                 Profesores / Jueces
                             </button>
                             <button id="filtro-rol-admin" onclick="filtrarRolUsuarios('admin')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-slate-600 border hover:bg-slate-50 flex items-center gap-1">
-                                👑 Admins
+                                Admins
                             </button>
                         </div>
                     </div>
@@ -849,14 +849,14 @@
                     <select id="modal-promover-rol" onchange="toggleCamposProfesorModal(this.value)" class="w-full border p-2.5 rounded-xl text-xs font-bold bg-white text-slate-800 focus:ring-2 focus:ring-red-500">
                         <option value="estudiante">Estudiante (Alumno)</option>
                         <option value="profesor">Profesor / Juez Evaluador</option>
-                        <option value="admin">👑 Administrador del Sistema</option>
+                        <option value="admin">Administrador del Sistema</option>
                     </select>
                 </div>
 
                 <!-- Aviso cuando se selecciona Administrador -->
                 <div id="modal-grupo-admin" class="hidden space-y-2 bg-slate-900 text-white p-3.5 rounded-xl border border-slate-700 text-xs">
                     <div class="flex items-center gap-1.5 font-bold text-amber-400">
-                        <span>👑 Permisos de Administrador Maestro</span>
+                        <span>Permisos de Administrador Maestro</span>
                     </div>
                     <p class="text-[11px] text-slate-300">
                         Este usuario podrá acceder al Panel de Control Maestro, gestionar carteles, asignar jueces, hacer a otros usuarios administradores y cambiar configuraciones.
@@ -932,12 +932,12 @@
                     <select id="admin_nuevo_rol" onchange="toggleCamposCrearUsuarioModal(this.value)" class="w-full border p-2.5 rounded-xl text-xs font-bold bg-white text-slate-800 focus:ring-2 focus:ring-red-500">
                         <option value="estudiante">Estudiante (Alumno)</option>
                         <option value="profesor">Profesor / Juez Evaluador</option>
-                        <option value="admin">👑 Administrador del Sistema</option>
+                        <option value="admin">Administrador del Sistema</option>
                     </select>
                 </div>
 
                 <div id="admin_nuevo_admin_info" class="hidden bg-slate-900 text-white p-3 rounded-xl border border-slate-700 text-xs">
-                    <p class="font-bold text-amber-400">👑 Privilegios de Administrador</p>
+                    <p class="font-bold text-amber-400">Privilegios de Administrador</p>
                     <p class="text-[11px] text-slate-300 mt-0.5">El usuario tendrá acceso administrativo total para gestionar el evento.</p>
                 </div>
 
@@ -2010,7 +2010,7 @@
             tbody.innerHTML = usuarios.map(u => {
                 let badgeRol = '';
                 if (u.rol === 'admin') {
-                    badgeRol = `<span class="bg-slate-900 text-amber-300 border border-slate-700 px-2 py-0.5 rounded font-black text-[10px] inline-flex items-center gap-1 shadow-sm">👑 ADMIN</span>`;
+                    badgeRol = `<span class="bg-slate-900 text-amber-300 border border-slate-700 px-2 py-0.5 rounded font-black text-[10px] inline-flex items-center gap-1 shadow-sm">ADMIN</span>`;
                 } else if (u.rol === 'profesor') {
                     badgeRol = `<span class="bg-red-100 text-red-900 border border-red-300 px-2 py-0.5 rounded font-extrabold text-[10px]">PROFESOR JUEZ</span>`;
                 } else {
@@ -2027,7 +2027,7 @@
                 if (u.rol === 'estudiante') {
                     botonesAccion = `
                         <button onclick="hacerAdminDirecto(${u.id}, '${u.nombre.replace(/'/g, "\\'")}')" class="bg-slate-800 hover:bg-slate-900 text-amber-300 border border-slate-700 px-2.5 py-1 rounded-lg font-bold text-[11px] shadow-sm transition" title="Hacer a este estudiante Administrador">
-                            👑 Hacer Admin
+                            Hacer Admin
                         </button>
                         <button onclick="abrirModalPromover(${uJson})" class="bg-red-700 hover:bg-red-800 text-white px-2.5 py-1 rounded-lg font-bold text-[11px] shadow-sm transition">
                             Promover a Profe
@@ -2039,7 +2039,7 @@
                 } else if (u.rol === 'profesor') {
                     botonesAccion = `
                         <button onclick="hacerAdminDirecto(${u.id}, '${u.nombre.replace(/'/g, "\\'")}')" class="bg-slate-800 hover:bg-slate-900 text-amber-300 border border-slate-700 px-2.5 py-1 rounded-lg font-bold text-[11px] shadow-sm transition" title="Hacer a este profesor Administrador">
-                            👑 Hacer Admin
+                            Hacer Admin
                         </button>
                         <button onclick="abrirModalPromover(${uJson})" class="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 px-2.5 py-1 rounded-lg font-bold text-[11px] transition">
                             Editar Rol / Nivel
@@ -2057,7 +2057,7 @@
                         botonesAccion = `
                             <span class="text-[10px] bg-slate-100 text-slate-600 font-extrabold px-2 py-1 rounded-md border mr-1">Tú</span>
                             <button onclick="abrirModalPromover(${uJson})" class="bg-slate-800 hover:bg-slate-900 text-white px-2.5 py-1 rounded-lg font-bold text-[11px] shadow-sm transition">
-                                ⚙️ Mi Contraseña / Perfil
+                                Mi Contraseña / Perfil
                             </button>
                         `;
                     } else {
