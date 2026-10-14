@@ -298,7 +298,7 @@ app.post('/api/registro', async (req, res) => {
         );
 
         res.json({
-            mensaje: `¡Estudiante ${nombreMayus} registrado con éxito!`,
+            mensaje: `¡${nombreMayus} registrado con éxito!`,
             usuario: {
                 id: result.insertId,
                 nombre: nombreMayus,
