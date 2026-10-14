@@ -87,15 +87,37 @@ function generarClaveAleatoria() {
 
 let pool;
 async function conectarBD() {
-    pool = mysql.createPool({
-        host: process.env.DB_HOST || 'localhost',
+    const dbHost = process.env.DB_HOST || 'localhost';
+    const dbPort = parseInt(process.env.DB_PORT) || (dbHost.includes('tidb') ? 4000 : 3306);
+    const dbSslEnv = (process.env.DB_SSL || '').toLowerCase().trim();
+
+    // Configuración SSL (exigida obligatoriamente por TiDB Cloud)
+    let sslConfig = undefined;
+    if (dbSslEnv === 'true' || dbSslEnv === '1' || dbSslEnv === 'yes') {
+        sslConfig = { rejectUnauthorized: true, minVersion: 'TLSv1.2' };
+    } else if (dbSslEnv === 'false' || dbSslEnv === '0' || dbSslEnv === 'no') {
+        sslConfig = undefined;
+    } else if (dbHost !== 'localhost' && dbHost !== '127.0.0.1') {
+        // En conexiones remotas / TiDB Cloud, habilitar SSL automáticamente
+        sslConfig = { rejectUnauthorized: true, minVersion: 'TLSv1.2' };
+    }
+
+    const poolConfig = {
+        host: dbHost,
+        port: dbPort,
         user: process.env.DB_USER || 'root',
         password: process.env.DB_PASSWORD || '',
         database: process.env.DB_NAME || 'evaluaciones_db',
         waitForConnections: true,
         connectionLimit: 10
-    });
-    console.log('✅ Conectado exitosamente a MySQL (XAMPP)');
+    };
+
+    if (sslConfig) {
+        poolConfig.ssl = sslConfig;
+    }
+
+    pool = mysql.createPool(process.env.DATABASE_URL || poolConfig);
+    console.log(`✅ Conectando a la base de datos (${dbHost}:${dbPort}${sslConfig ? ' con SSL/TLS' : ''})`);
 
     try {
         // 1. Columna carrera en profesores
