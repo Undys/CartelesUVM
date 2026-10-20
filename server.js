@@ -5,6 +5,7 @@ const path = require('path');
 const multer = require('multer');
 const fs = require('fs');
 const crypto = require('crypto');
+const nodemailer = require('nodemailer');
 
 // Cargar variables de entorno desde .env (evita exponer credenciales en GitHub)
 if (typeof process.loadEnvFile === 'function') {
@@ -85,6 +86,88 @@ function generarClaveAleatoria() {
     return `CART-${codigo}`;
 }
 
+// Helper para enviar correo automático con los datos de la cuenta (Profesores / Usuarios)
+async function enviarCorreoDatosCuenta({ email, nombre, matricula, password, rol, carrera, nivel_asignado }) {
+    if (!email || !email.trim()) {
+        return { enviado: false, motivo: 'Sin correo electrónico proporcionado' };
+    }
+
+    const smtpUser = (process.env.SMTP_USER || '').trim();
+    const smtpPass = (process.env.SMTP_PASS || '').trim();
+    const smtpHost = (process.env.SMTP_HOST || 'smtp.office365.com').trim();
+    const smtpPort = parseInt(process.env.SMTP_PORT) || 587;
+    const smtpSecure = process.env.SMTP_SECURE === 'true' || smtpPort === 465;
+    const smtpFrom = (process.env.SMTP_FROM || `"Sistema de Carteles UVM" <${smtpUser}>`).trim();
+
+    if (!smtpUser || !smtpPass) {
+        console.warn(`[CORREO] No se pudo enviar correo a ${email}: Configura SMTP_USER y SMTP_PASS en tu archivo .env`);
+        return { enviado: false, motivo: 'SMTP no configurado en .env' };
+    }
+
+    try {
+        const transporter = nodemailer.createTransport({
+            host: smtpHost,
+            port: smtpPort,
+            secure: smtpSecure,
+            requireTLS: smtpPort === 587,
+            auth: {
+                user: smtpUser,
+                pass: smtpPass
+            },
+            tls: {
+                rejectUnauthorized: false
+            }
+        });
+
+        const rolEtiqueta = rol === 'profesor'
+            ? 'Profesor / Juez Evaluador'
+            : (rol === 'admin' ? 'Administrador' : 'Usuario Registrado');
+
+        const htmlBody = `
+            <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
+                <div style="background-color: #b91c1c; color: #ffffff; padding: 20px 24px;">
+                    <h2 style="margin: 0; font-size: 20px;">Sistema de Evaluación de Carteles - UVM</h2>
+                    <p style="margin: 4px 0 0; font-size: 13px; color: #fecaca;">Datos de acceso a tu cuenta</p>
+                </div>
+                <div style="padding: 24px; color: #1e293b; background-color: #ffffff;">
+                    <p style="margin-top: 0; font-size: 15px;">Hola, <strong>${nombre}</strong>:</p>
+                    <p style="font-size: 14px; line-height: 1.5; color: #475569;">
+                        Tu cuenta ha sido dada de alta en el Sistema de Evaluación de Carteles UVM. A continuación, te compartimos tus datos de ingreso:
+                    </p>
+                    <div style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 16px; margin: 20px 0;">
+                        <p style="margin: 6px 0; font-size: 14px;"><strong>Nombre:</strong> ${nombre}</p>
+                        <p style="margin: 6px 0; font-size: 14px;"><strong>Usuario / Matrícula:</strong> <code style="background: #fff; padding: 2px 6px; border-radius: 4px; font-weight: bold;">${matricula}</code></p>
+                        <p style="margin: 6px 0; font-size: 14px;"><strong>Correo registrado:</strong> ${email}</p>
+                        <p style="margin: 6px 0; font-size: 14px;"><strong>Contraseña:</strong> <code style="background: #fff; padding: 2px 6px; border-radius: 4px; font-weight: bold;">${password}</code></p>
+                        <p style="margin: 6px 0; font-size: 14px;"><strong>Rol en el sistema:</strong> ${rolEtiqueta}</p>
+                        <p style="margin: 6px 0; font-size: 14px;"><strong>Área / Carrera:</strong> ${carrera || 'General'}</p>
+                        ${rol === 'profesor' ? `<p style="margin: 6px 0; font-size: 14px;"><strong>Nivel Asignado para Evaluar:</strong> Nivel ${nivel_asignado || 1}</p>` : ''}
+                    </div>
+                    <p style="font-size: 13px; color: #64748b; margin-bottom: 0;">
+                        Puedes iniciar sesión utilizando tu Usuario/Matrícula o tu Correo Electrónico junto con tu contraseña.
+                    </p>
+                </div>
+                <div style="background-color: #f8fafc; padding: 12px 24px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0;">
+                    UVM - Encuentro Académico • Sistema de Evaluación de Carteles
+                </div>
+            </div>
+        `;
+
+        await transporter.sendMail({
+            from: smtpFrom,
+            to: email.trim(),
+            subject: 'Datos de Ingreso - Sistema de Evaluación de Carteles UVM',
+            html: htmlBody
+        });
+
+        console.log(`[CORREO] Credenciales enviadas exitosamente a ${email}`);
+        return { enviado: true };
+    } catch (err) {
+        console.warn(`[CORREO] Error al enviar correo a ${email}:`, err.message);
+        return { enviado: false, motivo: err.message };
+    }
+}
+
 let pool;
 async function conectarBD() {
     const dbHost = process.env.DB_HOST || 'localhost';
@@ -119,72 +202,107 @@ async function conectarBD() {
     pool = mysql.createPool(process.env.DATABASE_URL || poolConfig);
     console.log(`Conectando a la base de datos (${dbHost}:${dbPort}${sslConfig ? ' con SSL/TLS' : ''})`);
 
+    await asegurarEsquemaYColumnas();
+}
+
+let esquemaVerificado = false;
+async function asegurarEsquemaYColumnas() {
+    if (!pool) return;
+
+    // Verificar conectividad a MySQL / TiDB antes de correr migraciones
     try {
-        // 1. Columna carrera en profesores
-        const [pCols] = await pool.query("SHOW COLUMNS FROM profesores LIKE 'carrera'");
-        if (pCols.length === 0) {
-            await pool.query("ALTER TABLE profesores ADD COLUMN carrera VARCHAR(100) NOT NULL DEFAULT 'Ingeniería' AFTER nombre");
-            console.log('Columna carrera agregada a profesores');
-        }
-
-        // 2. Columna participantes en carteles
-        const [cPart] = await pool.query("SHOW COLUMNS FROM carteles LIKE 'participantes'");
-        if (cPart.length === 0) {
-            await pool.query("ALTER TABLE carteles ADD COLUMN participantes TEXT NULL AFTER nombre_equipo");
-            console.log('Columna participantes agregada a carteles');
-        }
-
-        // 3. Columna clave en carteles
-        const [cClave] = await pool.query("SHOW COLUMNS FROM carteles LIKE 'clave'");
-        if (cClave.length === 0) {
-            await pool.query("ALTER TABLE carteles ADD COLUMN clave VARCHAR(50) NULL AFTER titulo_cartel");
-            console.log('Columna clave agregada a carteles');
-        }
-
-        // 4. Asegurar claves y participantes en carteles existentes
-        const [existentes] = await pool.query("SELECT id, nombre_equipo, clave, participantes FROM carteles");
-        for (const c of existentes) {
-            const nuevaClave = c.clave || generarClaveAleatoria();
-            const nuevosPart = (c.participantes || c.nombre_equipo || '').toUpperCase();
-            await pool.query("UPDATE carteles SET clave = ?, participantes = ? WHERE id = ?", [nuevaClave, nuevosPart, c.id]);
-        }
-
-        // 5. Permitir r5 con default 0 en evaluaciones para el cálculo de 4 rubros
-        try {
-            await pool.query("ALTER TABLE evaluaciones MODIFY COLUMN r5 INT(11) DEFAULT 0");
-        } catch (e) {
-            console.warn('Modificación columna r5:', e.message);
-        }
-
-        // 6. Normalizar evaluaciones viejas a escala de 1 a 5 estrellas si existían de 0 a 20
-        try {
-            const [evalsAntiguas] = await pool.query("SELECT id, r1, r2, r3, r4 FROM evaluaciones WHERE r1 > 5 OR r2 > 5 OR r3 > 5 OR r4 > 5");
-            for (const ev of evalsAntiguas) {
-                const normR1 = Math.min(5, Math.max(1, Math.round(ev.r1 / 4)));
-                const normR2 = Math.min(5, Math.max(1, Math.round(ev.r2 / 4)));
-                const normR3 = Math.min(5, Math.max(1, Math.round(ev.r3 / 4)));
-                const normR4 = Math.min(5, Math.max(1, Math.round(ev.r4 / 4)));
-                await pool.query("UPDATE evaluaciones SET r1 = ?, r2 = ?, r3 = ?, r4 = ?, r5 = 0 WHERE id = ?", [normR1, normR2, normR3, normR4, ev.id]);
+        await pool.query('SELECT 1');
+    } catch (connErr) {
+        if (connErr.code === 'ER_BAD_DB_ERROR' && !process.env.DATABASE_URL) {
+            try {
+                const dbName = process.env.DB_NAME || 'evaluaciones_db';
+                const tempConn = await mysql.createConnection({
+                    host: process.env.DB_HOST || 'localhost',
+                    port: parseInt(process.env.DB_PORT) || 3306,
+                    user: process.env.DB_USER || 'root',
+                    password: process.env.DB_PASSWORD || ''
+                });
+                await tempConn.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci`);
+                await tempConn.end();
+                console.log(`[OK] Base de datos '${dbName}' creada automáticamente.`);
+            } catch (dbCreateErr) {
+                console.warn('[AVISO BD] Error al crear base de datos:', dbCreateErr.message || dbCreateErr.code);
+                return;
             }
-        } catch (e) {
-            console.warn('Normalización de evaluaciones:', e.message);
+        } else {
+            const detalle = connErr.message || connErr.code || 'Error de conexión';
+            console.warn(`[AVISO BD] No hay conexión activa con MySQL (${detalle}). Verifica que MySQL esté iniciado en XAMPP o revisa tu .env.`);
+            return;
         }
+    }
 
-        // 7. Capitalizar nombres existentes de profesores
-        const [profes] = await pool.query("SELECT id, nombre FROM profesores");
-        for (const p of profes) {
-            const nombreCap = capitalizarNombre(p.nombre);
-            if (nombreCap !== p.nombre) {
-                await pool.query("UPDATE profesores SET nombre = ? WHERE id = ?", [nombreCap, p.id]);
-            }
-        }
+    // 0. Asegurar todas las tablas base si no existen
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS profesores (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                nombre VARCHAR(250) NOT NULL,
+                email VARCHAR(150) NULL,
+                carrera VARCHAR(100) NOT NULL DEFAULT 'Ingeniería',
+                nivel_asignado INT DEFAULT 1,
+                password VARCHAR(255) NOT NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        `);
+    } catch (e) {}
 
-        // 8. Tabla general de usuarios (alumnos, profesores y administradores)
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS carteles (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                usuario_id INT NULL,
+                nombre_equipo VARCHAR(250) NULL,
+                participantes TEXT NULL,
+                carrera VARCHAR(100) NOT NULL,
+                semestre INT NOT NULL,
+                nivel INT NOT NULL,
+                titulo_cartel VARCHAR(255) NOT NULL,
+                clave VARCHAR(50) NULL,
+                archivo_url TEXT NULL,
+                profesor_asesor_id INT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        `);
+    } catch (e) {}
+
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS asignaciones (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                cartel_id INT NOT NULL,
+                profesor_id INT NOT NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        `);
+    } catch (e) {}
+
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS evaluaciones (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                cartel_id INT NOT NULL,
+                profesor_id INT NOT NULL,
+                r1 INT NOT NULL,
+                r2 INT NOT NULL,
+                r3 INT NOT NULL,
+                r4 INT NOT NULL,
+                r5 INT DEFAULT 0,
+                puntaje_total INT GENERATED ALWAYS AS (r1 + r2 + r3 + r4 + r5) STORED,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        `);
+    } catch (e) {}
+
+    try {
         await pool.query(`
             CREATE TABLE IF NOT EXISTS usuarios (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 nombre VARCHAR(250) NOT NULL,
                 matricula VARCHAR(100) UNIQUE NOT NULL,
+                email VARCHAR(150) NULL,
                 password VARCHAR(255) NOT NULL,
                 rol ENUM('estudiante', 'profesor', 'admin') NOT NULL DEFAULT 'estudiante',
                 carrera VARCHAR(100) NOT NULL DEFAULT 'Ingeniería',
@@ -192,87 +310,142 @@ async function conectarBD() {
                 nivel_asignado INT DEFAULT 1,
                 profesor_id INT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         `);
+    } catch (e) {}
 
-        // 9. Columna usuario_id en carteles para relacionar al alumno creador
+    // 1. Asegurar columna email en usuarios (ejecución directa e independiente para evitar error "Unknown column 'email'")
+    try {
+        const [uEmailCols] = await pool.query("SHOW COLUMNS FROM usuarios LIKE 'email'");
+        if (uEmailCols.length === 0) {
+            await pool.query("ALTER TABLE usuarios ADD COLUMN email VARCHAR(150) NULL");
+            console.log('[OK] Columna email agregada a usuarios');
+        }
+    } catch (e) {
+        try {
+            await pool.query("ALTER TABLE usuarios ADD COLUMN email VARCHAR(150) NULL");
+            console.log('[OK] Columna email agregada a usuarios (fallback)');
+        } catch (e2) {}
+    }
+
+    // 2. Asegurar columna email y carrera en profesores
+    try {
+        const [pEmailCols] = await pool.query("SHOW COLUMNS FROM profesores LIKE 'email'");
+        if (pEmailCols.length === 0) {
+            await pool.query("ALTER TABLE profesores ADD COLUMN email VARCHAR(150) NULL");
+            console.log('[OK] Columna email agregada a profesores');
+        }
+    } catch (e) {
+        try {
+            await pool.query("ALTER TABLE profesores ADD COLUMN email VARCHAR(150) NULL");
+        } catch (e2) {}
+    }
+
+    try {
+        const [pCols] = await pool.query("SHOW COLUMNS FROM profesores LIKE 'carrera'");
+        if (pCols.length === 0) {
+            await pool.query("ALTER TABLE profesores ADD COLUMN carrera VARCHAR(100) NOT NULL DEFAULT 'Ingeniería'");
+            console.log('[OK] Columna carrera agregada a profesores');
+        }
+    } catch (e) {}
+
+    // 3. Asegurar columnas en carteles
+    try {
+        const [cPart] = await pool.query("SHOW COLUMNS FROM carteles LIKE 'participantes'");
+        if (cPart.length === 0) {
+            await pool.query("ALTER TABLE carteles ADD COLUMN participantes TEXT NULL");
+        }
+    } catch (e) {}
+
+    try {
+        const [cClave] = await pool.query("SHOW COLUMNS FROM carteles LIKE 'clave'");
+        if (cClave.length === 0) {
+            await pool.query("ALTER TABLE carteles ADD COLUMN clave VARCHAR(50) NULL");
+        }
+    } catch (e) {}
+
+    try {
         const [uCols] = await pool.query("SHOW COLUMNS FROM carteles LIKE 'usuario_id'");
         if (uCols.length === 0) {
-            await pool.query("ALTER TABLE carteles ADD COLUMN usuario_id INT NULL AFTER id");
-            console.log('Columna usuario_id agregada a carteles');
+            await pool.query("ALTER TABLE carteles ADD COLUMN usuario_id INT NULL");
         }
+    } catch (e) {}
 
-        // 10. Sincronizar profesores existentes en la tabla usuarios si aún no están
+    // 4. Asegurar claves y participantes en carteles existentes
+    try {
+        const [existentes] = await pool.query("SELECT id, nombre_equipo, clave, participantes FROM carteles");
+        for (const c of existentes) {
+            const nuevaClave = c.clave || generarClaveAleatoria();
+            const nuevosPart = (c.participantes || c.nombre_equipo || '').toUpperCase();
+            await pool.query("UPDATE carteles SET clave = ?, participantes = ? WHERE id = ?", [nuevaClave, nuevosPart, c.id]);
+        }
+    } catch (e) {}
+
+    // 5. Permitir r5 con default 0 en evaluaciones
+    try {
+        await pool.query("ALTER TABLE evaluaciones MODIFY COLUMN r5 INT(11) DEFAULT 0");
+    } catch (e) {}
+
+    // 6. Sincronizar profesores existentes en la tabla usuarios si aún no están
+    try {
         const [todosProfes] = await pool.query("SELECT * FROM profesores");
         for (const p of todosProfes) {
             const mat = 'prof_' + p.id;
             const [uExist] = await pool.query("SELECT id FROM usuarios WHERE profesor_id = ? OR matricula = ?", [p.id, mat]);
             if (uExist.length === 0) {
                 await pool.query(
-                    "INSERT INTO usuarios (nombre, matricula, password, rol, carrera, nivel_asignado, profesor_id) VALUES (?, ?, ?, 'profesor', ?, ?, ?)",
-                    [p.nombre.toUpperCase(), mat, p.password || '123456', p.carrera || 'Ingeniería', p.nivel_asignado || 1, p.id]
+                    "INSERT INTO usuarios (nombre, matricula, email, password, rol, carrera, nivel_asignado, profesor_id) VALUES (?, ?, ?, ?, 'profesor', ?, ?, ?)",
+                    [p.nombre.toUpperCase(), mat, p.email || null, p.password || '123456', p.carrera || 'Ingeniería', p.nivel_asignado || 1, p.id]
                 );
             }
         }
+    } catch (e) {}
 
-        // 11. Asegurar la existencia de al menos un administrador sin contraseñas fijas en el código
-        const [adminsExist] = await pool.query("SELECT id, matricula FROM usuarios WHERE rol = 'admin'");
-        const adminUserEnv = (process.env.ADMIN_USER || 'admin').trim();
-        const adminPassEnv = process.env.ADMIN_PASSWORD ? process.env.ADMIN_PASSWORD.trim() : null;
+    // 7. ADMIN PREDETERMINADO TEMPORAL (Usuario: admin / Contraseña: admin123)
+    try {
+        const adminUserDefault = 'admin';
+        const adminPassDefault = 'admin123';
 
-        if (adminsExist.length === 0) {
-            if (adminPassEnv) {
-                await pool.query(
-                    "INSERT INTO usuarios (nombre, matricula, password, rol, carrera, nivel_asignado) VALUES ('ADMINISTRADOR GENERAL', ?, ?, 'admin', 'General', 1)",
-                    [adminUserEnv, adminPassEnv]
-                );
-                console.log(`[OK] Administrador inicial '${adminUserEnv}' configurado desde variables de entorno (.env).`);
-            } else {
-                const passAleatoria = 'Admin_' + crypto.randomBytes(4).toString('hex');
-                await pool.query(
-                    "INSERT INTO usuarios (nombre, matricula, password, rol, carrera, nivel_asignado) VALUES ('ADMINISTRADOR GENERAL', ?, ?, 'admin', 'General', 1)",
-                    [adminUserEnv, passAleatoria]
-                );
-                console.log('\n╔════════════════════════════════════════════════════════════════════════════╗');
-                console.log('║ [SEGURIDAD] Administrador inicial generado (sin contraseña en el código):  ║');
-                console.log(`║    Usuario:    ${adminUserEnv.padEnd(58)}║`);
-                console.log(`║    Contraseña: ${passAleatoria.padEnd(58)}║`);
-                console.log('║                                                                            ║');
-                console.log('║ [INFO] Para definir tu propia contraseña sin exponerla en GitHub:          ║');
-                console.log('║    Crea un archivo .env con: ADMIN_PASSWORD=TuContraseñaSecreta            ║');
-                console.log('║    (El archivo .env está protegido por .gitignore y nunca se sube a GitHub)║');
-                console.log('╚════════════════════════════════════════════════════════════════════════════╝\n');
-            }
-        } else if (adminPassEnv) {
-            // Sincronizar contraseña si fue establecida explícitamente en .env
+        const [admExist] = await pool.query("SELECT id FROM usuarios WHERE LOWER(TRIM(matricula)) = LOWER(?)", [adminUserDefault]);
+        if (admExist.length === 0) {
             await pool.query(
-                "UPDATE usuarios SET password = ? WHERE (matricula = ? OR id = ?) AND rol = 'admin'",
-                [adminPassEnv, adminUserEnv, adminsExist[0].id]
+                "INSERT INTO usuarios (nombre, matricula, email, password, rol, carrera, nivel_asignado) VALUES ('ADMINISTRADOR PREDETERMINADO', ?, 'admin@uvmnet.edu', ?, 'admin', 'General', 1)",
+                [adminUserDefault, adminPassDefault]
             );
-            console.log(`[OK] Contraseña del administrador '${adminUserEnv}' sincronizada desde .env.`);
+            console.log(`[OK] Administrador predeterminado creado -> Usuario: ${adminUserDefault} | Contraseña: ${adminPassDefault}`);
+        } else {
+            await pool.query(
+                "UPDATE usuarios SET password = ?, rol = 'admin' WHERE id = ?",
+                [adminPassDefault, admExist[0].id]
+            );
+            console.log(`[OK] Administrador predeterminado activo -> Usuario: ${adminUserDefault} | Contraseña: ${adminPassDefault}`);
         }
-
-        // 12. Asegurar que participantes en carteles estén en MAYÚSCULAS
-        const [cartelesMayus] = await pool.query("SELECT id, participantes FROM carteles WHERE participantes IS NOT NULL");
-        for (const c of cartelesMayus) {
-            if (c.participantes && c.participantes !== c.participantes.toUpperCase()) {
-                await pool.query("UPDATE carteles SET participantes = ? WHERE id = ?", [c.participantes.toUpperCase(), c.id]);
-            }
-        }
-
-        console.log('[OK] Esquema y datos actualizados correctamente.');
     } catch (e) {
-        console.warn('Verificación de esquema BD:', e.message);
+        console.warn('Error al asegurar admin predeterminado:', e.message || e.code);
     }
+
+    esquemaVerificado = true;
+    console.log('[OK] Esquema, columna email y administrador predeterminado verificados correctamente.');
 }
+
 conectarBD();
+
+// Middleware que garantiza que las columnas (como email) estén creadas antes de procesar peticiones API
+app.use('/api', async (req, res, next) => {
+    if (!esquemaVerificado && pool) {
+        try {
+            await asegurarEsquemaYColumnas();
+        } catch (e) {}
+    }
+    next();
+});
 
 // --- ENDPOINTS AUTENTICACIÓN Y GESTIÓN DE USUARIOS ---
 
-// Registro general de alumnos / usuarios (Por defecto con rol 'estudiante' y nombre en MAYÚSCULAS)
+// Registro general de usuarios (Envía correo automático con los datos de ingreso)
 app.post('/api/registro', async (req, res) => {
     try {
-        const { nombre, matricula, password, carrera, semestre } = req.body;
+        const { nombre, matricula, email, password, carrera, semestre } = req.body;
         
         if (!nombre || !matricula || !password) {
             return res.status(400).json({ error: "Nombre completo, matrícula/usuario y contraseña son obligatorios." });
@@ -281,6 +454,7 @@ app.post('/api/registro', async (req, res) => {
         // Requerimiento: todas las letras se hacen mayúsculas (ej. gabriel guerrero -> GABRIEL GUERRERO)
         const nombreMayus = convertirMayusculas(nombre);
         const mat = matricula.trim();
+        const emailVal = email ? email.trim().toLowerCase() : null;
         const pass = password.trim();
         const carreraVal = (carrera && carrera.trim()) ? carrera.trim() : 'Ingeniería';
         const semVal = parseInt(semestre) || 1;
@@ -291,25 +465,43 @@ app.post('/api/registro', async (req, res) => {
             return res.status(400).json({ error: "Esa matrícula o usuario ya se encuentra registrado." });
         }
 
-        // Requerimiento: cada persona que se de de alta entra como estudiante
         const [result] = await pool.query(
-            'INSERT INTO usuarios (nombre, matricula, password, rol, carrera, semestre) VALUES (?, ?, ?, ?, ?, ?)',
-            [nombreMayus, mat, pass, 'estudiante', carreraVal, semVal]
+            'INSERT INTO usuarios (nombre, matricula, email, password, rol, carrera, semestre) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [nombreMayus, mat, emailVal, pass, 'estudiante', carreraVal, semVal]
         );
 
+        let infoCorreo = { enviado: false };
+        if (emailVal) {
+            infoCorreo = await enviarCorreoDatosCuenta({
+                email: emailVal,
+                nombre: nombreMayus,
+                matricula: mat,
+                password: pass,
+                rol: 'estudiante',
+                carrera: carreraVal,
+                nivel_asignado: 1
+            });
+        }
+
+        const msgExtraCorreo = infoCorreo.enviado
+            ? ` Se han enviado tus datos de ingreso al correo ${emailVal}.`
+            : '';
+
         res.json({
-            mensaje: `¡${nombreMayus} registrado con éxito!`,
+            mensaje: `¡${nombreMayus} registrado con éxito!${msgExtraCorreo}`,
+            correo_enviado: infoCorreo.enviado,
             usuario: {
                 id: result.insertId,
                 nombre: nombreMayus,
                 matricula: mat,
+                email: emailVal,
                 rol: 'estudiante',
                 carrera: carreraVal,
                 semestre: semVal
             }
         });
     } catch (err) {
-        res.status(400).json({ error: err.message });
+        res.status(400).json({ error: err.message || err.code || "Error de base de datos" });
     }
 });
 
@@ -323,19 +515,51 @@ app.post('/api/login', async (req, res) => {
             return res.status(400).json({ error: "Ingresa tu usuario/matrícula y contraseña." });
         }
 
-        // 1. Buscar en tabla usuarios
+        // 0. Acceso garantizado para el Administrador Predeterminado (admin / admin123 o admin / admin)
+        const adminPassEnv = (process.env.ADMIN_PASSWORD || '').trim();
+        if (idf.toLowerCase() === 'admin' && (pass === 'admin123' || pass === 'admin' || (adminPassEnv && pass === adminPassEnv))) {
+            try {
+                const [admRows] = await pool.query('SELECT id, nombre, matricula, email, rol, carrera, semestre, nivel_asignado FROM usuarios WHERE LOWER(TRIM(matricula)) = "admin"');
+                if (admRows.length > 0) {
+                    return res.json({ mensaje: "Acceso correcto", usuario: { ...admRows[0], rol: 'admin' } });
+                }
+            } catch (e) {}
+
+            return res.json({
+                mensaje: "Acceso concedido como Administrador Predeterminado",
+                usuario: {
+                    id: 1,
+                    nombre: 'ADMINISTRADOR PREDETERMINADO',
+                    matricula: 'admin',
+                    email: 'admin@uvmnet.edu',
+                    rol: 'admin',
+                    carrera: 'General',
+                    nivel_asignado: 1
+                }
+            });
+        }
+
+        // 1. Buscar en tabla usuarios (por matrícula, nombre o correo)
         const [rows] = await pool.query(
-            'SELECT id, nombre, matricula, password, rol, carrera, semestre, nivel_asignado, profesor_id FROM usuarios WHERE (LOWER(TRIM(matricula)) = LOWER(?) OR LOWER(TRIM(nombre)) = LOWER(?))',
-            [idf, idf]
+            'SELECT id, nombre, matricula, email, password, rol, carrera, semestre, nivel_asignado, profesor_id FROM usuarios WHERE (LOWER(TRIM(matricula)) = LOWER(?) OR LOWER(TRIM(nombre)) = LOWER(?) OR LOWER(TRIM(email)) = LOWER(?))',
+            [idf, idf, idf]
         );
 
         if (rows.length > 0 && rows[0].password === pass) {
             const u = rows[0];
+            if (u.rol === 'profesor' && !u.profesor_id) {
+                const [pIns] = await pool.query(
+                    'INSERT INTO profesores (nombre, email, carrera, nivel_asignado, password) VALUES (?, ?, ?, ?, ?)',
+                    [u.nombre, u.email || null, u.carrera || 'Ingeniería', u.nivel_asignado || 1, u.password || '123456']
+                );
+                u.profesor_id = pIns.insertId;
+                await pool.query('UPDATE usuarios SET profesor_id = ? WHERE id = ?', [u.profesor_id, u.id]);
+            }
             delete u.password;
             return res.json({ mensaje: "Acceso correcto", usuario: u });
         }
 
-        // 2. Si no coincide, verificar si es admin en tabla legacy administradores (si existe)
+        // 2.b Si no coincide, verificar si es admin en tabla legacy administradores (si existe)
         try {
             const [admins] = await pool.query('SELECT * FROM administradores WHERE usuario = ? AND password = ?', [idf, pass]);
             if (admins.length > 0) {
@@ -356,8 +580,8 @@ app.post('/api/login', async (req, res) => {
 
         // 3. Verificar si es un profesor registrado en la tabla profesores directamente
         const [profes] = await pool.query(
-            'SELECT id, nombre, carrera, nivel_asignado, password FROM profesores WHERE (LOWER(TRIM(nombre)) = LOWER(?) OR id = ?) AND password = ?',
-            [idf, isNaN(idf) ? -1 : parseInt(idf), pass]
+            'SELECT id, nombre, email, carrera, nivel_asignado, password FROM profesores WHERE (LOWER(TRIM(nombre)) = LOWER(?) OR LOWER(TRIM(email)) = LOWER(?) OR id = ?) AND password = ?',
+            [idf, idf, isNaN(idf) ? -1 : parseInt(idf), pass]
         );
 
         if (profes.length > 0) {
@@ -367,8 +591,8 @@ app.post('/api/login', async (req, res) => {
             let uId = uCheck.length > 0 ? uCheck[0].id : null;
             if (!uId) {
                 const [ins] = await pool.query(
-                    "INSERT INTO usuarios (nombre, matricula, password, rol, carrera, nivel_asignado, profesor_id) VALUES (?, ?, ?, 'profesor', ?, ?, ?)",
-                    [p.nombre.toUpperCase(), `prof_${p.id}`, pass, p.carrera, p.nivel_asignado, p.id]
+                    "INSERT INTO usuarios (nombre, matricula, email, password, rol, carrera, nivel_asignado, profesor_id) VALUES (?, ?, ?, ?, 'profesor', ?, ?, ?)",
+                    [p.nombre.toUpperCase(), `prof_${p.id}`, p.email || null, pass, p.carrera, p.nivel_asignado, p.id]
                 );
                 uId = ins.insertId;
             }
@@ -378,6 +602,7 @@ app.post('/api/login', async (req, res) => {
                     id: uId,
                     nombre: p.nombre.toUpperCase(),
                     matricula: `prof_${p.id}`,
+                    email: p.email || null,
                     rol: 'profesor',
                     carrera: p.carrera,
                     nivel_asignado: p.nivel_asignado,
@@ -419,17 +644,61 @@ app.get('/api/estudiantes/:id/carteles', async (req, res) => {
     }
 });
 
-// Listar todos los usuarios para el Admin (Alumnos, Profesores y Admins)
+// Listar todos los usuarios para el Admin (Alumnos, Profesores y Admins) incluyendo carteles asignados a cada profesor
 app.get('/api/admin/usuarios', async (req, res) => {
     try {
+        // Asegurar que cualquier usuario con rol 'profesor' tenga su registro sincronizado en la tabla profesores
+        const [usuariosProfeSinId] = await pool.query("SELECT id, nombre, email, carrera, nivel_asignado, password FROM usuarios WHERE rol = 'profesor' AND profesor_id IS NULL");
+        for (const u of usuariosProfeSinId) {
+            const [pIns] = await pool.query(
+                'INSERT INTO profesores (nombre, email, carrera, nivel_asignado, password) VALUES (?, ?, ?, ?, ?)',
+                [u.nombre, u.email || null, u.carrera || 'Ingeniería', u.nivel_asignado || 1, u.password || '123456']
+            );
+            await pool.query('UPDATE usuarios SET profesor_id = ? WHERE id = ?', [pIns.insertId, u.id]);
+        }
+
         const [rows] = await pool.query(`
-            SELECT id, nombre, matricula, rol, carrera, semestre, nivel_asignado, profesor_id, created_at
+            SELECT id, nombre, matricula, email, rol, carrera, semestre, nivel_asignado, profesor_id, created_at
             FROM usuarios
             ORDER BY 
                 CASE rol WHEN 'admin' THEN 1 WHEN 'profesor' THEN 2 ELSE 3 END,
                 nombre ASC
         `);
-        res.json(rows);
+
+        const [asignacionesRows] = await pool.query(`
+            SELECT 
+                a.id as asignacion_id,
+                a.cartel_id,
+                a.profesor_id,
+                c.titulo_cartel,
+                c.clave,
+                c.nombre_equipo,
+                c.participantes,
+                c.carrera as cartel_carrera,
+                c.semestre as cartel_semestre,
+                c.nivel as cartel_nivel,
+                c.archivo_url,
+                CASE WHEN e.id IS NOT NULL THEN 1 ELSE 0 END as ya_evaluo,
+                e.puntaje_total,
+                ROUND(e.puntaje_total / 4.0, 2) as estrellas_otorgadas
+            FROM asignaciones a
+            JOIN carteles c ON a.cartel_id = c.id
+            LEFT JOIN evaluaciones e ON (e.cartel_id = a.cartel_id AND e.profesor_id = a.profesor_id)
+            ORDER BY a.id ASC
+        `);
+
+        const mapaPorProfesor = {};
+        asignacionesRows.forEach(a => {
+            if (!mapaPorProfesor[a.profesor_id]) mapaPorProfesor[a.profesor_id] = [];
+            mapaPorProfesor[a.profesor_id].push(a);
+        });
+
+        const resultado = rows.map(u => ({
+            ...u,
+            carteles_asignados: u.profesor_id ? (mapaPorProfesor[u.profesor_id] || []) : []
+        }));
+
+        res.json(resultado);
     } catch (err) {
         res.status(400).json({ error: err.message });
     }
@@ -438,13 +707,14 @@ app.get('/api/admin/usuarios', async (req, res) => {
 // Admin da de alta a un usuario manualmente (eligiendo si es estudiante o profesor)
 app.post('/api/admin/usuarios', async (req, res) => {
     try {
-        const { nombre, matricula, password, rol, carrera, semestre, nivel_asignado } = req.body;
+        const { nombre, matricula, email, password, rol, carrera, semestre, nivel_asignado } = req.body;
         if (!nombre || !matricula || !password) {
             return res.status(400).json({ error: "Nombre, usuario/matrícula y contraseña son obligatorios." });
         }
 
         const nombreMayus = convertirMayusculas(nombre);
         const mat = matricula.trim();
+        const emailVal = email ? email.trim().toLowerCase() : null;
         const rolVal = (rol === 'profesor' || rol === 'admin') ? rol : 'estudiante';
         const carreraVal = (carrera && carrera.trim()) ? carrera.trim() : 'Ingeniería';
         const semVal = parseInt(semestre) || 1;
@@ -458,32 +728,47 @@ app.post('/api/admin/usuarios', async (req, res) => {
         let profId = null;
         if (rolVal === 'profesor') {
             const [pIns] = await pool.query(
-                'INSERT INTO profesores (nombre, carrera, nivel_asignado, password) VALUES (?, ?, ?, ?)',
-                [nombreMayus, carreraVal, nivelVal, password]
+                'INSERT INTO profesores (nombre, email, carrera, nivel_asignado, password) VALUES (?, ?, ?, ?, ?)',
+                [nombreMayus, emailVal, carreraVal, nivelVal, password]
             );
             profId = pIns.insertId;
         }
 
         const [uIns] = await pool.query(
-            'INSERT INTO usuarios (nombre, matricula, password, rol, carrera, semestre, nivel_asignado, profesor_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-            [nombreMayus, mat, password, rolVal, carreraVal, semVal, nivelVal, profId]
+            'INSERT INTO usuarios (nombre, matricula, email, password, rol, carrera, semestre, nivel_asignado, profesor_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [nombreMayus, mat, emailVal, password, rolVal, carreraVal, semVal, nivelVal, profId]
         );
 
+        let infoCorreo = { enviado: false };
+        if (emailVal) {
+            infoCorreo = await enviarCorreoDatosCuenta({
+                email: emailVal,
+                nombre: nombreMayus,
+                matricula: mat,
+                password,
+                rol: rolVal,
+                carrera: carreraVal,
+                nivel_asignado: nivelVal
+            });
+        }
+
+        const msgExtraCorreo = infoCorreo.enviado ? ` Datos de ingreso enviados a ${emailVal}.` : '';
+
         res.json({
-            mensaje: `Usuario ${nombreMayus} registrado como ${rolVal} exitosamente.`,
-            usuario: { id: uIns.insertId, nombre: nombreMayus, matricula: mat, rol: rolVal, carrera: carreraVal, nivel_asignado: nivelVal, profesor_id: profId }
+            mensaje: `Usuario ${nombreMayus} registrado como ${rolVal} exitosamente.${msgExtraCorreo}`,
+            correo_enviado: infoCorreo.enviado,
+            usuario: { id: uIns.insertId, nombre: nombreMayus, matricula: mat, email: emailVal, rol: rolVal, carrera: carreraVal, nivel_asignado: nivelVal, profesor_id: profId }
         });
     } catch (err) {
         res.status(400).json({ error: err.message });
     }
 });
 
-// Admin cambia el rol de un usuario (Promover a Profesor / Asignar como Estudiante)
 // Admin cambia el rol de un usuario (Promover a Profesor / Asignar como Estudiante / Promover a Administrador)
 app.put('/api/admin/usuarios/:id/rol', async (req, res) => {
     try {
         const { id } = req.params;
-        const { rol, carrera, nivel_asignado, password } = req.body;
+        const { rol, carrera, nivel_asignado, password, email } = req.body;
 
         const [userRows] = await pool.query('SELECT * FROM usuarios WHERE id = ?', [id]);
         if (userRows.length === 0) return res.status(404).json({ error: "Usuario no encontrado." });
@@ -494,6 +779,7 @@ app.put('/api/admin/usuarios/:id/rol', async (req, res) => {
         const nuevaCarrera = (carrera && carrera.trim()) ? carrera.trim() : (nuevoRol === 'admin' ? 'General' : (user.carrera || 'Ingeniería'));
         const nuevoNivel = parseInt(nivel_asignado) || user.nivel_asignado || 1;
         const passActualizada = (password && password.trim()) ? password.trim() : user.password;
+        const emailActualizado = email !== undefined ? (email.trim() ? email.trim().toLowerCase() : null) : user.email;
 
         // Protección: Evitar degradar al único administrador del sistema
         if (user.rol === 'admin' && nuevoRol !== 'admin') {
@@ -509,15 +795,15 @@ app.put('/api/admin/usuarios/:id/rol', async (req, res) => {
             // Si no estaba en la tabla profesores, registrarlo
             if (!profId) {
                 const [pIns] = await pool.query(
-                    'INSERT INTO profesores (nombre, carrera, nivel_asignado, password) VALUES (?, ?, ?, ?)',
-                    [user.nombre, nuevaCarrera, nuevoNivel, passActualizada || '123456']
+                    'INSERT INTO profesores (nombre, email, carrera, nivel_asignado, password) VALUES (?, ?, ?, ?, ?)',
+                    [user.nombre, emailActualizado, nuevaCarrera, nuevoNivel, passActualizada || '123456']
                 );
                 profId = pIns.insertId;
             } else {
                 // Actualizar sus datos en profesores
                 await pool.query(
-                    'UPDATE profesores SET carrera = ?, nivel_asignado = ?, password = ? WHERE id = ?',
-                    [nuevaCarrera, nuevoNivel, passActualizada, profId]
+                    'UPDATE profesores SET email = ?, carrera = ?, nivel_asignado = ?, password = ? WHERE id = ?',
+                    [emailActualizado, nuevaCarrera, nuevoNivel, passActualizada, profId]
                 );
             }
         } else if (profId && passActualizada !== user.password) {
@@ -526,15 +812,30 @@ app.put('/api/admin/usuarios/:id/rol', async (req, res) => {
         }
 
         await pool.query(
-            'UPDATE usuarios SET rol = ?, carrera = ?, nivel_asignado = ?, profesor_id = ?, password = ? WHERE id = ?',
-            [nuevoRol, nuevaCarrera, nuevoNivel, profId, passActualizada, id]
+            'UPDATE usuarios SET rol = ?, email = ?, carrera = ?, nivel_asignado = ?, profesor_id = ?, password = ? WHERE id = ?',
+            [nuevoRol, emailActualizado, nuevaCarrera, nuevoNivel, profId, passActualizada, id]
         );
 
+        let infoCorreo = { enviado: false };
+        if (nuevoRol === 'profesor' && emailActualizado) {
+            infoCorreo = await enviarCorreoDatosCuenta({
+                email: emailActualizado,
+                nombre: user.nombre,
+                matricula: user.matricula,
+                password: passActualizada,
+                rol: 'profesor',
+                carrera: nuevaCarrera,
+                nivel_asignado: nuevoNivel
+            });
+        }
+
         const rolTexto = nuevoRol === 'admin' ? 'ADMINISTRADOR' : (nuevoRol === 'profesor' ? 'PROFESOR JUEZ' : 'ESTUDIANTE');
+        const msgCorreo = infoCorreo.enviado ? ` Se enviaron los datos de ingreso al correo ${emailActualizado}.` : '';
 
         res.json({
-            mensaje: `¡Usuario ${user.nombre} ahora tiene el rol de ${rolTexto}!`,
-            usuario: { ...user, rol: nuevoRol, carrera: nuevaCarrera, nivel_asignado: nuevoNivel, profesor_id: profId }
+            mensaje: `¡Usuario ${user.nombre} ahora tiene el rol de ${rolTexto}!${msgCorreo}`,
+            correo_enviado: infoCorreo.enviado,
+            usuario: { ...user, email: emailActualizado, rol: nuevoRol, carrera: nuevaCarrera, nivel_asignado: nuevoNivel, profesor_id: profId }
         });
     } catch (err) {
         res.status(400).json({ error: err.message });
@@ -545,7 +846,7 @@ app.put('/api/admin/usuarios/:id/rol', async (req, res) => {
 app.put('/api/admin/usuarios/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const { nombre, matricula, carrera, semestre, nivel_asignado, password, rol } = req.body;
+        const { nombre, matricula, email, carrera, semestre, nivel_asignado, password, rol } = req.body;
 
         const [userRows] = await pool.query('SELECT * FROM usuarios WHERE id = ?', [id]);
         if (userRows.length === 0) return res.status(404).json({ error: "Usuario no encontrado." });
@@ -563,20 +864,21 @@ app.put('/api/admin/usuarios/:id', async (req, res) => {
 
         const nombreMayus = nombre ? convertirMayusculas(nombre) : user.nombre;
         const mat = matricula ? matricula.trim() : user.matricula;
+        const emailVal = email !== undefined ? (email.trim() ? email.trim().toLowerCase() : null) : user.email;
         const car = carrera || user.carrera;
         const sem = semestre !== undefined ? parseInt(semestre) : user.semestre;
         const niv = nivel_asignado !== undefined ? parseInt(nivel_asignado) : user.nivel_asignado;
         const pass = (password && password.trim()) ? password.trim() : user.password;
 
         await pool.query(
-            'UPDATE usuarios SET nombre = ?, matricula = ?, carrera = ?, semestre = ?, nivel_asignado = ?, password = ?, rol = ? WHERE id = ?',
-            [nombreMayus, mat, car, sem, niv, pass, rolFinal, id]
+            'UPDATE usuarios SET nombre = ?, matricula = ?, email = ?, carrera = ?, semestre = ?, nivel_asignado = ?, password = ?, rol = ? WHERE id = ?',
+            [nombreMayus, mat, emailVal, car, sem, niv, pass, rolFinal, id]
         );
 
         if (user.profesor_id) {
             await pool.query(
-                'UPDATE profesores SET nombre = ?, carrera = ?, nivel_asignado = ?, password = ? WHERE id = ?',
-                [nombreMayus, car, niv, pass, user.profesor_id]
+                'UPDATE profesores SET nombre = ?, email = ?, carrera = ?, nivel_asignado = ?, password = ? WHERE id = ?',
+                [nombreMayus, emailVal, car, niv, pass, user.profesor_id]
             );
         }
 
@@ -734,6 +1036,16 @@ app.get('/api/admin/metricas', async (req, res) => {
 
 app.get('/api/profesores', async (req, res) => {
     try {
+        // Sincronizar cualquier usuario con rol 'profesor' que aún no tenga registro en la tabla profesores
+        const [usuariosProfeSinId] = await pool.query("SELECT id, nombre, email, carrera, nivel_asignado, password FROM usuarios WHERE rol = 'profesor' AND profesor_id IS NULL");
+        for (const u of usuariosProfeSinId) {
+            const [pIns] = await pool.query(
+                'INSERT INTO profesores (nombre, email, carrera, nivel_asignado, password) VALUES (?, ?, ?, ?, ?)',
+                [u.nombre, u.email || null, u.carrera || 'Ingeniería', u.nivel_asignado || 1, u.password || '123456']
+            );
+            await pool.query('UPDATE usuarios SET profesor_id = ? WHERE id = ?', [pIns.insertId, u.id]);
+        }
+
         const [rows] = await pool.query('SELECT id, nombre, carrera, nivel_asignado FROM profesores ORDER BY nombre ASC');
         res.json(rows);
     } catch (err) {
@@ -827,7 +1139,7 @@ app.post('/api/login/profesor', async (req, res) => {
 
 // --- CARTELES, CLAVES Y EVALUACIONES ---
 
-// Obtener lista completa de carteles para administración
+// Obtener lista completa de carteles para administración (incluyendo profesores asignados)
 app.get('/api/admin/carteles', async (req, res) => {
     try {
         const query = `
@@ -841,7 +1153,121 @@ app.get('/api/admin/carteles', async (req, res) => {
             ORDER BY c.id DESC
         `;
         const [rows] = await pool.query(query);
+
+        const [asignacionesRows] = await pool.query(`
+            SELECT 
+                a.id as asignacion_id,
+                a.cartel_id,
+                a.profesor_id,
+                p.nombre as profesor_nombre,
+                p.carrera as profesor_carrera,
+                p.nivel_asignado as profesor_nivel,
+                CASE WHEN e.id IS NOT NULL THEN 1 ELSE 0 END as ya_evaluo
+            FROM asignaciones a
+            JOIN profesores p ON a.profesor_id = p.id
+            LEFT JOIN evaluaciones e ON (e.cartel_id = a.cartel_id AND e.profesor_id = a.profesor_id)
+            ORDER BY a.id ASC
+        `);
+
+        const mapaAsignados = {};
+        asignacionesRows.forEach(a => {
+            if (!mapaAsignados[a.cartel_id]) mapaAsignados[a.cartel_id] = [];
+            mapaAsignados[a.cartel_id].push(a);
+        });
+
+        const resultado = rows.map(c => ({
+            ...c,
+            asignados: mapaAsignados[c.id] || []
+        }));
+
+        res.json(resultado);
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
+});
+
+// Obtener todas las asignaciones de carteles a profesores (vista admin)
+app.get('/api/admin/asignaciones', async (req, res) => {
+    try {
+        const [rows] = await pool.query(`
+            SELECT 
+                a.id,
+                a.cartel_id,
+                a.profesor_id,
+                c.titulo_cartel,
+                c.clave,
+                c.nombre_equipo,
+                c.participantes,
+                c.archivo_url,
+                c.carrera as cartel_carrera,
+                c.semestre as cartel_semestre,
+                c.nivel as cartel_nivel,
+                p.nombre as profesor_nombre,
+                p.carrera as profesor_carrera,
+                p.nivel_asignado as profesor_nivel,
+                CASE WHEN e.id IS NOT NULL THEN 1 ELSE 0 END as ya_evaluo,
+                e.puntaje_total,
+                ROUND(e.puntaje_total / 4.0, 2) as estrellas_otorgadas
+            FROM asignaciones a
+            JOIN carteles c ON a.cartel_id = c.id
+            JOIN profesores p ON a.profesor_id = p.id
+            LEFT JOIN evaluaciones e ON (e.cartel_id = a.cartel_id AND e.profesor_id = a.profesor_id)
+            ORDER BY a.id DESC
+        `);
         res.json(rows);
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
+});
+
+// Asignar manualmente un cartel a un profesor juez (para pruebas o asignación directa)
+app.post('/api/admin/asignaciones', async (req, res) => {
+    try {
+        const cartelId = parseInt(req.body.cartel_id);
+        const profesorId = parseInt(req.body.profesor_id);
+
+        if (!cartelId || !profesorId) {
+            return res.status(400).json({ error: "Debes seleccionar un cartel y un profesor." });
+        }
+
+        const [cRows] = await pool.query('SELECT id, titulo_cartel FROM carteles WHERE id = ?', [cartelId]);
+        if (cRows.length === 0) {
+            return res.status(404).json({ error: "El cartel seleccionado no existe." });
+        }
+
+        const [pRows] = await pool.query('SELECT id, nombre FROM profesores WHERE id = ?', [profesorId]);
+        if (pRows.length === 0) {
+            return res.status(404).json({ error: "El profesor seleccionado no existe." });
+        }
+
+        const [existente] = await pool.query(
+            'SELECT id FROM asignaciones WHERE cartel_id = ? AND profesor_id = ?',
+            [cartelId, profesorId]
+        );
+        if (existente.length > 0) {
+            return res.status(400).json({ error: `El cartel "${cRows[0].titulo_cartel}" ya está asignado al profesor ${pRows[0].nombre}.` });
+        }
+
+        const [result] = await pool.query(
+            'INSERT INTO asignaciones (cartel_id, profesor_id) VALUES (?, ?)',
+            [cartelId, profesorId]
+        );
+
+        res.json({
+            id: result.insertId,
+            mensaje: `¡Cartel "${cRows[0].titulo_cartel}" asignado manualmente a ${pRows[0].nombre}!`
+        });
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
+});
+
+// Eliminar una asignación manual o automática de un profesor a un cartel
+app.delete('/api/admin/asignaciones/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        await pool.query('DELETE FROM asignaciones WHERE id = ?', [id]);
+        res.json({ mensaje: "Asignación removida correctamente." });
     } catch (err) {
         res.status(400).json({ error: err.message });
     }

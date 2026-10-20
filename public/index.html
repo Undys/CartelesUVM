@@ -58,7 +58,7 @@
     <main class="max-w-6xl w-full mx-auto p-4 sm:p-6 flex-grow">
 
         <!-- ============================================================== -->
-        <!-- 1. PÁGINA DE LOGIN GENERAL Y ALTA DE ALUMNOS (ACCESO PRINCIPAL)-->
+        <!-- 1. PÁGINA DE LOGIN GENERAL (ACCESO PRINCIPAL)                  -->
         <!-- (Evita que los alumnos vean rubricas o chanchullo)              -->
         <!-- ============================================================== -->
         <div id="vista-login-general" class="max-w-xl mx-auto space-y-6">
@@ -67,21 +67,11 @@
                 <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-red-600 text-white font-black text-lg shadow-lg mb-3 tracking-wider">UVM</div>
                 <h2 class="text-2xl sm:text-3xl font-black text-slate-800">Acceso al Sistema</h2>
                 <p class="text-xs sm:text-sm text-gray-500 mt-1 max-w-md mx-auto">
-                    Inicia sesión o regístrate para acceder al sistema.
+                    Inicia sesión con tu matrícula o usuario para acceder a tu panel.
                 </p>
             </div>
 
-            <!-- Pestañas de modo: Iniciar Sesión vs Darse de Alta -->
-            <div class="bg-slate-200/90 p-1.5 rounded-2xl flex gap-1 shadow-inner">
-                <button id="tab-login-entrar" onclick="cambiarPestanaLogin('entrar')" class="flex-1 py-2.5 text-center font-extrabold text-xs sm:text-sm rounded-xl bg-white text-red-700 shadow-sm transition">
-                    Iniciar Sesión
-                </button>
-                <button id="tab-login-registro" onclick="cambiarPestanaLogin('registro')" class="flex-1 py-2.5 text-center font-extrabold text-xs sm:text-sm rounded-xl text-slate-600 hover:text-slate-900 transition">
-                    Registro
-                </button>
-            </div>
-
-            <!-- 1.A FORMULARIO INICIAR SESIÓN -->
+            <!-- FORMULARIO INICIAR SESIÓN -->
             <div id="modo-login-entrar" class="bg-white p-6 sm:p-8 rounded-2xl shadow-md border border-slate-200 space-y-5">
                 <form id="form-login-general" class="space-y-4">
                     <div>
@@ -98,21 +88,35 @@
                 </form>
 
                 <div class="pt-4 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-2 text-xs">
-                    <button type="button" onclick="cambiarPestanaLogin('registro')" class="text-red-600 font-bold hover:underline">
-                        ¿No tienes cuenta? Regístrate aquí
+                    <button type="button" onclick="verVista('registro-usuario')" class="text-red-600 font-bold hover:underline">
+                        ¿No tienes una cuenta? Regístrate aquí
                     </button>
                     <button type="button" onclick="abrirModalInvitado()" class="text-amber-700 font-bold hover:underline flex items-center gap-1">
                         Evaluador Invitado (Calificar con Clave)
                     </button>
                 </div>
             </div>
+        </div>
 
-            <!-- 1.B FORMULARIO DARSE DE ALTA (USUARIOS EN MAYÚSCULAS) -->
-            <div id="modo-login-registro" class="hidden bg-white p-6 sm:p-8 rounded-2xl shadow-md border border-slate-200 space-y-5">
+        <!-- ============================================================== -->
+        <!-- 1.B PÁGINA DE REGISTRO DE USUARIO (SEGUNDA PÁGINA)             -->
+        <!-- ============================================================== -->
+        <div id="vista-registro-usuario" class="hidden max-w-xl mx-auto space-y-6">
+
+            <div class="text-center pt-2">
+                <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-red-600 text-white font-black text-lg shadow-lg mb-3 tracking-wider">UVM</div>
+                <h2 class="text-2xl sm:text-3xl font-black text-slate-800">Registro de Usuario</h2>
+                <p class="text-xs sm:text-sm text-gray-500 mt-1 max-w-md mx-auto">
+                    Completa tus datos para crear una cuenta en el sistema.
+                </p>
+            </div>
+
+            <!-- FORMULARIO DARSE DE ALTA (USUARIOS EN MAYÚSCULAS) -->
+            <div id="modo-login-registro" class="bg-white p-6 sm:p-8 rounded-2xl shadow-md border border-slate-200 space-y-5">
                 <div class="bg-red-50 border border-red-200 rounded-xl p-3.5 text-xs text-red-900 leading-relaxed">
                     <p class="font-bold flex items-center gap-1">Registro de Usuario:</p>
                     <p class="mt-0.5 text-red-700">
-                        Todas las personas que se den de alta se registrarán con su nombre en <strong>MAYÚSCULAS</strong>. Los administradores podrán promover a profesores o administradores según corresponda.
+                        Todas las personas que se den de alta se registrarán con su nombre en <strong>MAYÚSCULAS</strong> y recibirán en su correo electrónico sus datos de ingreso. Los administradores podrán promover a profesores o administradores según corresponda.
                     </p>
                 </div>
 
@@ -131,6 +135,13 @@
                     <div>
                         <label class="block font-bold text-xs uppercase tracking-wider text-slate-700 mb-1">Matrícula o Usuario:</label>
                         <input type="text" id="reg_matricula" required placeholder="Ej. 840012345 o tu usuario UVM" class="w-full border border-slate-300 p-3 rounded-xl focus:ring-2 focus:ring-red-500 focus:outline-none text-sm font-semibold">
+                    </div>
+
+                    <!-- Correo Electrónico -->
+                    <div>
+                        <label class="block font-bold text-xs uppercase tracking-wider text-slate-700 mb-1">Correo Electrónico:</label>
+                        <input type="email" id="reg_email" required placeholder="Ej. profesor.apellido@uvmnet.edu o tu correo" class="w-full border border-slate-300 p-3 rounded-xl focus:ring-2 focus:ring-red-500 focus:outline-none text-sm font-semibold">
+                        <p class="text-[11px] text-gray-500 mt-1">Recibirás automáticamente tus datos de ingreso en este correo.</p>
                     </div>
 
                     <!-- Carrera y Semestre -->
@@ -162,6 +173,12 @@
                         Registrarse
                     </button>
                 </form>
+
+                <div class="pt-4 border-t border-slate-100 flex justify-center items-center text-xs">
+                    <button type="button" onclick="verVista('login-general')" class="text-red-600 font-bold hover:underline">
+                        ¿Ya tienes una cuenta? Inicia sesión aquí
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -186,9 +203,6 @@
                 <div class="flex flex-wrap items-center gap-2">
                     <button onclick="prepararRegistroCartel(); verVista('registro')" class="bg-white text-red-800 hover:bg-red-50 px-4 py-2.5 rounded-xl font-extrabold text-xs sm:text-sm shadow-md transition transform active:scale-95 flex items-center gap-1.5">
                         <span>Inscribir Cartel</span>
-                    </button>
-                    <button onclick="cargarRanking(); verVista('ranking')" class="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2.5 rounded-xl font-extrabold text-xs sm:text-sm shadow-md transition flex items-center gap-1.5">
-                        <span>Ver Ranking</span>
                     </button>
                 </div>
             </div>
@@ -377,9 +391,6 @@
                 <div class="flex flex-wrap items-center gap-2">
                     <button onclick="abrirModalInvitado()" class="bg-amber-500 hover:bg-amber-600 text-slate-900 px-4 py-2.5 rounded-xl font-extrabold text-xs sm:text-sm shadow-md transition flex items-center gap-1.5">
                         <span>Evaluar con Clave (Suplencia)</span>
-                    </button>
-                    <button onclick="cargarRanking(); verVista('ranking')" class="bg-white/20 hover:bg-white/30 text-white px-4 py-2.5 rounded-xl font-extrabold text-xs sm:text-sm transition flex items-center gap-1.5">
-                        <span>Ranking</span>
                     </button>
                 </div>
             </div>
@@ -616,7 +627,7 @@
                     Carteles & Claves
                 </button>
                 <button id="tab-admin-reparto" onclick="verPestanaAdmin('reparto')" class="px-4 py-2 rounded-xl text-xs font-semibold bg-white text-gray-700 hover:bg-gray-100 border shadow-sm transition">
-                    Reparto Automático de Jueces
+                    Asignación Manual y Reparto de Jueces
                 </button>
                 <button id="tab-admin-ranking" onclick="verPestanaAdmin('ranking')" class="px-4 py-2 rounded-xl text-xs font-semibold bg-white text-gray-700 hover:bg-gray-100 border shadow-sm transition">
                     Ranking Oficial
@@ -676,7 +687,7 @@
                                     <th class="p-3">Matrícula / ID</th>
                                     <th class="p-3">Rol Actual</th>
                                     <th class="p-3">Área / Carrera</th>
-                                    <th class="p-3">Nivel Asignado</th>
+                                    <th class="p-3">Nivel & Carteles Asignados</th>
                                     <th class="p-3 text-center">Acciones del Admin</th>
                                 </tr>
                             </thead>
@@ -716,8 +727,8 @@
                 <div class="bg-white p-6 rounded-2xl shadow-sm border space-y-4">
                     <div class="border-b pb-3 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
                         <div>
-                            <h3 class="text-lg font-bold text-slate-800">Carteles Registrados (Claves y Alumnos)</h3>
-                            <p class="text-xs text-gray-500 mt-0.5">Consulta la clave única de cada cartel y los nombres de sus participantes en mayúsculas.</p>
+                            <h3 class="text-lg font-bold text-slate-800">Carteles Registrados (Claves, Alumnos y Jueces Asignados)</h3>
+                            <p class="text-xs text-gray-500 mt-0.5">Consulta la clave única de cada cartel, sus participantes y asigna profesores jueces manualmente.</p>
                         </div>
                         <div class="flex flex-wrap items-center gap-2">
                             <input type="text" id="busqueda-admin-carteles" oninput="filtrarAdminCarteles()" placeholder="Buscar por clave, título o alumno..." class="border border-slate-300 pl-3 pr-3 py-1.5 rounded-lg text-xs w-64 bg-white focus:ring-2 focus:ring-red-500 focus:outline-none">
@@ -734,7 +745,7 @@
                             <thead>
                                 <tr class="bg-slate-100 text-slate-600 text-xs uppercase tracking-wider border-b">
                                     <th class="p-2.5 w-36">Clave</th>
-                                    <th class="p-2.5">Cartel & Alumnos Participantes</th>
+                                    <th class="p-2.5">Cartel, Alumnos & Profesores Asignados</th>
                                     <th class="p-2.5">Área / Nivel</th>
                                     <th class="p-2.5 text-center">Evaluaciones</th>
                                     <th class="p-2.5 text-center">PDF</th>
@@ -748,17 +759,92 @@
             </div>
 
             <!-- ============================================================== -->
-            <!-- ADMIN SUB-PESTAÑA 3: REPARTO Y BALANCEO DE JUECES             -->
+            <!-- ADMIN SUB-PESTAÑA 3: ASIGNACIÓN MANUAL Y REPARTO DE JUECES     -->
             <!-- ============================================================== -->
-            <div id="admin-sec-reparto" class="hidden space-y-4">
-                <!-- Reparto de Carteles -->
+            <div id="admin-sec-reparto" class="hidden space-y-5">
+                <!-- Asignación Manual de Carteles a Profesores -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-5">
+                    <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b pb-3">
+                        <div>
+                            <div class="inline-flex items-center gap-1.5 bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full mb-1">
+                                Asignación Directa / Pruebas
+                            </div>
+                            <h3 class="text-lg font-black text-slate-800">Asignar Cartel Manualmente a un Profesor</h3>
+                            <p class="text-xs text-gray-500 mt-0.5">
+                                Selecciona un profesor juez y el cartel que deseas asignarle para que le aparezca inmediatamente en su panel y pueda calificarlo.
+                            </p>
+                        </div>
+                        <button type="button" onclick="cargarDatosAsignacionManual()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg font-bold transition self-start sm:self-auto">
+                            Actualizar listas
+                        </button>
+                    </div>
+
+                    <form id="form-asignacion-manual" class="grid grid-cols-1 md:grid-cols-3 gap-3 items-end bg-slate-50 p-4 rounded-xl border border-slate-200">
+                        <div>
+                            <label class="block font-bold text-xs uppercase text-slate-700 mb-1">1. Selecciona al Profesor Juez:</label>
+                            <select id="manual-asig-profesor" required class="w-full border border-slate-300 p-2.5 rounded-xl text-xs font-semibold bg-white text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
+                                <option value="">-- Selecciona un Profesor --</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block font-bold text-xs uppercase text-slate-700 mb-1">2. Selecciona el Cartel:</label>
+                            <select id="manual-asig-cartel" required class="w-full border border-slate-300 p-2.5 rounded-xl text-xs font-semibold bg-white text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
+                                <option value="">-- Selecciona un Cartel --</option>
+                            </select>
+                        </div>
+                        <div>
+                            <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 px-4 rounded-xl font-black text-xs shadow transition transform active:scale-98">
+                                + Asignar Cartel al Profesor
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Vista Agrupada: Carteles Asignados a Cada Profesor -->
+                    <div class="space-y-3 pt-2 border-t border-slate-100">
+                        <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+                            <div>
+                                <h4 class="font-black text-sm text-slate-800">Carteles Asignados a Cada Profesor</h4>
+                                <p class="text-xs text-slate-500">Consulta qué carteles tiene asignados cada profesor juez, cuáles ya evaluó y cuáles tiene pendientes.</p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <input type="text" id="busqueda-carteles-por-profesor" oninput="filtrarCartelesPorProfesor()" placeholder="Buscar profesor, área o cartel..." class="border border-slate-300 px-3 py-1.5 rounded-xl text-xs w-64 bg-white focus:ring-2 focus:ring-red-500 focus:outline-none">
+                            </div>
+                        </div>
+                        <div id="admin-contenedor-carteles-por-profesor" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Llenado dinámicamente por renderizarCartelesPorProfesor() -->
+                        </div>
+                    </div>
+
+                    <!-- Tabla de asignaciones actuales -->
+                    <div class="space-y-2 pt-2 border-t border-slate-100">
+                        <h4 class="font-bold text-xs uppercase tracking-wider text-slate-600">Historial de Asignaciones Activas (Carteles ↔ Profesores)</h4>
+                        <div class="overflow-x-auto border border-slate-200 rounded-xl">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-slate-100 text-slate-600 text-[11px] uppercase tracking-wider border-b">
+                                        <th class="p-2.5">Profesor Juez</th>
+                                        <th class="p-2.5">Cartel Asignado</th>
+                                        <th class="p-2.5">Clave</th>
+                                        <th class="p-2.5 text-center">Estado de Evaluación</th>
+                                        <th class="p-2.5 text-center">Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-tabla-asignaciones-manuales" class="text-xs">
+                                    <!-- Llenado por cargarDatosAsignacionManual() -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reparto Automático de Carteles -->
                 <div class="bg-red-50 border-l-4 border-red-600 p-5 rounded-2xl flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                     <div>
                         <p class="font-extrabold text-red-900 text-base">Reparto Automático de Carteles a Profesores Jueces</p>
                         <p class="text-xs text-red-700 mt-1">Asigna automáticamente 3 profesores por cada cartel respetando Área y Nivel académico.</p>
                     </div>
                     <button onclick="repartirCarteles()" class="bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-xl font-bold text-xs shadow transition whitespace-nowrap">
-                        Repartir Carteles
+                        Repartir Carteles Automáticamente
                     </button>
                 </div>
 
@@ -890,6 +976,12 @@
                 </div>
 
                 <div>
+                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Correo Electrónico (Para envío de datos):</label>
+                    <input type="email" id="modal-promover-email" placeholder="Ej. profesor.apellido@uvmnet.edu" class="w-full border p-2.5 rounded-xl text-xs font-medium focus:ring-2 focus:ring-red-500">
+                    <p class="text-[10px] text-gray-500 mt-0.5">Al asignar rol de Profesor, se enviarán sus datos de ingreso automáticamente a este correo.</p>
+                </div>
+
+                <div>
                     <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Contraseña (Opcional):</label>
                     <input type="password" id="modal-promover-pass" placeholder="Dejar en blanco para conservar la actual" class="w-full border p-2.5 rounded-xl text-xs font-medium focus:ring-2 focus:ring-red-500">
                     <p class="text-[10px] text-gray-500 mt-0.5">Ingresa una contraseña sólo si deseas actualizarla o resetearla.</p>
@@ -929,6 +1021,10 @@
                 <div>
                     <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Matrícula o Usuario:</label>
                     <input type="text" id="admin_nuevo_matricula" required placeholder="Ej. uvm12345" class="w-full border p-2.5 rounded-xl font-medium text-xs text-slate-800 focus:ring-2 focus:ring-red-500">
+                </div>
+                <div>
+                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Correo Electrónico:</label>
+                    <input type="email" id="admin_nuevo_email" placeholder="Ej. profesor.apellido@uvmnet.edu" class="w-full border p-2.5 rounded-xl font-medium text-xs text-slate-800 focus:ring-2 focus:ring-red-500">
                 </div>
                 <div>
                     <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Rol a Asignar:</label>
@@ -979,6 +1075,96 @@
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- MODAL 2.B: ASIGNAR PROFESORES JUECES MANUALMENTE A UN CARTEL    -->
+    <!-- ============================================================== -->
+    <div id="modal-asignar-juez-cartel" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl border space-y-4">
+            <div class="flex justify-between items-start border-b pb-3">
+                <div>
+                    <span class="inline-block bg-emerald-100 text-emerald-800 font-black text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-wider mb-1">Asignación Manual (Admin)</span>
+                    <h3 class="font-black text-lg text-slate-800" id="modal-asig-cartel-titulo">Asignar Profesor a Cartel</h3>
+                    <p id="modal-asig-cartel-subtitulo" class="text-xs text-gray-500 font-semibold mt-0.5"></p>
+                </div>
+                <button onclick="cerrarModalAsignarJuezCartel()" class="text-gray-400 hover:text-gray-600 text-lg font-bold">✕</button>
+            </div>
+
+            <form id="form-modal-asignar-juez" class="space-y-3 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                <input type="hidden" id="modal-asig-cartel-id">
+                <div>
+                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Selecciona al Profesor Juez para asignar:</label>
+                    <div class="flex gap-2">
+                        <select id="modal-asig-select-profesor" required class="flex-1 border border-slate-300 p-2.5 rounded-xl text-xs font-semibold bg-white text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
+                            <option value="">-- Selecciona un Profesor --</option>
+                        </select>
+                        <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-xs font-black shadow whitespace-nowrap transition">
+                            + Asignar
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            <div class="space-y-2">
+                <h4 class="font-bold text-xs uppercase tracking-wider text-slate-600">Profesores Actualmente Asignados a este Cartel:</h4>
+                <div id="modal-asig-lista-actuales" class="space-y-2 max-h-56 overflow-y-auto">
+                    <!-- Llenado dinámicamente -->
+                </div>
+            </div>
+
+            <div class="flex justify-end pt-2 border-t">
+                <button type="button" onclick="cerrarModalAsignarJuezCartel()" class="bg-slate-800 hover:bg-slate-900 text-white px-5 py-2 rounded-xl text-xs font-bold shadow">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- MODAL 2.C: VER Y GESTIONAR CARTELES ASIGNADOS A UN PROFESOR     -->
+    <!-- ============================================================== -->
+    <div id="modal-ver-carteles-profesor" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white rounded-2xl p-6 max-w-2xl w-full shadow-2xl border space-y-4 my-8">
+            <div class="flex justify-between items-start border-b pb-3">
+                <div>
+                    <span class="inline-block bg-red-100 text-red-800 font-black text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-wider mb-1">Carteles del Profesor Juez</span>
+                    <h3 class="font-black text-lg text-slate-800" id="modal-profe-carteles-titulo">Carteles Asignados</h3>
+                    <p id="modal-profe-carteles-subtitulo" class="text-xs text-gray-500 font-semibold mt-0.5"></p>
+                </div>
+                <button onclick="cerrarModalCartelesProfesor()" class="text-gray-400 hover:text-gray-600 text-lg font-bold">✕</button>
+            </div>
+
+            <form id="form-modal-asignar-cartel-a-profe" class="space-y-2 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                <input type="hidden" id="modal-profe-carteles-profesor-id">
+                <input type="hidden" id="modal-profe-carteles-usuario-id">
+                <label class="block font-bold text-xs uppercase text-slate-700">Asignar nuevo cartel a este profesor:</label>
+                <div class="flex flex-col sm:flex-row gap-2">
+                    <select id="modal-profe-select-cartel" required class="flex-1 border border-slate-300 p-2.5 rounded-xl text-xs font-semibold bg-white text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
+                        <option value="">-- Selecciona un Cartel para Asignar --</option>
+                    </select>
+                    <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-xs font-black shadow whitespace-nowrap transition">
+                        + Asignar Cartel
+                    </button>
+                </div>
+            </form>
+
+            <div class="space-y-2">
+                <div class="flex justify-between items-center">
+                    <h4 class="font-bold text-xs uppercase tracking-wider text-slate-600">Carteles Actualmente Asignados:</h4>
+                    <span id="modal-profe-resumen-conteo" class="text-xs font-bold bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded-full border">0 carteles</span>
+                </div>
+                <div id="modal-profe-lista-carteles" class="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+                    <!-- Llenado dinámicamente -->
+                </div>
+            </div>
+
+            <div class="flex justify-end pt-2 border-t">
+                <button type="button" onclick="cerrarModalCartelesProfesor()" class="bg-slate-800 hover:bg-slate-900 text-white px-5 py-2 rounded-xl text-xs font-bold shadow">
+                    Cerrar
+                </button>
+            </div>
         </div>
     </div>
 
@@ -1288,21 +1474,10 @@
             let html = '';
 
             if (!usuarioActual) {
-                // No logueado
-                html = `
-                    <button id="nav-btn-login-general" onclick="verVista('login-general')" class="nav-btn bg-white text-red-800 shadow px-3.5 py-1.5 rounded-lg transition hover:bg-red-50 font-bold">
-                        Iniciar Sesión / Registro
-                    </button>
-                    <button id="nav-btn-ranking" onclick="cargarRanking(); verVista('ranking')" class="nav-btn bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 rounded-lg transition shadow">
-                        Ranking
-                    </button>
-                    <!-- BOTÓN ADMIN SIEMPRE VISIBLE EN LA PARTE DE ARRIBA (REQUERIMIENTO) -->
-                    <button id="nav-btn-admin-login" onclick="verVista('admin-login')" class="nav-btn bg-slate-800 hover:bg-slate-900 text-white px-3.5 py-1.5 rounded-lg transition font-bold shadow flex items-center gap-1">
-                        Admin
-                    </button>
-                `;
+                // No logueado: Sin botones de Iniciar Sesión/Registro, Ranking ni Admin en el header
+                html = '';
             } else if (usuarioActual.rol === 'estudiante') {
-                // Alumno Logueado
+                // Alumno Logueado (Sin Ranking ni botón Admin)
                 html = `
                     <button id="nav-btn-dashboard-alumno" onclick="cargarDashboardAlumno(); verVista('dashboard-alumno')" class="nav-btn bg-white text-red-800 shadow px-3.5 py-1.5 rounded-lg transition font-bold">
                         Mi Dashboard
@@ -1310,22 +1485,15 @@
                     <button id="nav-btn-registro" onclick="prepararRegistroCartel(); verVista('registro')" class="nav-btn bg-red-600/80 hover:bg-red-600 text-white px-3.5 py-1.5 rounded-lg transition">
                         Inscribir Cartel
                     </button>
-                    <button id="nav-btn-ranking" onclick="cargarRanking(); verVista('ranking')" class="nav-btn bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 rounded-lg transition shadow">
-                        Ranking
-                    </button>
                     <span class="bg-red-900/60 text-red-100 px-3 py-1.5 rounded-lg text-xs font-bold border border-red-400/40 flex items-center gap-1.5">
                         ${usuarioActual.nombre} <span class="bg-emerald-500 text-white text-[10px] px-1.5 py-0.2 rounded font-black">ALUMNO</span>
                     </span>
                     <button onclick="cerrarSesion()" class="bg-red-500/80 hover:bg-red-600 text-white px-2.5 py-1.5 rounded-lg text-xs font-bold transition">
                         Salir
                     </button>
-                    <!-- BOTÓN ADMIN ARRIBA -->
-                    <button id="nav-btn-admin-login" onclick="verVista('admin-login')" class="nav-btn bg-slate-800 hover:bg-slate-900 text-white px-3.5 py-1.5 rounded-lg transition font-bold shadow flex items-center gap-1">
-                        Admin
-                    </button>
                 `;
             } else if (usuarioActual.rol === 'profesor') {
-                // Profesor Logueado
+                // Profesor Logueado (Sin Ranking ni botón Admin)
                 html = `
                     <button id="nav-btn-dashboard-profesor" onclick="cargarDashboardProfesor(); verVista('dashboard-profesor')" class="nav-btn bg-white text-red-800 shadow px-3.5 py-1.5 rounded-lg transition font-bold">
                         Mis Carteles Asignados
@@ -1333,22 +1501,15 @@
                     <button onclick="abrirModalInvitado()" class="nav-btn bg-amber-600 hover:bg-amber-700 text-white px-3.5 py-1.5 rounded-lg transition shadow">
                         Evaluar con Clave
                     </button>
-                    <button id="nav-btn-ranking" onclick="cargarRanking(); verVista('ranking')" class="nav-btn bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 rounded-lg transition shadow">
-                        Ranking
-                    </button>
                     <span class="bg-red-900/60 text-red-100 px-3 py-1.5 rounded-lg text-xs font-bold border border-red-400/40 flex items-center gap-1.5">
                         Prof. ${usuarioActual.nombre} <span class="bg-red-700 text-white text-[10px] px-1.5 py-0.2 rounded font-black">NIVEL ${usuarioActual.nivel_asignado || 1}</span>
                     </span>
                     <button onclick="cerrarSesion()" class="bg-red-500/80 hover:bg-red-600 text-white px-2.5 py-1.5 rounded-lg text-xs font-bold transition">
                         Salir
                     </button>
-                    <!-- BOTÓN ADMIN ARRIBA -->
-                    <button id="nav-btn-admin-login" onclick="verVista('admin-login')" class="nav-btn bg-slate-800 hover:bg-slate-900 text-white px-3.5 py-1.5 rounded-lg transition font-bold shadow flex items-center gap-1">
-                        Admin
-                    </button>
                 `;
             } else if (usuarioActual.rol === 'admin') {
-                // Admin Logueado
+                // Admin Logueado (Único rol que puede ver Ranking)
                 html = `
                     <button id="nav-btn-admin-dashboard" onclick="verVista('admin-dashboard')" class="nav-btn bg-white text-red-800 shadow px-3.5 py-1.5 rounded-lg transition font-bold">
                         Panel Maestro Admin
@@ -1375,8 +1536,15 @@
         }
 
         function verVista(vista) {
+            // Restringir la vista de Ranking exclusivamente a Administradores con sesión iniciada
+            if (vista === 'ranking' && (!usuarioActual || usuarioActual.rol !== 'admin')) {
+                irInicioSegunRol();
+                return;
+            }
+
             const vistas = [
                 'login-general',
+                'registro-usuario',
                 'dashboard-alumno',
                 'registro',
                 'dashboard-profesor',
@@ -1394,6 +1562,7 @@
             if (vistaActiva) vistaActiva.classList.remove('hidden');
 
             renderizarNavegacion();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
 
             if (vista === 'registro') cargarProfesoresSelects();
             if (vista === 'admin-dashboard') cargarAdminDashboard();
@@ -1403,21 +1572,10 @@
         }
 
         function cambiarPestanaLogin(modo) {
-            const tabEntrar = document.getElementById('tab-login-entrar');
-            const tabRegistro = document.getElementById('tab-login-registro');
-            const boxEntrar = document.getElementById('modo-login-entrar');
-            const boxRegistro = document.getElementById('modo-login-registro');
-
-            if (modo === 'entrar') {
-                tabEntrar.className = 'flex-1 py-2.5 text-center font-extrabold text-xs sm:text-sm rounded-xl bg-white text-red-700 shadow-sm transition';
-                tabRegistro.className = 'flex-1 py-2.5 text-center font-extrabold text-xs sm:text-sm rounded-xl text-slate-600 hover:text-slate-900 transition';
-                boxEntrar.classList.remove('hidden');
-                boxRegistro.classList.add('hidden');
+            if (modo === 'registro') {
+                verVista('registro-usuario');
             } else {
-                tabRegistro.className = 'flex-1 py-2.5 text-center font-extrabold text-xs sm:text-sm rounded-xl bg-white text-red-700 shadow-sm transition';
-                tabEntrar.className = 'flex-1 py-2.5 text-center font-extrabold text-xs sm:text-sm rounded-xl text-slate-600 hover:text-slate-900 transition';
-                boxRegistro.classList.remove('hidden');
-                boxEntrar.classList.add('hidden');
+                verVista('login-general');
             }
         }
 
@@ -1460,11 +1618,12 @@
             }
         };
 
-        // Registro: nombre en mayúsculas automático
+        // Registro: nombre en mayúsculas automático y envío de correo con datos de ingreso
         document.getElementById('form-registro-alumno').onsubmit = async (e) => {
             e.preventDefault();
             const nombre = document.getElementById('reg_nombre').value.trim().toUpperCase();
             const matricula = document.getElementById('reg_matricula').value.trim();
+            const email = document.getElementById('reg_email')?.value.trim() || '';
             const carrera = document.getElementById('reg_carrera').value;
             const semestre = document.getElementById('reg_semestre').value;
             const password = document.getElementById('reg_pass').value;
@@ -1473,7 +1632,7 @@
                 const res = await fetch('/api/registro', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ nombre, matricula, carrera, semestre, password })
+                    body: JSON.stringify({ nombre, matricula, email, carrera, semestre, password })
                 });
                 const data = await res.json();
 
@@ -1925,6 +2084,7 @@
 
             if (pestana === 'usuarios') cargarAdminUsuarios();
             if (pestana === 'carteles') cargarAdminCarteles();
+            if (pestana === 'reparto') cargarDatosAsignacionManual();
             if (pestana === 'ranking') cargarRankingAdmin();
         }
 
@@ -1949,6 +2109,7 @@
 
                 cargarAdminUsuarios();
                 cargarAdminCarteles();
+                cargarDatosAsignacionManual();
             } catch (err) {
                 console.error("Error al cargar dashboard admin:", err);
             }
@@ -1994,7 +2155,8 @@
                 const coincideRol = (filtroRolActual === 'todos') || (u.rol === filtroRolActual);
                 const nombre = (u.nombre || '').toLowerCase();
                 const mat = (u.matricula || '').toLowerCase();
-                const coincideTermino = !termino || nombre.includes(termino) || mat.includes(termino);
+                const email = (u.email || '').toLowerCase();
+                const coincideTermino = !termino || nombre.includes(termino) || mat.includes(termino) || email.includes(termino);
                 return coincideRol && coincideTermino;
             });
 
@@ -2020,7 +2182,40 @@
                     badgeRol = `<span class="bg-emerald-100 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded font-extrabold text-[10px]">ESTUDIANTE</span>`;
                 }
 
-                let nivelTexto = u.rol === 'profesor' ? `Nivel ${u.nivel_asignado || 1}` : '-';
+                const asignadosProfe = Array.isArray(u.carteles_asignados) ? u.carteles_asignados : [];
+                let nivelYCartelesHtml = '-';
+                if (u.rol === 'profesor') {
+                    let listaCartelesHtml = '';
+                    if (asignadosProfe.length === 0) {
+                        listaCartelesHtml = `<div class="text-[11px] text-slate-400 italic mt-1 font-normal">Sin carteles asignados</div>`;
+                    } else {
+                        const itemsHtml = asignadosProfe.map(c => `
+                            <div class="flex items-center justify-between gap-1.5 bg-slate-50 border ${c.ya_evaluo ? 'border-emerald-200 bg-emerald-50/40' : 'border-slate-200'} px-2 py-1 rounded-lg text-[11px]">
+                                <div class="truncate max-w-[220px]" title="${c.titulo_cartel} (${c.nombre_equipo || ''})">
+                                    <span class="font-mono font-black text-[10px] bg-amber-100 text-amber-900 px-1 py-0.2 rounded border border-amber-200 mr-1">${c.clave || 'S/C'}</span>
+                                    <span class="font-bold text-slate-800">${c.titulo_cartel}</span>
+                                </div>
+                                <span class="text-[9px] font-extrabold px-1.5 py-0.2 rounded shrink-0 ${c.ya_evaluo ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
+                                    ${c.ya_evaluo ? 'Calificado' : 'Pendiente'}
+                                </span>
+                            </div>
+                        `).join('');
+                        listaCartelesHtml = `
+                            <div class="mt-1.5 space-y-1">
+                                <div class="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider">
+                                    ${asignadosProfe.length} ${asignadosProfe.length === 1 ? 'cartel asignado' : 'carteles asignados'}:
+                                </div>
+                                ${itemsHtml}
+                            </div>
+                        `;
+                    }
+                    nivelYCartelesHtml = `
+                        <div>
+                            <span class="inline-block font-bold text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded text-[11px]">Nivel ${u.nivel_asignado || 1}</span>
+                            ${listaCartelesHtml}
+                        </div>
+                    `;
+                }
 
                 const uJson = JSON.stringify(u).replace(/"/g, '&quot;');
                 const esSesionActual = usuarioActual && (usuarioActual.id === u.id || usuarioActual.matricula === u.matricula);
@@ -2041,6 +2236,9 @@
                     `;
                 } else if (u.rol === 'profesor') {
                     botonesAccion = `
+                        <button onclick="abrirModalCartelesProfesor(${u.profesor_id || 'null'}, ${u.id})" class="bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1 rounded-lg font-bold text-[11px] shadow-sm transition" title="Ver y asignar carteles de este profesor">
+                            Ver Carteles (${asignadosProfe.length})
+                        </button>
                         <button onclick="hacerAdminDirecto(${u.id}, '${u.nombre.replace(/'/g, "\\'")}')" class="bg-slate-800 hover:bg-slate-900 text-amber-300 border border-slate-700 px-2.5 py-1 rounded-lg font-bold text-[11px] shadow-sm transition" title="Hacer a este profesor Administrador">
                             Hacer Admin
                         </button>
@@ -2080,15 +2278,18 @@
 
                 return `
                     <tr class="border-b hover:bg-gray-50 transition">
-                        <td class="p-3 font-bold text-slate-800 uppercase flex items-center gap-1.5">
-                            <span>${u.nombre}</span>
-                            ${esSesionActual ? '<span class="text-[9px] bg-red-100 text-red-800 font-black px-1.5 py-0.5 rounded-full">Actual</span>' : ''}
+                        <td class="p-3 align-top">
+                            <div class="font-bold text-slate-800 uppercase flex items-center gap-1.5">
+                                <span>${u.nombre}</span>
+                                ${esSesionActual ? '<span class="text-[9px] bg-red-100 text-red-800 font-black px-1.5 py-0.5 rounded-full">Actual</span>' : ''}
+                            </div>
+                            ${u.email ? `<div class="text-[11px] text-slate-500 font-medium">${u.email}</div>` : ''}
                         </td>
-                        <td class="p-3 font-mono text-slate-600 font-semibold">${u.matricula}</td>
-                        <td class="p-3">${badgeRol}</td>
-                        <td class="p-3 font-semibold text-slate-700">${u.carrera || 'General'}</td>
-                        <td class="p-3 font-bold text-red-700">${nivelTexto}</td>
-                        <td class="p-3 text-center space-x-1 whitespace-nowrap">${botonesAccion}</td>
+                        <td class="p-3 align-top font-mono text-slate-600 font-semibold">${u.matricula}</td>
+                        <td class="p-3 align-top">${badgeRol}</td>
+                        <td class="p-3 align-top font-semibold text-slate-700">${u.carrera || 'General'}</td>
+                        <td class="p-3 align-top">${nivelYCartelesHtml}</td>
+                        <td class="p-3 align-top text-center space-x-1 whitespace-nowrap">${botonesAccion}</td>
                     </tr>
                 `;
             }).join('');
@@ -2120,12 +2321,14 @@
         function abrirModalPromover(user) {
             document.getElementById('modal-promover-id').value = user.id;
             document.getElementById('modal-promover-subtitulo').innerText = `${user.nombre} (${user.matricula})`;
-            document.getElementById('modal-promover-rol').value = user.rol;
+            document.getElementById('modal-promover-rol').value = user.rol === 'estudiante' ? 'profesor' : user.rol;
             document.getElementById('modal-promover-carrera').value = user.carrera || 'Ingeniería';
             document.getElementById('modal-promover-nivel').value = user.nivel_asignado || 1;
+            const emailInput = document.getElementById('modal-promover-email');
+            if (emailInput) emailInput.value = user.email || '';
             const passInput = document.getElementById('modal-promover-pass');
             if (passInput) passInput.value = '';
-            toggleCamposProfesorModal(user.rol);
+            toggleCamposProfesorModal(document.getElementById('modal-promover-rol').value);
             document.getElementById('modal-promover-usuario').classList.remove('hidden');
         }
 
@@ -2152,13 +2355,14 @@
             const rol = document.getElementById('modal-promover-rol').value;
             const carrera = document.getElementById('modal-promover-carrera').value;
             const nivel_asignado = document.getElementById('modal-promover-nivel').value;
+            const email = document.getElementById('modal-promover-email')?.value.trim() || '';
             const password = document.getElementById('modal-promover-pass')?.value || '';
 
             try {
                 const res = await fetch(`/api/admin/usuarios/${id}/rol`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ rol, carrera, nivel_asignado, password })
+                    body: JSON.stringify({ rol, carrera, nivel_asignado, email, password })
                 });
                 const data = await res.json();
                 if (res.ok) {
@@ -2245,6 +2449,7 @@
             e.preventDefault();
             const nombre = document.getElementById('admin_nuevo_nombre').value.trim().toUpperCase();
             const matricula = document.getElementById('admin_nuevo_matricula').value.trim();
+            const email = document.getElementById('admin_nuevo_email')?.value.trim() || '';
             const rol = document.getElementById('admin_nuevo_rol').value;
             const carrera = document.getElementById('admin_nuevo_carrera').value;
             const nivel_asignado = document.getElementById('admin_nuevo_nivel').value;
@@ -2254,7 +2459,7 @@
                 const res = await fetch('/api/admin/usuarios', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ nombre, matricula, rol, carrera, nivel_asignado, password })
+                    body: JSON.stringify({ nombre, matricula, email, rol, carrera, nivel_asignado, password })
                 });
                 const data = await res.json();
                 if (res.ok) {
@@ -2339,7 +2544,22 @@
                 return;
             }
 
-            tbody.innerHTML = carteles.map(c => `
+            tbody.innerHTML = carteles.map(c => {
+                const asignados = Array.isArray(c.asignados) ? c.asignados : [];
+                let htmlAsignados = '';
+                if (asignados.length === 0) {
+                    htmlAsignados = `<span class="text-[11px] text-slate-400 italic">Sin profesores asignados aún</span>`;
+                } else {
+                    htmlAsignados = asignados.map(a => `
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold border ${a.ya_evaluo ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-slate-100 text-slate-700 border-slate-300'}">
+                            <span>${a.profesor_nombre}</span>
+                            <span class="text-[9px] opacity-75">(${a.ya_evaluo ? 'Calificado' : 'Pendiente'})</span>
+                            <button type="button" onclick="quitarAsignacionManual(${a.asignacion_id})" class="ml-0.5 text-red-500 hover:text-red-700 font-black" title="Quitar asignación">✕</button>
+                        </span>
+                    `).join(' ');
+                }
+
+                return `
                 <tr class="border-b hover:bg-gray-50 transition text-xs">
                     <td class="p-2.5">
                         <div class="flex items-center gap-1.5">
@@ -2356,6 +2576,10 @@
                         <span class="text-xs text-gray-500 font-bold">Equipo: ${c.nombre_equipo}</span>
                         <div class="text-[11px] text-red-950 mt-1 bg-red-50/70 p-2 rounded-lg border border-red-100">
                             <strong>Alumnos:</strong> ${c.participantes || 'No registrados'}
+                        </div>
+                        <div class="mt-1.5 flex flex-wrap items-center gap-1">
+                            <span class="text-[11px] font-bold text-slate-600 mr-1">Jueces:</span>
+                            ${htmlAsignados}
                         </div>
                     </td>
                     <td class="p-2.5">
@@ -2376,13 +2600,444 @@
                         }
                     </td>
                     <td class="p-2.5 text-center space-x-1 whitespace-nowrap">
+                        <button onclick="abrirModalAsignarJuezCartel(${c.id})" class="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded font-bold transition text-xs shadow-sm" title="Asignar profesor manualmente a este cartel">
+                            + Asignar Profe
+                        </button>
                         <button onclick="eliminarCartel(${c.id}, '${c.titulo_cartel.replace(/'/g, "\\'")}')" class="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-2.5 py-1 rounded font-bold transition text-xs" title="Eliminar cartel">
-                            Eliminar Cartel
+                            Eliminar
+                        </button>
+                    </td>
+                </tr>
+                `;
+            }).join('');
+        }
+
+        // --- ASIGNACIÓN MANUAL DE CARTELES A PROFESORES ---
+        let profesoresAdminCache = [];
+        let asignacionesAdminCache = [];
+
+        async function cargarDatosAsignacionManual() {
+            try {
+                const [resProfes, resCarteles, resAsignaciones] = await Promise.all([
+                    fetch('/api/profesores'),
+                    fetch('/api/admin/carteles'),
+                    fetch('/api/admin/asignaciones')
+                ]);
+
+                profesoresAdminCache = await resProfes.json();
+                cartelesAdminCache = await resCarteles.json();
+                asignacionesAdminCache = await resAsignaciones.json();
+
+                // Poblar selector de profesores en pestaña de asignación manual
+                const selProfe = document.getElementById('manual-asig-profesor');
+                if (selProfe && Array.isArray(profesoresAdminCache)) {
+                    const valorPrevio = selProfe.value;
+                    selProfe.innerHTML = '<option value="">-- Selecciona un Profesor --</option>' +
+                        profesoresAdminCache.map(p => `<option value="${p.id}">${p.nombre} (${p.carrera || 'General'} - Nivel ${p.nivel_asignado || 1})</option>`).join('');
+                    if (valorPrevio) selProfe.value = valorPrevio;
+                }
+
+                // Poblar selector de carteles en pestaña de asignación manual
+                const selCartel = document.getElementById('manual-asig-cartel');
+                if (selCartel && Array.isArray(cartelesAdminCache)) {
+                    const valorPrevio = selCartel.value;
+                    selCartel.innerHTML = '<option value="">-- Selecciona un Cartel --</option>' +
+                        cartelesAdminCache.map(c => `<option value="${c.id}">[${c.clave || 'SIN-CLAVE'}] ${c.titulo_cartel} (${c.carrera || 'General'} - Nivel ${c.nivel})</option>`).join('');
+                    if (valorPrevio) selCartel.value = valorPrevio;
+                }
+
+                renderizarCartelesPorProfesor();
+                renderizarTablaAsignacionesManuales(asignacionesAdminCache);
+                renderizarAdminCarteles(cartelesAdminCache);
+                renderizarDirectorioClaves(cartelesAdminCache);
+            } catch (err) {
+                console.error("Error al cargar datos de asignación manual:", err);
+            }
+        }
+
+        function filtrarCartelesPorProfesor() {
+            renderizarCartelesPorProfesor();
+        }
+
+        function renderizarCartelesPorProfesor() {
+            const cont = document.getElementById('admin-contenedor-carteles-por-profesor');
+            if (!cont) return;
+
+            if (!Array.isArray(profesoresAdminCache) || profesoresAdminCache.length === 0) {
+                cont.innerHTML = `<div class="col-span-full p-5 text-center text-gray-400 italic text-xs bg-slate-50 rounded-xl border">No hay profesores jueces registrados todavía.</div>`;
+                return;
+            }
+
+            const termino = (document.getElementById('busqueda-carteles-por-profesor')?.value || '').toLowerCase().trim();
+
+            // Agrupar asignaciones por profesor_id
+            const mapaAsigPorProfe = {};
+            if (Array.isArray(asignacionesAdminCache)) {
+                asignacionesAdminCache.forEach(a => {
+                    if (!mapaAsigPorProfe[a.profesor_id]) mapaAsigPorProfe[a.profesor_id] = [];
+                    mapaAsigPorProfe[a.profesor_id].push(a);
+                });
+            }
+
+            const profesFiltrados = profesoresAdminCache.filter(p => {
+                if (!termino) return true;
+                const nombreP = (p.nombre || '').toLowerCase();
+                const carreraP = (p.carrera || '').toLowerCase();
+                const asigs = mapaAsigPorProfe[p.id] || [];
+                const coincideCartel = asigs.some(a =>
+                    (a.titulo_cartel || '').toLowerCase().includes(termino) ||
+                    (a.clave || '').toLowerCase().includes(termino) ||
+                    (a.nombre_equipo || '').toLowerCase().includes(termino)
+                );
+                return nombreP.includes(termino) || carreraP.includes(termino) || coincideCartel;
+            });
+
+            if (profesFiltrados.length === 0) {
+                cont.innerHTML = `<div class="col-span-full p-5 text-center text-gray-400 italic text-xs bg-slate-50 rounded-xl border">No se encontraron profesores con ese criterio de búsqueda.</div>`;
+                return;
+            }
+
+            cont.innerHTML = profesFiltrados.map(p => {
+                const asignados = mapaAsigPorProfe[p.id] || [];
+                const calificados = asignados.filter(a => Number(a.ya_evaluo) === 1).length;
+                const pendientes = asignados.length - calificados;
+
+                let listaHtml = '';
+                if (asignados.length === 0) {
+                    listaHtml = `<div class="text-xs text-slate-400 italic py-3 px-3 bg-slate-50 rounded-xl border border-dashed text-center">Sin carteles asignados todavía.</div>`;
+                } else {
+                    listaHtml = `<div class="space-y-2 mt-2">` + asignados.map(a => {
+                        const puntajeInfo = a.ya_evaluo && a.estrellas_otorgadas
+                            ? ` (${parseFloat(a.estrellas_otorgadas).toFixed(2)} ★)`
+                            : '';
+                        return `
+                            <div class="p-2.5 rounded-xl border ${a.ya_evaluo ? 'bg-emerald-50/40 border-emerald-200' : 'bg-slate-50 border-slate-200'} flex flex-col sm:flex-row justify-between sm:items-center gap-2 text-xs">
+                                <div class="space-y-0.5">
+                                    <div class="flex flex-wrap items-center gap-1.5">
+                                        <span class="font-mono font-black text-[10px] bg-amber-100 text-amber-900 border border-amber-300 px-1.5 py-0.2 rounded">${a.clave || 'S/C'}</span>
+                                        <span class="font-bold text-slate-800">${a.titulo_cartel}</span>
+                                    </div>
+                                    <div class="text-[11px] text-slate-500">
+                                        Equipo: <strong>${a.nombre_equipo || '-'}</strong> • ${a.cartel_carrera || 'General'} (Nivel ${a.cartel_nivel})
+                                    </div>
+                                    ${a.participantes ? `<div class="text-[10px] text-red-900 font-semibold">Alumnos: ${a.participantes}</div>` : ''}
+                                </div>
+                                <div class="flex items-center gap-1.5 self-end sm:self-center shrink-0">
+                                    ${a.archivo_url ? `<a href="${a.archivo_url}" target="_blank" class="text-blue-600 hover:underline font-bold text-[11px] px-1.5 py-0.5 rounded bg-blue-50 border border-blue-200">PDF</a>` : ''}
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border ${a.ya_evaluo ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-amber-100 text-amber-800 border-amber-300'}">
+                                        ${a.ya_evaluo ? `Calificado${puntajeInfo}` : 'Pendiente'}
+                                    </span>
+                                    <button type="button" onclick="quitarAsignacionManual(${a.id})" class="text-red-500 hover:text-red-700 hover:bg-red-50 px-1.5 py-0.5 rounded font-black text-xs transition" title="Quitar cartel de este profesor">✕</button>
+                                </div>
+                            </div>
+                        `;
+                    }).join('') + `</div>`;
+                }
+
+                return `
+                    <div class="border border-slate-200 rounded-2xl p-4 bg-white shadow-sm hover:border-red-200 transition flex flex-col justify-between space-y-3">
+                        <div>
+                            <div class="flex justify-between items-start gap-2 border-b border-slate-100 pb-2.5">
+                                <div>
+                                    <h5 class="font-black text-slate-800 text-sm uppercase">${p.nombre}</h5>
+                                    <p class="text-[11px] text-slate-500 font-semibold mt-0.5">
+                                        Área: <span class="text-slate-700">${p.carrera || 'General'}</span> • <span class="text-red-700 font-bold">Nivel ${p.nivel_asignado || 1}</span>
+                                    </p>
+                                </div>
+                                <div class="flex flex-col items-end gap-1">
+                                    <span class="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold ${asignados.length > 0 ? 'bg-red-100 text-red-900 border border-red-200' : 'bg-slate-100 text-slate-600 border border-slate-200'}">
+                                        ${asignados.length} ${asignados.length === 1 ? 'Cartel' : 'Carteles'}
+                                    </span>
+                                    ${asignados.length > 0 ? `<span class="text-[10px] text-slate-500 font-semibold">${calificados} calif. / ${pendientes} pend.</span>` : ''}
+                                </div>
+                            </div>
+                            ${listaHtml}
+                        </div>
+                        <div class="pt-2 border-t border-slate-100 flex justify-end">
+                            <button type="button" onclick="abrirModalCartelesProfesor(${p.id})" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-xl text-[11px] font-bold shadow-sm transition">
+                                Ver / + Asignar Carteles a este Profesor
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderizarTablaAsignacionesManuales(asignaciones) {
+            const tbody = document.getElementById('admin-tabla-asignaciones-manuales');
+            if (!tbody) return;
+
+            if (!Array.isArray(asignaciones) || asignaciones.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-5 text-center text-gray-400 italic text-xs">No hay carteles asignados a profesores todavía. Usa el formulario de arriba para asignar uno manualmente.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = asignaciones.map(a => `
+                <tr class="border-b hover:bg-slate-50 transition">
+                    <td class="p-2.5">
+                        <div class="font-bold text-slate-800 uppercase">${a.profesor_nombre}</div>
+                        <div class="text-[11px] text-slate-500">${a.profesor_carrera || 'General'} • Nivel ${a.profesor_nivel || 1}</div>
+                    </td>
+                    <td class="p-2.5">
+                        <div class="font-bold text-slate-800">${a.titulo_cartel}</div>
+                        <div class="text-[11px] text-slate-500">Equipo: ${a.nombre_equipo} (${a.cartel_carrera || 'General'} • Nivel ${a.cartel_nivel})</div>
+                    </td>
+                    <td class="p-2.5">
+                        <span class="font-mono font-black text-xs bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 rounded">${a.clave || '-'}</span>
+                    </td>
+                    <td class="p-2.5 text-center">
+                        ${a.ya_evaluo
+                            ? `<span class="inline-block bg-emerald-100 text-emerald-800 border border-emerald-300 px-2.5 py-0.5 rounded-full font-bold text-[11px]">Ya Calificó</span>`
+                            : `<span class="inline-block bg-amber-50 text-amber-800 border border-amber-200 px-2.5 py-0.5 rounded-full font-semibold text-[11px]">Pendiente por Calificar</span>`
+                        }
+                    </td>
+                    <td class="p-2.5 text-center">
+                        <button type="button" onclick="quitarAsignacionManual(${a.id})" class="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-2.5 py-1 rounded-lg font-bold text-[11px] transition">
+                            Quitar
                         </button>
                     </td>
                 </tr>
             `).join('');
         }
+
+        document.getElementById('form-asignacion-manual').onsubmit = async (e) => {
+            e.preventDefault();
+            const profesor_id = document.getElementById('manual-asig-profesor').value;
+            const cartel_id = document.getElementById('manual-asig-cartel').value;
+
+            if (!profesor_id || !cartel_id) {
+                return alert("Selecciona tanto el profesor como el cartel.");
+            }
+
+            try {
+                const res = await fetch('/api/admin/asignaciones', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ profesor_id, cartel_id })
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    alert(data.mensaje);
+                    await cargarDatosAsignacionManual();
+                    await cargarAdminUsuarios();
+                } else {
+                    alert(data.error || "No se pudo realizar la asignación.");
+                }
+            } catch (err) {
+                alert("Error de conexión: " + err.message);
+            }
+        };
+
+        async function quitarAsignacionManual(asignacionId) {
+            if (!confirm("¿Deseas quitar la asignación de este profesor para este cartel?")) return;
+            try {
+                const res = await fetch(`/api/admin/asignaciones/${asignacionId}`, { method: 'DELETE' });
+                const data = await res.json();
+                if (res.ok) {
+                    await cargarDatosAsignacionManual();
+                    await cargarAdminUsuarios();
+                    const cartelModalId = document.getElementById('modal-asig-cartel-id')?.value;
+                    if (cartelModalId && !document.getElementById('modal-asignar-juez-cartel').classList.contains('hidden')) {
+                        renderizarListaAsignadosModal(parseInt(cartelModalId));
+                    }
+                    const profeModalId = document.getElementById('modal-profe-carteles-profesor-id')?.value;
+                    if (profeModalId && !document.getElementById('modal-ver-carteles-profesor').classList.contains('hidden')) {
+                        renderizarListaCartelesDeProfesorModal(parseInt(profeModalId));
+                    }
+                } else {
+                    alert(data.error || "Error al quitar la asignación.");
+                }
+            } catch (err) {
+                alert("Error al quitar asignación: " + err.message);
+            }
+        }
+
+        async function abrirModalCartelesProfesor(profesorId, usuarioId = null) {
+            await cargarDatosAsignacionManual();
+            await cargarAdminUsuarios();
+
+            let profIdFinal = profesorId ? Number(profesorId) : null;
+            if (!profIdFinal && usuarioId) {
+                const u = usuariosAdminCache.find(item => Number(item.id) === Number(usuarioId));
+                if (u && u.profesor_id) profIdFinal = Number(u.profesor_id);
+            }
+
+            const profe = profesoresAdminCache.find(p => Number(p.id) === Number(profIdFinal));
+            if (!profe) {
+                alert("No se encontró el registro de profesor para este usuario.");
+                return;
+            }
+
+            document.getElementById('modal-profe-carteles-profesor-id').value = profe.id;
+            document.getElementById('modal-profe-carteles-usuario-id').value = usuarioId || '';
+            document.getElementById('modal-profe-carteles-titulo').innerText = `Prof. ${profe.nombre}`;
+            document.getElementById('modal-profe-carteles-subtitulo').innerText = `Área: ${profe.carrera || 'General'} • Juez de Nivel ${profe.nivel_asignado || 1}`;
+
+            const selCartel = document.getElementById('modal-profe-select-cartel');
+            if (selCartel) {
+                selCartel.innerHTML = '<option value="">-- Selecciona un Cartel para Asignar --</option>' +
+                    cartelesAdminCache.map(c => `<option value="${c.id}">[${c.clave || 'SIN-CLAVE'}] ${c.titulo_cartel} (${c.carrera || 'General'} - Nivel ${c.nivel})</option>`).join('');
+            }
+
+            renderizarListaCartelesDeProfesorModal(profe.id);
+            document.getElementById('modal-ver-carteles-profesor').classList.remove('hidden');
+        }
+
+        function renderizarListaCartelesDeProfesorModal(profesorId) {
+            const cont = document.getElementById('modal-profe-lista-carteles');
+            const badgeConteo = document.getElementById('modal-profe-resumen-conteo');
+            if (!cont) return;
+
+            const asignados = Array.isArray(asignacionesAdminCache)
+                ? asignacionesAdminCache.filter(a => Number(a.profesor_id) === Number(profesorId))
+                : [];
+
+            const calificados = asignados.filter(a => Number(a.ya_evaluo) === 1).length;
+            if (badgeConteo) {
+                badgeConteo.innerText = `${asignados.length} ${asignados.length === 1 ? 'cartel asignado' : 'carteles asignados'} (${calificados} calificados)`;
+            }
+
+            if (asignados.length === 0) {
+                cont.innerHTML = `<p class="text-xs text-gray-400 italic p-4 bg-slate-50 rounded-xl border text-center">Este profesor aún no tiene carteles asignados para evaluar.</p>`;
+                return;
+            }
+
+            cont.innerHTML = asignados.map(a => {
+                const puntajeInfo = a.ya_evaluo && a.estrellas_otorgadas
+                    ? ` • ${parseFloat(a.estrellas_otorgadas).toFixed(2)} / 5.0 ★ (${a.puntaje_total} pts)`
+                    : '';
+                return `
+                    <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-3 p-3 rounded-xl border ${a.ya_evaluo ? 'bg-emerald-50/40 border-emerald-200' : 'bg-white border-slate-200'} text-xs shadow-sm">
+                        <div class="space-y-1">
+                            <div class="flex flex-wrap items-center gap-1.5">
+                                <span class="font-mono font-black text-xs bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 rounded">${a.clave || 'S/C'}</span>
+                                <span class="text-[11px] font-bold bg-red-50 text-red-700 border border-red-200 px-2 py-0.5 rounded">${a.cartel_carrera || 'General'} • Nivel ${a.cartel_nivel}</span>
+                            </div>
+                            <span class="font-black text-slate-800 text-sm block">${a.titulo_cartel}</span>
+                            <span class="text-xs text-slate-600 font-semibold block">Equipo: ${a.nombre_equipo || '-'}</span>
+                            ${a.participantes ? `<span class="text-[11px] text-red-950 block"><strong>Alumnos:</strong> ${a.participantes}</span>` : ''}
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2 self-end sm:self-center shrink-0">
+                            ${a.archivo_url ? `<a href="${a.archivo_url}" target="_blank" class="bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 px-2.5 py-1 rounded-lg font-bold text-[11px] transition">Ver PDF</a>` : ''}
+                            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold border ${a.ya_evaluo ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-amber-100 text-amber-800 border-amber-300'}">
+                                ${a.ya_evaluo ? `Ya calificó${puntajeInfo}` : 'Pendiente por calificar'}
+                            </span>
+                            <button type="button" onclick="quitarAsignacionManual(${a.id})" class="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-2.5 py-1 rounded-lg font-bold text-[11px] transition">
+                                Quitar
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function cerrarModalCartelesProfesor() {
+            document.getElementById('modal-ver-carteles-profesor').classList.add('hidden');
+        }
+
+        document.getElementById('form-modal-asignar-cartel-a-profe').onsubmit = async (e) => {
+            e.preventDefault();
+            const profesor_id = document.getElementById('modal-profe-carteles-profesor-id').value;
+            const cartel_id = document.getElementById('modal-profe-select-cartel').value;
+            if (!profesor_id || !cartel_id) return;
+
+            try {
+                const res = await fetch('/api/admin/asignaciones', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cartel_id, profesor_id })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    document.getElementById('modal-profe-select-cartel').value = '';
+                    await cargarDatosAsignacionManual();
+                    await cargarAdminUsuarios();
+                    renderizarListaCartelesDeProfesorModal(parseInt(profesor_id));
+                } else {
+                    alert(data.error || "No se pudo asignar el cartel al profesor.");
+                }
+            } catch (err) {
+                alert("Error: " + err.message);
+            }
+        };
+
+        async function abrirModalAsignarJuezCartel(cartelId) {
+            await cargarDatosAsignacionManual();
+            const cartel = cartelesAdminCache.find(c => Number(c.id) === Number(cartelId));
+            if (!cartel) return;
+
+            document.getElementById('modal-asig-cartel-id').value = cartel.id;
+            document.getElementById('modal-asig-cartel-titulo').innerText = cartel.titulo_cartel;
+            document.getElementById('modal-asig-cartel-subtitulo').innerText = `Clave: ${cartel.clave || '-'} • Equipo: ${cartel.nombre_equipo} (${cartel.carrera} - Nivel ${cartel.nivel})`;
+
+            const selModal = document.getElementById('modal-asig-select-profesor');
+            if (selModal) {
+                selModal.innerHTML = '<option value="">-- Selecciona un Profesor --</option>' +
+                    profesoresAdminCache.map(p => `<option value="${p.id}">${p.nombre} (${p.carrera || 'General'} - Nivel ${p.nivel_asignado || 1})</option>`).join('');
+            }
+
+            renderizarListaAsignadosModal(cartel.id);
+            document.getElementById('modal-asignar-juez-cartel').classList.remove('hidden');
+        }
+
+        function renderizarListaAsignadosModal(cartelId) {
+            const cont = document.getElementById('modal-asig-lista-actuales');
+            if (!cont) return;
+            const cartel = cartelesAdminCache.find(c => Number(c.id) === Number(cartelId));
+            const asignados = (cartel && Array.isArray(cartel.asignados)) ? cartel.asignados : [];
+
+            if (asignados.length === 0) {
+                cont.innerHTML = `<p class="text-xs text-gray-400 italic p-3 bg-slate-50 rounded-xl border text-center">Este cartel aún no tiene profesores asignados.</p>`;
+                return;
+            }
+
+            cont.innerHTML = asignados.map(a => `
+                <div class="flex justify-between items-center p-2.5 rounded-xl border bg-white text-xs shadow-sm">
+                    <div>
+                        <span class="font-bold text-slate-800 uppercase block">${a.profesor_nombre}</span>
+                        <span class="text-[11px] text-slate-500">${a.profesor_carrera || 'General'} • Nivel ${a.profesor_nivel || 1}</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${a.ya_evaluo ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
+                            ${a.ya_evaluo ? 'Ya calificó' : 'Pendiente'}
+                        </span>
+                        <button type="button" onclick="quitarAsignacionManual(${a.asignacion_id})" class="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-2 py-1 rounded-lg font-bold text-[11px]">
+                            Quitar
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function cerrarModalAsignarJuezCartel() {
+            document.getElementById('modal-asignar-juez-cartel').classList.add('hidden');
+        }
+
+        document.getElementById('form-modal-asignar-juez').onsubmit = async (e) => {
+            e.preventDefault();
+            const cartel_id = document.getElementById('modal-asig-cartel-id').value;
+            const profesor_id = document.getElementById('modal-asig-select-profesor').value;
+            if (!cartel_id || !profesor_id) return;
+
+            try {
+                const res = await fetch('/api/admin/asignaciones', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cartel_id, profesor_id })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    await cargarDatosAsignacionManual();
+                    await cargarAdminUsuarios();
+                    renderizarListaAsignadosModal(parseInt(cartel_id));
+                } else {
+                    alert(data.error || "No se pudo asignar el profesor.");
+                }
+            } catch (err) {
+                alert("Error: " + err.message);
+            }
+        };
 
         async function eliminarCartel(id, titulo) {
             if (!confirm(`¿Estás seguro de eliminar el cartel "${titulo}"? Se removerán sus evaluaciones y el archivo.`)) return;
