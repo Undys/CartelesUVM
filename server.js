@@ -61,6 +61,22 @@ const upload = multer({
 });
 
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+app.get('/jueces', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+app.get('/profesores', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+
+// Helper para obtener la URL base del servidor (para incluir enlaces en los correos)
+function obtenerUrlBase(req) {
+    if (process.env.PUBLIC_URL && process.env.PUBLIC_URL.trim()) {
+        return process.env.PUBLIC_URL.trim().replace(/\/+$/, '');
+    }
+    if (req && typeof req.get === 'function' && req.get('host')) {
+        const proto = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+        return `${proto}://${req.get('host')}`;
+    }
+    const port = process.env.PORT || 3000;
+    return `http://localhost:${port}`;
+}
 
 // Helper para convertir nombres y apellidos a mayúscula inicial (Title Case)
 function capitalizarNombre(str) {
@@ -86,22 +102,30 @@ function generarClaveAleatoria() {
     return `CART-${codigo}`;
 }
 
-// Helper para enviar correo automático con los datos de la cuenta (Profesores / Usuarios)
-async function enviarCorreoDatosCuenta({ email, nombre, matricula, password, rol, carrera, nivel_asignado }) {
+// Helper para enviar correo automático con los datos de la cuenta y enlace al dashboard (Profesores / Usuarios)
+async function enviarCorreoDatosCuenta({ email, nombre, matricula, password, rol, carrera, nivel_asignado, baseUrl }) {
+    const urlServidor = (baseUrl || process.env.PUBLIC_URL || `http://localhost:${process.env.PORT || 3000}`).replace(/\/+$/, '');
+    const enlaceAcceso = rol === 'profesor'
+        ? `${urlServidor}/jueces?usuario=${encodeURIComponent(matricula)}`
+        : (rol === 'admin' ? `${urlServidor}/admin` : `${urlServidor}/`);
+
     if (!email || !email.trim()) {
-        return { enviado: false, motivo: 'Sin correo electrónico proporcionado' };
+        return { enviado: false, motivo: 'Sin correo electrónico proporcionado', enlace_acceso: enlaceAcceso };
     }
 
     const smtpUser = (process.env.SMTP_USER || '').trim();
-    const smtpPass = (process.env.SMTP_PASS || '').trim();
-    const smtpHost = (process.env.SMTP_HOST || 'smtp.office365.com').trim();
+    const smtpPass = (process.env.SMTP_PASS || '').trim().replace(/\s+/g, '');
+    let smtpHost = (process.env.SMTP_HOST || 'smtp.office365.com').trim();
+    if (smtpUser.toLowerCase().endsWith('@gmail.com')) {
+        smtpHost = 'smtp.gmail.com';
+    }
     const smtpPort = parseInt(process.env.SMTP_PORT) || 587;
     const smtpSecure = process.env.SMTP_SECURE === 'true' || smtpPort === 465;
     const smtpFrom = (process.env.SMTP_FROM || `"Sistema de Carteles UVM" <${smtpUser}>`).trim();
 
     if (!smtpUser || !smtpPass) {
         console.warn(`[CORREO] No se pudo enviar correo a ${email}: Configura SMTP_USER y SMTP_PASS en tu archivo .env`);
-        return { enviado: false, motivo: 'SMTP no configurado en .env' };
+        return { enviado: false, motivo: 'SMTP no configurado en .env', enlace_acceso: enlaceAcceso };
     }
 
     try {
@@ -121,30 +145,47 @@ async function enviarCorreoDatosCuenta({ email, nombre, matricula, password, rol
 
         const rolEtiqueta = rol === 'profesor'
             ? 'Profesor / Juez Evaluador'
-            : (rol === 'admin' ? 'Administrador' : 'Usuario Registrado');
+            : (rol === 'admin' ? 'Administrador' : 'Estudiante (Alumno)');
+
+        const textoBoton = rol === 'profesor'
+            ? 'Ingresar a Mi Dashboard de Juez Evaluador'
+            : 'Ingresar al Sistema de Carteles UVM';
 
         const htmlBody = `
-            <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
+            <div style="font-family: Arial, sans-serif; max-width: 580px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
                 <div style="background-color: #b91c1c; color: #ffffff; padding: 20px 24px;">
                     <h2 style="margin: 0; font-size: 20px;">Sistema de Evaluación de Carteles - UVM</h2>
-                    <p style="margin: 4px 0 0; font-size: 13px; color: #fecaca;">Datos de acceso a tu cuenta</p>
+                    <p style="margin: 4px 0 0; font-size: 13px; color: #fecaca;">
+                        ${rol === 'profesor' ? 'Invitación y Acceso Exclusivo para Maestros / Jueces' : 'Datos de acceso a tu cuenta'}
+                    </p>
                 </div>
                 <div style="padding: 24px; color: #1e293b; background-color: #ffffff;">
                     <p style="margin-top: 0; font-size: 15px;">Hola, <strong>${nombre}</strong>:</p>
                     <p style="font-size: 14px; line-height: 1.5; color: #475569;">
-                        Tu cuenta ha sido dada de alta en el Sistema de Evaluación de Carteles UVM. A continuación, te compartimos tus datos de ingreso:
+                        ${rol === 'profesor'
+                            ? 'El Administrador te ha dado de alta como <strong>Profesor / Juez Evaluador</strong> en el Sistema de Evaluación de Carteles UVM. A continuación, te compartimos tu usuario, contraseña y el enlace directo a tu dashboard:'
+                            : 'Tu cuenta ha sido dada de alta en el Sistema de Evaluación de Carteles UVM. A continuación, te compartimos tus datos de ingreso:'}
                     </p>
                     <div style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 16px; margin: 20px 0;">
                         <p style="margin: 6px 0; font-size: 14px;"><strong>Nombre:</strong> ${nombre}</p>
-                        <p style="margin: 6px 0; font-size: 14px;"><strong>Usuario / Matrícula:</strong> <code style="background: #fff; padding: 2px 6px; border-radius: 4px; font-weight: bold;">${matricula}</code></p>
+                        <p style="margin: 6px 0; font-size: 14px;"><strong>Usuario / ID de Acceso:</strong> <code style="background: #fff; padding: 3px 8px; border-radius: 4px; font-weight: bold; color: #991b1b; border: 1px solid #fecaca;">${matricula}</code></p>
                         <p style="margin: 6px 0; font-size: 14px;"><strong>Correo registrado:</strong> ${email}</p>
-                        <p style="margin: 6px 0; font-size: 14px;"><strong>Contraseña:</strong> <code style="background: #fff; padding: 2px 6px; border-radius: 4px; font-weight: bold;">${password}</code></p>
+                        <p style="margin: 6px 0; font-size: 14px;"><strong>Contraseña:</strong> <code style="background: #fff; padding: 3px 8px; border-radius: 4px; font-weight: bold; color: #991b1b; border: 1px solid #fecaca;">${password}</code></p>
                         <p style="margin: 6px 0; font-size: 14px;"><strong>Rol en el sistema:</strong> ${rolEtiqueta}</p>
                         <p style="margin: 6px 0; font-size: 14px;"><strong>Área / Carrera:</strong> ${carrera || 'General'}</p>
                         ${rol === 'profesor' ? `<p style="margin: 6px 0; font-size: 14px;"><strong>Nivel Asignado para Evaluar:</strong> Nivel ${nivel_asignado || 1}</p>` : ''}
                     </div>
+                    <div style="text-align: center; margin: 26px 0;">
+                        <a href="${enlaceAcceso}" style="display: inline-block; background-color: #b91c1c; color: #ffffff; text-decoration: none; font-weight: bold; font-size: 14px; padding: 13px 26px; border-radius: 8px;">
+                            ${textoBoton}
+                        </a>
+                    </div>
+                    <p style="font-size: 12px; color: #64748b; background-color: #f8fafc; padding: 10px 12px; border-radius: 6px; border: 1px solid #e2e8f0; word-break: break-all;">
+                        <strong>Enlace directo de acceso:</strong><br>
+                        <a href="${enlaceAcceso}" style="color: #b91c1c;">${enlaceAcceso}</a>
+                    </p>
                     <p style="font-size: 13px; color: #64748b; margin-bottom: 0;">
-                        Puedes iniciar sesión utilizando tu Usuario/Matrícula o tu Correo Electrónico junto con tu contraseña.
+                        Puedes iniciar sesión utilizando tu <strong>Usuario (${matricula})</strong> o tu <strong>Correo Electrónico (${email})</strong> junto con tu contraseña.
                     </p>
                 </div>
                 <div style="background-color: #f8fafc; padding: 12px 24px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0;">
@@ -156,15 +197,17 @@ async function enviarCorreoDatosCuenta({ email, nombre, matricula, password, rol
         await transporter.sendMail({
             from: smtpFrom,
             to: email.trim(),
-            subject: 'Datos de Ingreso - Sistema de Evaluación de Carteles UVM',
+            subject: rol === 'profesor'
+                ? 'Acceso Exclusivo de Juez Evaluador - Carteles UVM'
+                : 'Datos de Ingreso - Sistema de Evaluación de Carteles UVM',
             html: htmlBody
         });
 
-        console.log(`[CORREO] Credenciales enviadas exitosamente a ${email}`);
-        return { enviado: true };
+        console.log(`[CORREO] Credenciales y enlace (${enlaceAcceso}) enviados exitosamente a ${email}`);
+        return { enviado: true, enlace_acceso: enlaceAcceso };
     } catch (err) {
         console.warn(`[CORREO] Error al enviar correo a ${email}:`, err.message);
-        return { enviado: false, motivo: err.message };
+        return { enviado: false, motivo: err.message, enlace_acceso: enlaceAcceso };
     }
 }
 
@@ -371,9 +414,9 @@ async function asegurarEsquemaYColumnas() {
         }
     } catch (e) {}
 
-    // 4. Asegurar claves y participantes en carteles existentes
+    // 4. Asegurar claves y participantes en carteles existentes (solo si les falta clave o participantes)
     try {
-        const [existentes] = await pool.query("SELECT id, nombre_equipo, clave, participantes FROM carteles");
+        const [existentes] = await pool.query("SELECT id, nombre_equipo, clave, participantes FROM carteles WHERE clave IS NULL OR clave = '' OR participantes IS NULL OR participantes = ''");
         for (const c of existentes) {
             const nuevaClave = c.clave || generarClaveAleatoria();
             const nuevosPart = (c.participantes || c.nombre_equipo || '').toUpperCase();
@@ -381,9 +424,12 @@ async function asegurarEsquemaYColumnas() {
         }
     } catch (e) {}
 
-    // 5. Permitir r5 con default 0 en evaluaciones
+    // 5. Permitir r5 con default 0 en evaluaciones (solo si aún no tiene default)
     try {
-        await pool.query("ALTER TABLE evaluaciones MODIFY COLUMN r5 INT(11) DEFAULT 0");
+        const [r5Cols] = await pool.query("SHOW COLUMNS FROM evaluaciones LIKE 'r5'");
+        if (r5Cols.length > 0 && r5Cols[0].Default === null) {
+            await pool.query("ALTER TABLE evaluaciones MODIFY COLUMN r5 INT(11) DEFAULT 0");
+        }
     } catch (e) {}
 
     // 6. Sincronizar profesores existentes en la tabla usuarios si aún no están
@@ -479,7 +525,8 @@ app.post('/api/registro', async (req, res) => {
                 password: pass,
                 rol: 'estudiante',
                 carrera: carreraVal,
-                nivel_asignado: 1
+                nivel_asignado: 1,
+                baseUrl: obtenerUrlBase(req)
             });
         }
 
@@ -505,7 +552,7 @@ app.post('/api/registro', async (req, res) => {
     }
 });
 
-// Login general (para Alumnos, Profesores/Jueces y Administradores)
+// Login general (Exclusivo para Alumnos y Administradores)
 app.post('/api/login', async (req, res) => {
     try {
         const idf = (req.body.usuario || req.body.identificador || req.body.matricula || '').trim();
@@ -547,13 +594,11 @@ app.post('/api/login', async (req, res) => {
 
         if (rows.length > 0 && rows[0].password === pass) {
             const u = rows[0];
-            if (u.rol === 'profesor' && !u.profesor_id) {
-                const [pIns] = await pool.query(
-                    'INSERT INTO profesores (nombre, email, carrera, nivel_asignado, password) VALUES (?, ?, ?, ?, ?)',
-                    [u.nombre, u.email || null, u.carrera || 'Ingeniería', u.nivel_asignado || 1, u.password || '123456']
-                );
-                u.profesor_id = pIns.insertId;
-                await pool.query('UPDATE usuarios SET profesor_id = ? WHERE id = ?', [u.profesor_id, u.id]);
+            if (u.rol === 'profesor') {
+                return res.status(403).json({
+                    error: "Este inicio de sesión general es exclusivo para Alumnos y Administradores. Si eres Maestro / Juez Evaluador, ingresa mediante tu enlace exclusivo (/jueces).",
+                    es_profesor: true
+                });
             }
             delete u.password;
             return res.json({ mensaje: "Acceso correcto", usuario: u });
@@ -578,36 +623,16 @@ app.post('/api/login', async (req, res) => {
             // Tabla legacy administradores no existe, continuar
         }
 
-        // 3. Verificar si es un profesor registrado en la tabla profesores directamente
+        // 3. Si es un profesor intentando entrar por el login general, indicarle que use el enlace exclusivo /jueces
         const [profes] = await pool.query(
-            'SELECT id, nombre, email, carrera, nivel_asignado, password FROM profesores WHERE (LOWER(TRIM(nombre)) = LOWER(?) OR LOWER(TRIM(email)) = LOWER(?) OR id = ?) AND password = ?',
+            'SELECT id FROM profesores WHERE (LOWER(TRIM(nombre)) = LOWER(?) OR LOWER(TRIM(email)) = LOWER(?) OR id = ?) AND password = ?',
             [idf, idf, isNaN(idf) ? -1 : parseInt(idf), pass]
         );
 
         if (profes.length > 0) {
-            const p = profes[0];
-            // Asegurar que exista en usuarios
-            const [uCheck] = await pool.query('SELECT id, rol FROM usuarios WHERE profesor_id = ?', [p.id]);
-            let uId = uCheck.length > 0 ? uCheck[0].id : null;
-            if (!uId) {
-                const [ins] = await pool.query(
-                    "INSERT INTO usuarios (nombre, matricula, email, password, rol, carrera, nivel_asignado, profesor_id) VALUES (?, ?, ?, ?, 'profesor', ?, ?, ?)",
-                    [p.nombre.toUpperCase(), `prof_${p.id}`, p.email || null, pass, p.carrera, p.nivel_asignado, p.id]
-                );
-                uId = ins.insertId;
-            }
-            return res.json({
-                mensaje: "Acceso concedido como Profesor Juez",
-                usuario: {
-                    id: uId,
-                    nombre: p.nombre.toUpperCase(),
-                    matricula: `prof_${p.id}`,
-                    email: p.email || null,
-                    rol: 'profesor',
-                    carrera: p.carrera,
-                    nivel_asignado: p.nivel_asignado,
-                    profesor_id: p.id
-                }
+            return res.status(403).json({
+                error: "Este inicio de sesión general es exclusivo para Alumnos y Administradores. Si eres Maestro / Juez Evaluador, ingresa mediante tu enlace exclusivo (/jueces).",
+                es_profesor: true
             });
         }
 
@@ -748,16 +773,69 @@ app.post('/api/admin/usuarios', async (req, res) => {
                 password,
                 rol: rolVal,
                 carrera: carreraVal,
-                nivel_asignado: nivelVal
+                nivel_asignado: nivelVal,
+                baseUrl: obtenerUrlBase(req)
             });
         }
 
-        const msgExtraCorreo = infoCorreo.enviado ? ` Datos de ingreso enviados a ${emailVal}.` : '';
+        const msgExtraCorreo = infoCorreo.enviado
+            ? ` Se enviaron automáticamente el usuario, contraseña y enlace de acceso a ${emailVal}.`
+            : (emailVal ? ` (Aviso de correo: ${infoCorreo.motivo || 'revisa tu configuración SMTP en .env'})` : '');
 
         res.json({
             mensaje: `Usuario ${nombreMayus} registrado como ${rolVal} exitosamente.${msgExtraCorreo}`,
             correo_enviado: infoCorreo.enviado,
+            enlace_acceso: infoCorreo.enlace_acceso,
             usuario: { id: uIns.insertId, nombre: nombreMayus, matricula: mat, email: emailVal, rol: rolVal, carrera: carreraVal, nivel_asignado: nivelVal, profesor_id: profId }
+        });
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
+});
+
+// Admin reenvía por correo el usuario, contraseña y enlace directo al dashboard de un profesor o usuario
+app.post('/api/admin/usuarios/:id/reenviar-correo', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const [rows] = await pool.query('SELECT * FROM usuarios WHERE id = ?', [id]);
+        if (rows.length === 0) {
+            return res.status(404).json({ error: "Usuario no encontrado." });
+        }
+        const u = rows[0];
+        const emailDestino = (req.body && req.body.email ? req.body.email.trim().toLowerCase() : (u.email || '')).trim();
+        if (!emailDestino) {
+            return res.status(400).json({ error: "Este usuario aún no tiene un correo electrónico registrado. Edita su perfil para agregar su correo." });
+        }
+
+        if (emailDestino !== u.email) {
+            await pool.query('UPDATE usuarios SET email = ? WHERE id = ?', [emailDestino, u.id]);
+            if (u.profesor_id) {
+                await pool.query('UPDATE profesores SET email = ? WHERE id = ?', [emailDestino, u.profesor_id]);
+            }
+        }
+
+        const infoCorreo = await enviarCorreoDatosCuenta({
+            email: emailDestino,
+            nombre: u.nombre,
+            matricula: u.matricula,
+            password: u.password,
+            rol: u.rol,
+            carrera: u.carrera,
+            nivel_asignado: u.nivel_asignado,
+            baseUrl: obtenerUrlBase(req)
+        });
+
+        if (!infoCorreo.enviado) {
+            return res.status(400).json({
+                error: `No se pudo enviar el correo a ${emailDestino}: ${infoCorreo.motivo || 'Revisa tus credenciales SMTP en .env'}`,
+                enlace_acceso: infoCorreo.enlace_acceso
+            });
+        }
+
+        res.json({
+            mensaje: `¡Correo enviado exitosamente a ${emailDestino} con su usuario (${u.matricula}), contraseña y enlace directo a su dashboard!`,
+            correo_enviado: true,
+            enlace_acceso: infoCorreo.enlace_acceso
         });
     } catch (err) {
         res.status(400).json({ error: err.message });
@@ -825,16 +903,20 @@ app.put('/api/admin/usuarios/:id/rol', async (req, res) => {
                 password: passActualizada,
                 rol: 'profesor',
                 carrera: nuevaCarrera,
-                nivel_asignado: nuevoNivel
+                nivel_asignado: nuevoNivel,
+                baseUrl: obtenerUrlBase(req)
             });
         }
 
         const rolTexto = nuevoRol === 'admin' ? 'ADMINISTRADOR' : (nuevoRol === 'profesor' ? 'PROFESOR JUEZ' : 'ESTUDIANTE');
-        const msgCorreo = infoCorreo.enviado ? ` Se enviaron los datos de ingreso al correo ${emailActualizado}.` : '';
+        const msgCorreo = infoCorreo.enviado
+            ? ` Se enviaron los datos de ingreso y el enlace exclusivo a ${emailActualizado}.`
+            : '';
 
         res.json({
             mensaje: `¡Usuario ${user.nombre} ahora tiene el rol de ${rolTexto}!${msgCorreo}`,
             correo_enviado: infoCorreo.enviado,
+            enlace_acceso: infoCorreo.enlace_acceso,
             usuario: { ...user, email: emailActualizado, rol: nuevoRol, carrera: nuevaCarrera, nivel_asignado: nuevoNivel, profesor_id: profId }
         });
     } catch (err) {
@@ -1055,20 +1137,54 @@ app.get('/api/profesores', async (req, res) => {
 
 app.post('/api/profesores', async (req, res) => {
     try {
-        const { nombre, carrera, nivel_asignado, password } = req.body;
+        const { nombre, matricula, email, carrera, nivel_asignado, password } = req.body;
         if (!nombre || !password) {
             return res.status(400).json({ error: "El nombre y la contraseña son obligatorios" });
         }
-        const nombreCap = capitalizarNombre(nombre.trim());
+        const nombreMayus = convertirMayusculas(nombre.trim());
+        const emailVal = email ? email.trim().toLowerCase() : null;
         const areaCarrera = (carrera && carrera.trim()) ? carrera.trim() : 'Ingeniería';
         const nivelAleatorio = Math.floor(Math.random() * 3) + 1;
         const nivel = (nivel_asignado !== undefined && nivel_asignado !== null && nivel_asignado !== '') 
             ? parseInt(nivel_asignado) 
             : nivelAleatorio;
 
-        const query = 'INSERT INTO profesores (nombre, carrera, nivel_asignado, password) VALUES (?, ?, ?, ?)';
-        const [result] = await pool.query(query, [nombreCap, areaCarrera, nivel, password]);
-        res.json({ id: result.insertId, mensaje: `Profesor ${nombreCap} registrado con éxito en ${areaCarrera} (Asignado aleatoriamente a Nivel ${nivel}).` });
+        const query = 'INSERT INTO profesores (nombre, email, carrera, nivel_asignado, password) VALUES (?, ?, ?, ?, ?)';
+        const [result] = await pool.query(query, [nombreMayus, emailVal, areaCarrera, nivel, password]);
+        const profId = result.insertId;
+
+        const matFinal = (matricula && matricula.trim()) ? matricula.trim() : `prof_${profId}`;
+        const [uIns] = await pool.query(
+            "INSERT INTO usuarios (nombre, matricula, email, password, rol, carrera, nivel_asignado, profesor_id) VALUES (?, ?, ?, ?, 'profesor', ?, ?, ?)",
+            [nombreMayus, matFinal, emailVal, password, areaCarrera, nivel, profId]
+        );
+
+        let infoCorreo = { enviado: false };
+        if (emailVal) {
+            infoCorreo = await enviarCorreoDatosCuenta({
+                email: emailVal,
+                nombre: nombreMayus,
+                matricula: matFinal,
+                password,
+                rol: 'profesor',
+                carrera: areaCarrera,
+                nivel_asignado: nivel,
+                baseUrl: obtenerUrlBase(req)
+            });
+        }
+
+        const msgExtraCorreo = infoCorreo.enviado
+            ? ` Se enviaron su usuario (${matFinal}), contraseña y enlace de acceso a ${emailVal}.`
+            : '';
+
+        res.json({
+            id: profId,
+            usuario_id: uIns.insertId,
+            matricula: matFinal,
+            correo_enviado: infoCorreo.enviado,
+            enlace_acceso: infoCorreo.enlace_acceso,
+            mensaje: `Profesor ${nombreMayus} registrado con éxito en ${areaCarrera} (Nivel ${nivel}).${msgExtraCorreo}`
+        });
     } catch (err) {
         res.status(400).json({ error: err.message });
     }
@@ -1102,6 +1218,7 @@ app.post('/api/admin/profesores/randomizar-niveles', async (req, res) => {
             for (let i = 0; i < ids.length; i++) {
                 const nuevoNivel = (i % 3) + 1;
                 await connection.execute('UPDATE profesores SET nivel_asignado = ? WHERE id = ?', [nuevoNivel, ids[i]]);
+                await connection.execute('UPDATE usuarios SET nivel_asignado = ? WHERE profesor_id = ?', [nuevoNivel, ids[i]]);
             }
         }
 
@@ -1115,23 +1232,84 @@ app.post('/api/admin/profesores/randomizar-niveles', async (req, res) => {
     }
 });
 
+// Login exclusivo para Maestros y Jueces Evaluadores (mediante enlace /jueces)
 app.post('/api/login/profesor', async (req, res) => {
     try {
-        const usuario = req.body.usuario || req.body.nombre || req.body.profesor_id;
-        const password = req.body.password;
+        const idf = (req.body.usuario || req.body.identificador || req.body.matricula || req.body.nombre || req.body.profesor_id || '').toString().trim();
+        const pass = (req.body.password || '').toString().trim();
 
-        if (!usuario || !password) {
-            return res.status(400).json({ error: "Por favor ingresa usuario y contraseña" });
+        if (!idf || !pass) {
+            return res.status(400).json({ error: "Por favor ingresa tu usuario/correo y contraseña de profesor." });
         }
 
-        const idParam = isNaN(usuario) ? -1 : parseInt(usuario);
-        const [rows] = await pool.query(
-            'SELECT id, nombre, carrera, nivel_asignado FROM profesores WHERE (LOWER(TRIM(nombre)) = LOWER(TRIM(?)) OR id = ?) AND password = ?', 
-            [usuario, idParam, password]
+        // 1. Buscar en tabla usuarios (por matrícula, correo o nombre)
+        const [uRows] = await pool.query(
+            'SELECT id, nombre, matricula, email, password, rol, carrera, semestre, nivel_asignado, profesor_id FROM usuarios WHERE (LOWER(TRIM(matricula)) = LOWER(?) OR LOWER(TRIM(email)) = LOWER(?) OR LOWER(TRIM(nombre)) = LOWER(?))',
+            [idf, idf, idf]
         );
 
-        if (rows.length === 0) return res.status(401).json({ error: "Contraseña incorrecta o usuario no encontrado" });
-        res.json(rows[0]);
+        if (uRows.length > 0 && uRows[0].password === pass) {
+            const u = uRows[0];
+            if (u.rol !== 'profesor') {
+                return res.status(403).json({
+                    error: "Este acceso es exclusivo para Maestros y Jueces Evaluadores. Si eres Alumno o Administrador, ingresa desde el acceso general."
+                });
+            }
+
+            if (!u.profesor_id) {
+                const [pIns] = await pool.query(
+                    'INSERT INTO profesores (nombre, email, carrera, nivel_asignado, password) VALUES (?, ?, ?, ?, ?)',
+                    [u.nombre, u.email || null, u.carrera || 'Ingeniería', u.nivel_asignado || 1, u.password || '123456']
+                );
+                u.profesor_id = pIns.insertId;
+                await pool.query('UPDATE usuarios SET profesor_id = ? WHERE id = ?', [u.profesor_id, u.id]);
+            }
+
+            delete u.password;
+            return res.json({
+                mensaje: "Acceso concedido como Profesor Juez",
+                usuario: u,
+                ...u
+            });
+        }
+
+        // 2. Buscar en tabla profesores directamente (por nombre, correo o ID)
+        const idParam = isNaN(idf) ? -1 : parseInt(idf);
+        const [profes] = await pool.query(
+            'SELECT id, nombre, email, carrera, nivel_asignado, password FROM profesores WHERE (LOWER(TRIM(nombre)) = LOWER(?) OR LOWER(TRIM(email)) = LOWER(?) OR id = ?) AND password = ?',
+            [idf, idf, idParam, pass]
+        );
+
+        if (profes.length > 0) {
+            const p = profes[0];
+            const [uCheck] = await pool.query('SELECT id, matricula, email, rol FROM usuarios WHERE profesor_id = ?', [p.id]);
+            let uId = uCheck.length > 0 ? uCheck[0].id : null;
+            let mat = uCheck.length > 0 ? uCheck[0].matricula : `prof_${p.id}`;
+            if (!uId) {
+                const [ins] = await pool.query(
+                    "INSERT INTO usuarios (nombre, matricula, email, password, rol, carrera, nivel_asignado, profesor_id) VALUES (?, ?, ?, ?, 'profesor', ?, ?, ?)",
+                    [p.nombre.toUpperCase(), mat, p.email || null, pass, p.carrera, p.nivel_asignado, p.id]
+                );
+                uId = ins.insertId;
+            }
+            const usuarioObj = {
+                id: uId,
+                nombre: p.nombre.toUpperCase(),
+                matricula: mat,
+                email: p.email || null,
+                rol: 'profesor',
+                carrera: p.carrera,
+                nivel_asignado: p.nivel_asignado,
+                profesor_id: p.id
+            };
+            return res.json({
+                mensaje: "Acceso concedido como Profesor Juez",
+                usuario: usuarioObj,
+                ...usuarioObj
+            });
+        }
+
+        return res.status(401).json({ error: "Usuario/Correo o contraseña de profesor incorrectos." });
     } catch (err) {
         res.status(400).json({ error: err.message });
     }
@@ -1275,9 +1453,43 @@ app.delete('/api/admin/asignaciones/:id', async (req, res) => {
 
 
 
-// Obtener detalles de un cartel por su clave (para maestros invitados o búsqueda rápida)
+// Helper para verificar que una petición provenga de un Profesor / Juez autenticado
+async function verificarAccesoProfesorJuez(connOrPool, usuarioId, profesorId) {
+    const uid = parseInt(usuarioId);
+    const pid = parseInt(profesorId);
+
+    if (uid && !isNaN(uid)) {
+        const [uRows] = await connOrPool.query(
+            "SELECT id, rol, profesor_id FROM usuarios WHERE id = ? AND rol = 'profesor'",
+            [uid]
+        );
+        if (uRows.length > 0) return true;
+    }
+
+    if (pid && !isNaN(pid)) {
+        const [pRows] = await connOrPool.query(
+            'SELECT id FROM profesores WHERE id = ?',
+            [pid]
+        );
+        if (pRows.length > 0) return true;
+    }
+
+    return false;
+}
+
+// Obtener detalles de un cartel por su clave (exclusivo para profesores/jueces desde su dashboard)
 app.get('/api/carteles/clave/:clave', async (req, res) => {
     try {
+        const usuarioId = req.query.usuario_id;
+        const profesorId = req.query.profesor_id;
+
+        const autorizado = await verificarAccesoProfesorJuez(pool, usuarioId, profesorId);
+        if (!autorizado) {
+            return res.status(403).json({
+                error: "Acceso denegado: Solo los profesores/jueces con sesión iniciada pueden consultar y evaluar carteles mediante clave."
+            });
+        }
+
         const clave = (req.params.clave || '').trim();
         if (!clave) return res.status(400).json({ error: "Por favor proporciona la clave del cartel." });
 
@@ -1528,16 +1740,24 @@ app.post('/api/evaluar', async (req, res) => {
     }
 });
 
-// Evaluar por Maestro Invitado mediante Clave (Toma el lugar de un profesor ausente)
+// Evaluar por Maestro Invitado mediante Clave (Exclusivo desde el Dashboard de Profesores/Jueces)
 app.post('/api/evaluar-invitado', async (req, res) => {
     const connection = await pool.getConnection();
     try {
         await connection.beginTransaction();
-        const { clave, nombre_maestro, suplir_profesor_id, r1, r2, r3, r4 } = req.body;
+        const { clave, nombre_maestro, suplir_profesor_id, r1, r2, r3, r4, usuario_id, profesor_id } = req.body;
+
+        const autorizado = await verificarAccesoProfesorJuez(connection, usuario_id, profesor_id);
+        if (!autorizado) {
+            await connection.rollback();
+            return res.status(403).json({
+                error: "Acceso denegado: Solo los profesores/jueces con sesión activa pueden registrar evaluaciones de maestro invitado."
+            });
+        }
 
         if (!clave || !nombre_maestro || !nombre_maestro.trim()) {
             await connection.rollback();
-            return res.status(400).json({ error: "La clave del cartel y tu nombre como Maestro Invitado son requeridos." });
+            return res.status(400).json({ error: "La clave del cartel y el nombre del Maestro Invitado son requeridos." });
         }
 
         const valR1 = parseInt(r1);

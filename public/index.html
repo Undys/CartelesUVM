@@ -58,25 +58,27 @@
     <main class="max-w-6xl w-full mx-auto p-4 sm:p-6 flex-grow">
 
         <!-- ============================================================== -->
-        <!-- 1. PÁGINA DE LOGIN GENERAL (ACCESO PRINCIPAL)                  -->
-        <!-- (Evita que los alumnos vean rubricas o chanchullo)              -->
+        <!-- 1. PÁGINA DE LOGIN GENERAL (ALUMNOS Y ADMINISTRADORES)         -->
         <!-- ============================================================== -->
         <div id="vista-login-general" class="max-w-xl mx-auto space-y-6">
             
             <div class="text-center pt-2">
                 <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-red-600 text-white font-black text-lg shadow-lg mb-3 tracking-wider">UVM</div>
-                <h2 class="text-2xl sm:text-3xl font-black text-slate-800">Acceso al Sistema</h2>
+                <div class="inline-flex items-center gap-1.5 bg-red-100 text-red-800 px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider mb-2 block mx-auto w-fit">
+                    Acceso General • Alumnos y Administradores
+                </div>
+                <h2 class="text-2xl sm:text-3xl font-black text-slate-800">Iniciar Sesión</h2>
                 <p class="text-xs sm:text-sm text-gray-500 mt-1 max-w-md mx-auto">
-                    Inicia sesión con tu matrícula o usuario para acceder a tu panel.
+                    Ingresa con tu matrícula de alumno o tus credenciales de administrador general.
                 </p>
             </div>
 
-            <!-- FORMULARIO INICIAR SESIÓN -->
+            <!-- FORMULARIO INICIAR SESIÓN GENERAL (ALUMNOS Y ADMINS) -->
             <div id="modo-login-entrar" class="bg-white p-6 sm:p-8 rounded-2xl shadow-md border border-slate-200 space-y-5">
                 <form id="form-login-general" class="space-y-4">
                     <div>
-                        <label class="block font-bold text-xs uppercase tracking-wider text-slate-700 mb-1">Matrícula o Usuario:</label>
-                        <input type="text" id="login_gen_usuario" required placeholder="Ej. uvm12345 o tu nombre" class="w-full border border-slate-300 p-3 rounded-xl focus:ring-2 focus:ring-red-500 focus:outline-none text-sm font-medium">
+                        <label class="block font-bold text-xs uppercase tracking-wider text-slate-700 mb-1">Matrícula (Alumno) o Usuario (Admin):</label>
+                        <input type="text" id="login_gen_usuario" required placeholder="Ej. 840012345 o admin" class="w-full border border-slate-300 p-3 rounded-xl focus:ring-2 focus:ring-red-500 focus:outline-none text-sm font-medium">
                     </div>
                     <div>
                         <label class="block font-bold text-xs uppercase tracking-wider text-slate-700 mb-1">Contraseña:</label>
@@ -89,34 +91,34 @@
 
                 <div class="pt-4 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-2 text-xs">
                     <button type="button" onclick="verVista('registro-usuario')" class="text-red-600 font-bold hover:underline">
-                        ¿No tienes una cuenta? Regístrate aquí
+                        ¿Eres alumno y no tienes cuenta? Regístrate aquí
                     </button>
-                    <button type="button" onclick="abrirModalInvitado()" class="text-amber-700 font-bold hover:underline flex items-center gap-1">
-                        Evaluador Invitado (Calificar con Clave)
+                    <button type="button" onclick="verVista('admin-login')" class="text-slate-600 hover:text-slate-900 font-bold hover:underline">
+                        Login Dashboard Administración →
                     </button>
                 </div>
             </div>
         </div>
 
         <!-- ============================================================== -->
-        <!-- 1.B PÁGINA DE REGISTRO DE USUARIO (SEGUNDA PÁGINA)             -->
+        <!-- 1.B PÁGINA DE REGISTRO DE ALUMNOS                              -->
         <!-- ============================================================== -->
         <div id="vista-registro-usuario" class="hidden max-w-xl mx-auto space-y-6">
 
             <div class="text-center pt-2">
                 <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-red-600 text-white font-black text-lg shadow-lg mb-3 tracking-wider">UVM</div>
-                <h2 class="text-2xl sm:text-3xl font-black text-slate-800">Registro de Usuario</h2>
+                <h2 class="text-2xl sm:text-3xl font-black text-slate-800">Registro de Alumnos</h2>
                 <p class="text-xs sm:text-sm text-gray-500 mt-1 max-w-md mx-auto">
-                    Completa tus datos para crear una cuenta en el sistema.
+                    Completa tus datos como estudiante para inscribir tus carteles académicos.
                 </p>
             </div>
 
-            <!-- FORMULARIO DARSE DE ALTA (USUARIOS EN MAYÚSCULAS) -->
+            <!-- FORMULARIO DARSE DE ALTA (ALUMNOS EN MAYÚSCULAS) -->
             <div id="modo-login-registro" class="bg-white p-6 sm:p-8 rounded-2xl shadow-md border border-slate-200 space-y-5">
                 <div class="bg-red-50 border border-red-200 rounded-xl p-3.5 text-xs text-red-900 leading-relaxed">
-                    <p class="font-bold flex items-center gap-1">Registro de Usuario:</p>
+                    <p class="font-bold flex items-center gap-1">Registro de Estudiante:</p>
                     <p class="mt-0.5 text-red-700">
-                        Todas las personas que se den de alta se registrarán con su nombre en <strong>MAYÚSCULAS</strong> y recibirán en su correo electrónico sus datos de ingreso. Los administradores podrán promover a profesores o administradores según corresponda.
+                        Tu nombre se registrará en <strong>MAYÚSCULAS</strong> y recibirás en tu correo tus datos de ingreso. <em>Nota: Los profesores/jueces son dados de alta directamente por los Administradores desde su Dashboard.</em>
                     </p>
                 </div>
 
@@ -140,7 +142,7 @@
                     <!-- Correo Electrónico -->
                     <div>
                         <label class="block font-bold text-xs uppercase tracking-wider text-slate-700 mb-1">Correo Electrónico:</label>
-                        <input type="email" id="reg_email" required placeholder="Ej. profesor.apellido@uvmnet.edu o tu correo" class="w-full border border-slate-300 p-3 rounded-xl focus:ring-2 focus:ring-red-500 focus:outline-none text-sm font-semibold">
+                        <input type="email" id="reg_email" required placeholder="Ej. alumno@my.uvm.edu.mx" class="w-full border border-slate-300 p-3 rounded-xl focus:ring-2 focus:ring-red-500 focus:outline-none text-sm font-semibold">
                         <p class="text-[11px] text-gray-500 mt-1">Recibirás automáticamente tus datos de ingreso en este correo.</p>
                     </div>
 
@@ -179,6 +181,46 @@
                         ¿Ya tienes una cuenta? Inicia sesión aquí
                     </button>
                 </div>
+            </div>
+        </div>
+
+        <!-- ============================================================== -->
+        <!-- 1.C PÁGINA DE INICIO DE SESIÓN EXCLUSIVO PARA MAESTROS/JUECES   -->
+        <!-- (Accesible mediante el link exclusivo /jueces enviado al correo)-->
+        <!-- ============================================================== -->
+        <div id="vista-login-jueces" class="hidden max-w-xl mx-auto space-y-6">
+            <div class="text-center pt-2">
+                <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-rose-900 text-amber-300 font-black text-lg shadow-lg mb-3 tracking-wider border-2 border-amber-400/50">JUEZ</div>
+                <div class="inline-flex items-center gap-1.5 bg-amber-100 text-amber-900 border border-amber-300 px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider mb-2 block mx-auto w-fit">
+                    Portal Exclusivo • Maestros y Jueces Evaluadores
+                </div>
+                <h2 class="text-2xl sm:text-3xl font-black text-slate-800">Acceso para Profesores / Jueces</h2>
+                <p class="text-xs sm:text-sm text-gray-500 mt-1 max-w-md mx-auto">
+                    Ingresa con el usuario y la contraseña que recibiste en tu correo electrónico para acceder a tu dashboard de evaluación.
+                </p>
+            </div>
+
+            <div class="bg-white p-6 sm:p-8 rounded-2xl shadow-lg border-2 border-rose-200 space-y-5">
+                <div class="bg-amber-50 border border-amber-200 rounded-xl p-3.5 text-xs text-amber-950 leading-relaxed">
+                    <p class="font-bold">Bienvenido(a), Profesor Evaluador:</p>
+                    <p class="mt-0.5 text-amber-900">
+                        Usa las credenciales enviadas por el Administrador a tu correo institucional o personal para visualizar y calificar tus carteles asignados.
+                    </p>
+                </div>
+
+                <form id="form-login-jueces" class="space-y-4">
+                    <div>
+                        <label class="block font-bold text-xs uppercase tracking-wider text-slate-700 mb-1">Usuario / ID o Correo Electrónico:</label>
+                        <input type="text" id="login_juez_usuario" required placeholder="Ej. prof_1, tu usuario o tu correo" class="w-full border border-slate-300 p-3 rounded-xl focus:ring-2 focus:ring-rose-700 focus:outline-none text-sm font-semibold">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-xs uppercase tracking-wider text-slate-700 mb-1">Contraseña:</label>
+                        <input type="password" id="login_juez_pass" required placeholder="••••••••" class="w-full border border-slate-300 p-3 rounded-xl focus:ring-2 focus:ring-rose-700 focus:outline-none text-sm font-semibold">
+                    </div>
+                    <button type="submit" class="w-full bg-rose-800 hover:bg-rose-900 text-white py-3.5 rounded-xl font-black text-sm shadow-md transition transform active:scale-98">
+                        Ingresar a Mi Dashboard de Evaluador
+                    </button>
+                </form>
             </div>
         </div>
 
@@ -390,7 +432,7 @@
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
                     <button onclick="abrirModalInvitado()" class="bg-amber-500 hover:bg-amber-600 text-slate-900 px-4 py-2.5 rounded-xl font-extrabold text-xs sm:text-sm shadow-md transition flex items-center gap-1.5">
-                        <span>Evaluar con Clave (Suplencia)</span>
+                        <span>Evaluador Invitado / Evaluar con Clave (Suplencia)</span>
                     </button>
                 </div>
             </div>
@@ -543,12 +585,13 @@
         </div>
 
         <!-- ============================================================== -->
-        <!-- 5. VISTA LOGIN ADMINISTRADOR (BOTÓN PERMANENTE EN HEADER)       -->
+        <!-- 5. VISTA LOGIN ADMINISTRADOR (PARA GESTIÓN Y ALTA DE PROFES)    -->
         <!-- ============================================================== -->
         <div id="vista-admin-login" class="hidden bg-white p-6 sm:p-8 rounded-2xl shadow-md border border-slate-200 max-w-md mx-auto space-y-4">
             <div class="text-center mb-2">
-                <h2 class="text-2xl font-black text-slate-800 mt-1">Acceso Administrador</h2>
-                <p class="text-xs text-gray-500">Ingresa tus credenciales maestras de administración.</p>
+                <span class="inline-block bg-slate-900 text-amber-300 text-[10px] font-black uppercase px-3 py-1 rounded-full tracking-wider mb-2">Dashboard Administración</span>
+                <h2 class="text-2xl font-black text-slate-800 mt-1">Login de Administradores</h2>
+                <p class="text-xs text-gray-500 mt-1">Ingresa al dashboard administrativo para dar de alta a profesores/jueces, enviarles su correo de acceso y gestionar carteles.</p>
             </div>
             <form id="form-admin-login" class="space-y-4">
                 <div>
@@ -560,9 +603,14 @@
                     <input type="password" id="admin_pass" required placeholder="••••••••" class="w-full border border-slate-300 p-2.5 rounded-lg focus:ring-2 focus:ring-slate-500 focus:outline-none text-sm font-semibold">
                 </div>
                 <button type="submit" class="w-full bg-slate-800 hover:bg-slate-900 text-white py-2.5 rounded-lg font-bold transition shadow">
-                    Ingresar como Administrador
+                    Ingresar al Dashboard de Administración
                 </button>
             </form>
+            <div class="pt-3 border-t border-slate-100 text-center">
+                <button type="button" onclick="verVista('login-general')" class="text-xs text-red-600 font-bold hover:underline">
+                    ← Volver al Inicio de Sesión General
+                </button>
+            </div>
         </div>
 
         <!-- ============================================================== -->
@@ -636,19 +684,43 @@
 
             <!-- ============================================================== -->
             <!-- ADMIN SUB-PESTAÑA 1: GESTIÓN DE USUARIOS (ALUMNOS Y PROFESORES)-->
-            <!-- (Requerimiento: admin elije a los profes y estudiantes)         -->
+            <!-- (Requerimiento: admin da de alta a los profes con envío correo)-->
             <!-- ============================================================== -->
             <div id="admin-sec-usuarios" class="space-y-4">
+                <!-- Banner de Alta de Profesores y Link Exclusivo de Jueces -->
+                <div class="bg-gradient-to-r from-rose-900 to-red-800 text-white p-5 rounded-2xl shadow-md flex flex-col md:flex-row justify-between md:items-center gap-4 border border-rose-700">
+                    <div class="space-y-1">
+                        <div class="inline-flex items-center gap-1.5 bg-amber-400 text-slate-900 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full">
+                            Alta de Profesores y Envío Automático por Correo
+                        </div>
+                        <h3 class="text-base sm:text-lg font-black">Portal Exclusivo para Maestros y Jueces Evaluadores</h3>
+                        <p class="text-xs text-rose-100 leading-relaxed max-w-2xl">
+                            Al dar de alta a un profesor con su correo, el sistema le envía automáticamente su <strong>usuario</strong>, <strong>contraseña</strong> y el <strong>enlace directo a su dashboard</strong> (<code id="admin-label-url-jueces" class="bg-rose-950/80 px-2 py-0.5 rounded text-amber-300 font-mono">/jueces</code>).
+                        </p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2 shrink-0">
+                        <button type="button" onclick="copiarEnlaceJuezGeneral()" class="bg-white/15 hover:bg-white/25 text-white border border-white/30 px-3.5 py-2.5 rounded-xl text-xs font-bold transition">
+                            Copiar Link de Jueces (/jueces)
+                        </button>
+                        <button type="button" onclick="abrirModalCrearUsuario('profesor')" class="bg-amber-400 hover:bg-amber-300 text-slate-900 px-4 py-2.5 rounded-xl text-xs font-black shadow-md transition">
+                            + Dar de Alta Profesor / Juez
+                        </button>
+                    </div>
+                </div>
+
                 <div class="bg-white p-6 rounded-2xl shadow-sm border space-y-4">
                     <div class="flex flex-col md:flex-row justify-between md:items-center gap-3 border-b pb-4">
                         <div>
                             <h3 class="text-lg font-black text-slate-800">Directorio de Usuarios Registrados</h3>
                             <p class="text-xs text-gray-500 mt-0.5">
-                                Aquí puedes <strong>hacer administradores a otros usuarios</strong>, promover estudiantes a profesores jueces, cambiar niveles o dar de alta nuevos usuarios.
+                                Da de alta profesores (con envío automático de correo y link), promueve usuarios o gestiona administradores y alumnos.
                             </p>
                         </div>
                         <div class="flex flex-wrap items-center gap-2">
-                            <button onclick="abrirModalCrearUsuario()" class="bg-red-600 hover:bg-red-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow transition flex items-center gap-1.5">
+                            <button onclick="abrirModalCrearUsuario('profesor')" class="bg-rose-700 hover:bg-rose-800 text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow transition flex items-center gap-1.5">
+                                <span>+ Alta Profesor (Enviar Correo)</span>
+                            </button>
+                            <button onclick="abrirModalCrearUsuario('estudiante')" class="bg-red-600 hover:bg-red-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow transition flex items-center gap-1.5">
                                 <span>+ Dar de Alta Usuario</span>
                             </button>
                             <button onclick="cargarAdminUsuarios()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs font-bold transition">
@@ -1000,44 +1072,59 @@
     </div>
 
     <!-- ============================================================== -->
-    <!-- MODAL 2: CREAR USUARIO MANUALMENTE (ADMIN)                     -->
+    <!-- MODAL 2: CREAR USUARIO / DAR DE ALTA PROFESOR (ADMIN)          -->
     <!-- ============================================================== -->
-    <div id="modal-crear-usuario" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border space-y-4">
+    <div id="modal-crear-usuario" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border space-y-4 my-8">
             <div class="flex justify-between items-start">
                 <div>
-                    <h3 class="font-black text-lg text-slate-800">Alta Manual de Usuario</h3>
-                    <p class="text-xs text-gray-500">Registra directamente a un alumno, profesor o administrador.</p>
+                    <h3 id="modal-crear-usuario-titulo" class="font-black text-lg text-slate-800">Dar de Alta Profesor / Usuario</h3>
+                    <p id="modal-crear-usuario-subtitulo" class="text-xs text-gray-500">Registra directamente a un profesor/juez, alumno o administrador.</p>
                 </div>
                 <button onclick="cerrarModalCrearUsuario()" class="text-gray-400 hover:text-gray-600 text-lg font-bold">✕</button>
             </div>
 
             <form id="form-crear-usuario-admin" class="space-y-3">
                 <div>
-                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Nombre Completo:</label>
-                    <input type="text" id="admin_nuevo_nombre" required placeholder="Ej. GABRIEL GUERRERO" oninput="this.value = this.value.toUpperCase()" class="w-full border p-2.5 rounded-xl uppercase font-bold text-xs text-slate-800 focus:ring-2 focus:ring-red-500">
-                    <p class="text-[10px] text-gray-500 mt-0.5">Se guardará automáticamente en MAYÚSCULAS.</p>
-                </div>
-                <div>
-                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Matrícula o Usuario:</label>
-                    <input type="text" id="admin_nuevo_matricula" required placeholder="Ej. uvm12345" class="w-full border p-2.5 rounded-xl font-medium text-xs text-slate-800 focus:ring-2 focus:ring-red-500">
-                </div>
-                <div>
-                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Correo Electrónico:</label>
-                    <input type="email" id="admin_nuevo_email" placeholder="Ej. profesor.apellido@uvmnet.edu" class="w-full border p-2.5 rounded-xl font-medium text-xs text-slate-800 focus:ring-2 focus:ring-red-500">
-                </div>
-                <div>
                     <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Rol a Asignar:</label>
                     <select id="admin_nuevo_rol" onchange="toggleCamposCrearUsuarioModal(this.value)" class="w-full border p-2.5 rounded-xl text-xs font-bold bg-white text-slate-800 focus:ring-2 focus:ring-red-500">
+                        <option value="profesor">Profesor / Juez Evaluador (Envía correo + link)</option>
                         <option value="estudiante">Estudiante (Alumno)</option>
-                        <option value="profesor">Profesor / Juez Evaluador</option>
                         <option value="admin">Administrador del Sistema</option>
                     </select>
+                </div>
+
+                <div id="admin_nuevo_profe_info" class="bg-rose-50 text-rose-950 p-3 rounded-xl border border-rose-200 text-xs">
+                    <p class="font-bold text-rose-900">Envío Automático de Credenciales y Link Exclusivo</p>
+                    <p class="text-[11px] text-rose-800 mt-0.5">
+                        Al guardar, se enviará un correo automático al profesor con su <strong>Usuario</strong>, <strong>Contraseña</strong> y un <strong>botón con el enlace directo a su dashboard (`/jueces`)</strong>.
+                    </p>
                 </div>
 
                 <div id="admin_nuevo_admin_info" class="hidden bg-slate-900 text-white p-3 rounded-xl border border-slate-700 text-xs">
                     <p class="font-bold text-amber-400">Privilegios de Administrador</p>
                     <p class="text-[11px] text-slate-300 mt-0.5">El usuario tendrá acceso administrativo total para gestionar el evento.</p>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Nombre Completo:</label>
+                    <input type="text" id="admin_nuevo_nombre" required placeholder="Ej. MTRO. ROBERTO MENDOZA" oninput="this.value = this.value.toUpperCase()" class="w-full border p-2.5 rounded-xl uppercase font-bold text-xs text-slate-800 focus:ring-2 focus:ring-red-500">
+                    <p class="text-[10px] text-gray-500 mt-0.5">Se guardará automáticamente en MAYÚSCULAS.</p>
+                </div>
+
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="block font-bold text-xs uppercase text-slate-700">Usuario o Matrícula:</label>
+                        <button type="button" onclick="autocompletarUsuarioNuevoAdmin()" class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded border">
+                            Generar usuario automático
+                        </button>
+                    </div>
+                    <input type="text" id="admin_nuevo_matricula" required placeholder="Ej. prof_roberto o matrícula" class="w-full border p-2.5 rounded-xl font-semibold text-xs text-slate-800 focus:ring-2 focus:ring-red-500">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Correo Electrónico (Recibirá su usuario, clave y link):</label>
+                    <input type="email" id="admin_nuevo_email" placeholder="Ej. profesor.apellido@uvmnet.edu" class="w-full border p-2.5 rounded-xl font-medium text-xs text-slate-800 focus:ring-2 focus:ring-red-500">
                 </div>
 
                 <div class="grid grid-cols-2 gap-2">
@@ -1053,7 +1140,7 @@
                         </select>
                     </div>
                     <div id="admin_nuevo_nivel_contenedor">
-                        <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Nivel (Si es Profe):</label>
+                        <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Nivel Asignado:</label>
                         <select id="admin_nuevo_nivel" class="w-full border p-2 rounded-lg text-xs font-semibold bg-white text-slate-700">
                             <option value="1">Nivel 1</option>
                             <option value="2">Nivel 2</option>
@@ -1062,8 +1149,13 @@
                     </div>
                 </div>
                 <div>
-                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Contraseña:</label>
-                    <input type="password" id="admin_nuevo_pass" required placeholder="••••••••" class="w-full border p-2.5 rounded-xl text-xs font-medium focus:ring-2 focus:ring-red-500">
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="block font-bold text-xs uppercase text-slate-700">Contraseña:</label>
+                        <button type="button" onclick="autocompletarPassNuevoAdmin()" class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded border">
+                            Generar contraseña aleatoria
+                        </button>
+                    </div>
+                    <input type="text" id="admin_nuevo_pass" required placeholder="Ingresa o genera una contraseña" class="w-full border p-2.5 rounded-xl text-xs font-mono font-bold text-slate-800 focus:ring-2 focus:ring-red-500">
                 </div>
 
                 <div class="flex justify-end gap-2 pt-2">
@@ -1071,7 +1163,7 @@
                         Cancelar
                     </button>
                     <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-xl text-xs font-bold shadow">
-                        Crear Usuario
+                        Guardar y Enviar Correo
                     </button>
                 </div>
             </form>
@@ -1401,26 +1493,90 @@
         }
 
         // ==============================================================
-        // GESTIÓN DE SESIÓN Y VISTAS
+        // GESTIÓN DE SESIÓN, RUTAS EXCLUSIVAS (/jueces, /admin) Y VISTAS
         // ==============================================================
+        function esRutaExclusivaJueces() {
+            const path = (window.location.pathname || '').toLowerCase();
+            const params = new URLSearchParams(window.location.search);
+            const acceso = (params.get('acceso') || '').toLowerCase();
+            return path.includes('/jueces') || path.includes('/profesores') || acceso === 'jueces' || acceso === 'profesor';
+        }
+
+        function esRutaAdmin() {
+            const path = (window.location.pathname || '').toLowerCase();
+            const params = new URLSearchParams(window.location.search);
+            const acceso = (params.get('acceso') || '').toLowerCase();
+            return path.includes('/admin') || acceso === 'admin';
+        }
+
+        function obtenerUrlExclusivaJueces(matricula = '') {
+            const base = `${window.location.origin}/jueces`;
+            return matricula ? `${base}?usuario=${encodeURIComponent(matricula)}` : base;
+        }
+
+        function copiarEnlaceJuezGeneral() {
+            const url = obtenerUrlExclusivaJueces();
+            navigator.clipboard.writeText(url).then(() => {
+                alert(`Enlace exclusivo de inicio de sesión para Maestros/Jueces copiado:\n${url}`);
+            }).catch(() => {
+                prompt("Copia el enlace exclusivo para Maestros/Jueces:", url);
+            });
+        }
+
+        function copiarEnlaceJuez(matricula) {
+            const url = obtenerUrlExclusivaJueces(matricula);
+            navigator.clipboard.writeText(url).then(() => {
+                alert(`Enlace directo de acceso para este profesor copiado:\n${url}`);
+            }).catch(() => {
+                prompt("Copia el enlace directo para este profesor:", url);
+            });
+        }
+
         window.onload = () => {
             // Inicializar estrellas para evaluación de profesores y de invitados
             configurarSistemaEstrellas('eval');
             configurarSistemaEstrellas('invitado');
 
+            // Mostrar URL real de /jueces en el banner de admin
+            const lblUrlJueces = document.getElementById('admin-label-url-jueces');
+            if (lblUrlJueces) {
+                lblUrlJueces.innerText = `${window.location.origin}/jueces`;
+            }
+
+            // Pre-llenar usuario de juez si viene en el link del correo (?usuario=...)
+            const params = new URLSearchParams(window.location.search);
+            const usrParam = params.get('usuario');
+            if (usrParam) {
+                const inputJuez = document.getElementById('login_juez_usuario');
+                if (inputJuez) inputJuez.value = usrParam;
+            }
+
             // Cargar asesores
             cargarProfesoresSelects();
 
-            // Revisar si existe sesión previa persistida
+            // Revisar si existe sesión previa persistida o ruta exclusiva
             verificarSesion();
         };
 
         function verificarSesion() {
+            const enJueces = esRutaExclusivaJueces();
+            const enAdmin = esRutaAdmin();
             const sesionStr = localStorage.getItem('carteles_uvm_usuario');
+
             if (sesionStr) {
                 try {
                     usuarioActual = JSON.parse(sesionStr);
                     renderizarNavegacion();
+
+                    if (enJueces && usuarioActual.rol !== 'profesor') {
+                        // Si entró al link exclusivo de jueces pero tenía sesión de otro rol, mostrar login de jueces
+                        verVista('login-jueces');
+                        return;
+                    }
+                    if (enAdmin && usuarioActual.rol !== 'admin') {
+                        verVista('admin-login');
+                        return;
+                    }
 
                     if (usuarioActual.rol === 'estudiante') {
                         cargarDashboardAlumno();
@@ -1432,7 +1588,7 @@
                         cargarAdminDashboard();
                         verVista('admin-dashboard');
                     } else {
-                        verVista('login-general');
+                        verVista(enJueces ? 'login-jueces' : 'login-general');
                     }
                     return;
                 } catch (e) {
@@ -1442,19 +1598,35 @@
 
             usuarioActual = null;
             renderizarNavegacion();
-            verVista('login-general');
+            if (enJueces) {
+                verVista('login-jueces');
+            } else if (enAdmin) {
+                verVista('admin-login');
+            } else {
+                verVista('login-general');
+            }
         }
 
         function cerrarSesion() {
+            const rolAnterior = usuarioActual ? usuarioActual.rol : null;
             localStorage.removeItem('carteles_uvm_usuario');
             usuarioActual = null;
+            cerrarModalInvitado();
             renderizarNavegacion();
-            verVista('login-general');
+            if (esRutaExclusivaJueces() || rolAnterior === 'profesor') {
+                verVista('login-jueces');
+            } else if (esRutaAdmin()) {
+                verVista('admin-login');
+            } else {
+                verVista('login-general');
+            }
         }
 
         function irInicioSegunRol() {
             if (!usuarioActual) {
-                verVista('login-general');
+                if (esRutaExclusivaJueces()) verVista('login-jueces');
+                else if (esRutaAdmin()) verVista('admin-login');
+                else verVista('login-general');
             } else if (usuarioActual.rol === 'estudiante') {
                 cargarDashboardAlumno();
                 verVista('dashboard-alumno');
@@ -1545,6 +1717,7 @@
             const vistas = [
                 'login-general',
                 'registro-usuario',
+                'login-jueces',
                 'dashboard-alumno',
                 'registro',
                 'dashboard-profesor',
@@ -1580,7 +1753,7 @@
         }
 
         // ==============================================================
-        // 1. INICIAR SESIÓN Y REGISTRO GENERAL
+        // 1. INICIAR SESIÓN GENERAL (ALUMNOS Y ADMINISTRADORES) Y REGISTRO
         // ==============================================================
         document.getElementById('form-login-general').onsubmit = async (e) => {
             e.preventDefault();
@@ -1603,15 +1776,51 @@
                     if (usuarioActual.rol === 'estudiante') {
                         cargarDashboardAlumno();
                         verVista('dashboard-alumno');
-                    } else if (usuarioActual.rol === 'profesor') {
-                        cargarDashboardProfesor();
-                        verVista('dashboard-profesor');
                     } else if (usuarioActual.rol === 'admin') {
                         cargarAdminDashboard();
                         verVista('admin-dashboard');
                     }
                 } else {
                     alert(data.error || "Usuario o contraseña incorrectos.");
+                }
+            } catch (err) {
+                alert("Error de conexión con el servidor: " + err.message);
+            }
+        };
+
+        // ==============================================================
+        // 1.C INICIO DE SESIÓN EXCLUSIVO PARA MAESTROS / JUECES (/jueces)
+        // ==============================================================
+        document.getElementById('form-login-jueces').onsubmit = async (e) => {
+            e.preventDefault();
+            const usuario = document.getElementById('login_juez_usuario').value.trim();
+            const password = document.getElementById('login_juez_pass').value;
+
+            try {
+                const res = await fetch('/api/login/profesor', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ usuario, password })
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    usuarioActual = data.usuario || {
+                        id: data.id,
+                        nombre: data.nombre,
+                        matricula: data.matricula || `prof_${data.id}`,
+                        email: data.email || null,
+                        rol: 'profesor',
+                        carrera: data.carrera,
+                        nivel_asignado: data.nivel_asignado,
+                        profesor_id: data.profesor_id || data.id
+                    };
+                    localStorage.setItem('carteles_uvm_usuario', JSON.stringify(usuarioActual));
+                    document.getElementById('form-login-jueces').reset();
+                    cargarDashboardProfesor();
+                    verVista('dashboard-profesor');
+                } else {
+                    alert(data.error || "Credenciales de profesor incorrectas.");
                 }
             } catch (err) {
                 alert("Error de conexión con el servidor: " + err.message);
@@ -2236,6 +2445,12 @@
                     `;
                 } else if (u.rol === 'profesor') {
                     botonesAccion = `
+                        <button onclick="reenviarCorreoUsuario(${u.id}, '${(u.email || '').replace(/'/g, "\\'")}', '${u.nombre.replace(/'/g, "\\'")}')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded-lg font-bold text-[11px] shadow-sm transition" title="Enviar por correo usuario, contraseña y link directo a su dashboard">
+                            Enviar Correo
+                        </button>
+                        <button onclick="copiarEnlaceJuez('${u.matricula.replace(/'/g, "\\'")}')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 px-2 py-1 rounded-lg font-bold text-[11px] transition" title="Copiar link directo de acceso para este profesor">
+                            Link Juez
+                        </button>
                         <button onclick="abrirModalCartelesProfesor(${u.profesor_id || 'null'}, ${u.id})" class="bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1 rounded-lg font-bold text-[11px] shadow-sm transition" title="Ver y asignar carteles de este profesor">
                             Ver Carteles (${asignadosProfe.length})
                         </button>
@@ -2422,9 +2637,71 @@
             }
         }
 
-        function abrirModalCrearUsuario() {
+        async function reenviarCorreoUsuario(id, emailActual, nombre) {
+            let correo = (emailActual || '').trim();
+            if (!correo) {
+                const ingresado = prompt(`El profesor ${nombre} aún no tiene correo registrado.\nIngresa su correo electrónico para enviarle su usuario, contraseña y link directo a su dashboard:`);
+                if (!ingresado || !ingresado.trim()) return;
+                correo = ingresado.trim();
+            } else {
+                if (!confirm(`¿Deseas enviar a ${correo} los datos de acceso (usuario, contraseña y link directo al dashboard de juez) de ${nombre}?`)) {
+                    return;
+                }
+            }
+
+            try {
+                const res = await fetch(`/api/admin/usuarios/${id}/reenviar-correo`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: correo })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    alert(data.mensaje);
+                    cargarAdminUsuarios();
+                } else {
+                    alert(data.error || "No se pudo enviar el correo.");
+                }
+            } catch (err) {
+                alert("Error de conexión al enviar correo: " + err.message);
+            }
+        }
+
+        function autocompletarUsuarioNuevoAdmin() {
+            const nombre = (document.getElementById('admin_nuevo_nombre')?.value || '').trim().toLowerCase();
+            const rol = document.getElementById('admin_nuevo_rol')?.value || 'profesor';
+            const partes = nombre.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(Boolean);
+            const num = Math.floor(100 + Math.random() * 900);
+            let sugerido = '';
+            if (partes.length >= 2) {
+                sugerido = `${rol === 'profesor' ? 'prof_' : ''}${partes[0]}_${partes[1]}${num}`;
+            } else if (partes.length === 1) {
+                sugerido = `${rol === 'profesor' ? 'prof_' : ''}${partes[0]}${num}`;
+            } else {
+                sugerido = `${rol === 'profesor' ? 'prof_' : 'uvm_'}${num}`;
+            }
+            const inputMat = document.getElementById('admin_nuevo_matricula');
+            if (inputMat) inputMat.value = sugerido;
+        }
+
+        function autocompletarPassNuevoAdmin() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+            let pass = 'UVM-';
+            for (let i = 0; i < 6; i++) {
+                pass += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            const inputPass = document.getElementById('admin_nuevo_pass');
+            if (inputPass) inputPass.value = pass;
+        }
+
+        function abrirModalCrearUsuario(rolInicial = 'profesor') {
             document.getElementById('form-crear-usuario-admin').reset();
-            toggleCamposCrearUsuarioModal('estudiante');
+            const selRol = document.getElementById('admin_nuevo_rol');
+            if (selRol) selRol.value = rolInicial;
+            if (rolInicial === 'profesor') {
+                autocompletarPassNuevoAdmin();
+            }
+            toggleCamposCrearUsuarioModal(rolInicial);
             document.getElementById('modal-crear-usuario').classList.remove('hidden');
         }
 
@@ -2435,9 +2712,25 @@
         function toggleCamposCrearUsuarioModal(rol) {
             const nivelCont = document.getElementById('admin_nuevo_nivel_contenedor');
             const adminInfo = document.getElementById('admin_nuevo_admin_info');
+            const profeInfo = document.getElementById('admin_nuevo_profe_info');
+            const inputEmail = document.getElementById('admin_nuevo_email');
+            const tituloModal = document.getElementById('modal-crear-usuario-titulo');
+
             if (nivelCont) {
                 if (rol === 'profesor') nivelCont.classList.remove('hidden');
                 else nivelCont.classList.add('hidden');
+            }
+            if (profeInfo) {
+                if (rol === 'profesor') profeInfo.classList.remove('hidden');
+                else profeInfo.classList.add('hidden');
+            }
+            if (inputEmail) {
+                inputEmail.required = (rol === 'profesor');
+            }
+            if (tituloModal) {
+                tituloModal.innerText = rol === 'profesor'
+                    ? 'Dar de Alta Profesor / Juez Evaluador'
+                    : (rol === 'admin' ? 'Dar de Alta Administrador' : 'Dar de Alta Estudiante');
             }
             if (adminInfo) {
                 if (rol === 'admin') adminInfo.classList.remove('hidden');
@@ -3085,9 +3378,13 @@
         }
 
         // ==============================================================
-        // 7. MAESTRO INVITADO (EVALUACIÓN CON CLAVE EN MODAL)
+        // 7. MAESTRO INVITADO (EVALUACIÓN CON CLAVE EN MODAL - EXCLUSIVO PROFESORES/JUECES)
         // ==============================================================
         function abrirModalInvitado() {
+            if (!usuarioActual || usuarioActual.rol !== 'profesor') {
+                alert("Acceso restringido: Solo los profesores/jueces con sesión iniciada pueden acceder a la evaluación de Maestro Invitado.");
+                return;
+            }
             document.getElementById('modal-evaluar-invitado').classList.remove('hidden');
             document.getElementById('invitado_clave').value = '';
             document.getElementById('invitado-area-cartel').classList.add('hidden');
@@ -3099,14 +3396,24 @@
         }
 
         async function cargarCartelPorClaveModal() {
+            if (!usuarioActual || usuarioActual.rol !== 'profesor') {
+                alert("Acceso restringido: Solo los profesores/jueces pueden buscar y calificar carteles por clave.");
+                cerrarModalInvitado();
+                return;
+            }
+
             const clave = document.getElementById('invitado_clave').value.trim().toUpperCase();
             const nombre = document.getElementById('invitado_nombre').value.trim().toUpperCase();
 
             if (!clave) return alert("Por favor ingresa la clave del cartel.");
-            if (!nombre) return alert("Por favor escribe tu nombre como maestro evaluador.");
+            if (!nombre) return alert("Por favor escribe el nombre del maestro evaluador.");
 
             try {
-                const res = await fetch(`/api/carteles/clave/${encodeURIComponent(clave)}`);
+                const params = new URLSearchParams({
+                    usuario_id: usuarioActual.id || '',
+                    profesor_id: usuarioActual.profesor_id || ''
+                });
+                const res = await fetch(`/api/carteles/clave/${encodeURIComponent(clave)}?${params.toString()}`);
                 const data = await res.json();
 
                 if (!res.ok) {
@@ -3157,6 +3464,12 @@
         document.getElementById('form-evaluar-invitado').onsubmit = async (e) => {
             e.preventDefault();
 
+            if (!usuarioActual || usuarioActual.rol !== 'profesor') {
+                alert("Acceso restringido: Solo los profesores/jueces pueden registrar evaluaciones de invitado.");
+                cerrarModalInvitado();
+                return;
+            }
+
             const clave = document.getElementById('invitado_clave').value.trim().toUpperCase();
             const nombre = document.getElementById('invitado_nombre').value.trim().toUpperCase();
             const suplirId = document.getElementById('invitado-select-suplir').value;
@@ -3178,7 +3491,9 @@
                         clave,
                         nombre_maestro: nombre,
                         suplir_profesor_id: suplirId || null,
-                        r1, r2, r3, r4
+                        r1, r2, r3, r4,
+                        usuario_id: usuarioActual.id || null,
+                        profesor_id: usuarioActual.profesor_id || null
                     })
                 });
                 const data = await res.json();
