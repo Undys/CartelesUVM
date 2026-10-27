@@ -1611,6 +1611,13 @@ app.post('/api/carteles', upload.single('archivo_pdf'), async (req, res) => {
         const equipoCap = capitalizarNombre((nombre_equipo || '').trim());
         // Requerimiento: todas las letras de los alumnos se hacen mayúsculas (ej. gabriel guerrero -> GABRIEL GUERRERO)
         const participantesMayus = convertirMayusculas((participantes || '').trim());
+        const listaParticipantes = participantesMayus.split(',').map(p => p.trim()).filter(Boolean);
+        if (listaParticipantes.length === 0) {
+            return res.status(400).json({ error: "Debes registrar al menos un integrante en el equipo." });
+        }
+        if (listaParticipantes.length > 5) {
+            return res.status(400).json({ error: "El equipo puede tener un máximo de 5 integrantes." });
+        }
         const tituloLimpio = (titulo_cartel || '').trim();
         const usrId = usuario_id ? parseInt(usuario_id) : null;
 
