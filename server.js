@@ -37,7 +37,39 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-app.use(express.static(path.join(__dirname, 'public')));
+// Identificador único de arranque del servidor: cambia cada vez que se cierra/reinicia el servidor
+const SERVER_BOOT_ID = typeof crypto.randomUUID === 'function'
+    ? crypto.randomUUID()
+    : crypto.randomBytes(16).toString('hex');
+
+// Evitar caché del navegador en páginas HTML para que al cerrar y volver a abrir nunca regrese a vistas anteriores
+function enviarIndexSinCache(req, res) {
+    res.set({
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        'Surrogate-Control': 'no-store'
+    });
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+}
+
+app.get('/', enviarIndexSinCache);
+app.get('/index.html', enviarIndexSinCache);
+app.get('/jueces', enviarIndexSinCache);
+app.get('/profesores', enviarIndexSinCache);
+app.get('/admin', enviarIndexSinCache);
+
+app.use(express.static(path.join(__dirname, 'public'), {
+    etag: false,
+    lastModified: false,
+    setHeaders: (res, filePath) => {
+        if (filePath.endsWith('.html')) {
+            res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+            res.setHeader('Pragma', 'no-cache');
+            res.setHeader('Expires', '0');
+        }
+    }
+}));
 
 const uploadsDir = path.join(__dirname, 'public', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -60,10 +92,11 @@ const upload = multer({
     }
 });
 
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
-app.get('/jueces', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
-app.get('/profesores', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
-app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+// Endpoint ligero para verificar si el servidor sigue activo o fue reiniciado
+app.get('/api/estado-servidor', (req, res) => {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.json({ activo: true, boot_id: SERVER_BOOT_ID });
+});
 
 // Helper para obtener la URL base del servidor (para incluir enlaces en los correos)
 function obtenerUrlBase(req) {
@@ -478,6 +511,10 @@ conectarBD();
 
 // Middleware que garantiza que las columnas (como email) estén creadas antes de procesar peticiones API
 app.use('/api', async (req, res, next) => {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+    res.set('X-Server-Boot-Id', SERVER_BOOT_ID);
     if (!esquemaVerificado && pool) {
         try {
             await asegurarEsquemaYColumnas();

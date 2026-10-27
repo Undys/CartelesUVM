@@ -1573,6 +1573,87 @@
             });
         }
 
+        let servidorBootIdActual = null;
+        let intervaloEstadoServidor = null;
+
+        function limpiarAlmacenamientoSesion() {
+            try {
+                localStorage.removeItem('carteles_uvm_usuario');
+                sessionStorage.removeItem('carteles_uvm_usuario');
+            } catch (e) {}
+        }
+
+        function cerrarTodosLosModales() {
+            ['modal-evaluar-invitado', 'modal-crear-usuario', 'modal-promover-usuario', 'modal-asignar-juez-cartel', 'modal-ver-carteles-profesor'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.classList.add('hidden');
+            });
+            const areaEval = document.getElementById('area-evaluacion-profesor');
+            if (areaEval) areaEval.classList.add('hidden');
+        }
+
+        async function verificarEstadoServidor() {
+            try {
+                const res = await fetch('/api/estado-servidor', { cache: 'no-store' });
+                if (!res.ok) throw new Error('Servidor inactivo');
+                const data = await res.json();
+                if (!servidorBootIdActual) {
+                    servidorBootIdActual = data.boot_id || null;
+                } else if (data.boot_id && data.boot_id !== servidorBootIdActual) {
+                    // El servidor fue cerrado y reiniciado: cerrar sesión inmediatamente
+                    servidorBootIdActual = data.boot_id;
+                    if (usuarioActual) {
+                        cerrarSesion();
+                    }
+                }
+            } catch (e) {
+                // El servidor se cerró o perdió conexión: cerrar cualquier página/sesión abierta de inmediato
+                if (usuarioActual) {
+                    cerrarSesion();
+                }
+            }
+        }
+
+        function iniciarMonitoreoServidor() {
+            if (intervaloEstadoServidor) clearInterval(intervaloEstadoServidor);
+            verificarEstadoServidor();
+            intervaloEstadoServidor = setInterval(() => {
+                if (usuarioActual) {
+                    verificarEstadoServidor();
+                }
+            }, 3000);
+        }
+
+        // Si se cierra la pestaña/página o el navegador restaura desde caché (bfcache), limpiar sesión para evitar accesos indebidos
+        window.addEventListener('beforeunload', () => {
+            limpiarAlmacenamientoSesion();
+            usuarioActual = null;
+        });
+
+        window.addEventListener('pagehide', () => {
+            limpiarAlmacenamientoSesion();
+            usuarioActual = null;
+            cerrarTodosLosModales();
+        });
+
+        window.addEventListener('pageshow', (event) => {
+            if (event.persisted) {
+                cerrarSesion();
+            }
+        });
+
+        window.addEventListener('focus', () => {
+            if (usuarioActual) {
+                verificarEstadoServidor();
+            }
+        });
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible' && usuarioActual) {
+                verificarEstadoServidor();
+            }
+        });
+
         window.onload = () => {
             // Inicializar estrellas para evaluación de profesores y de invitados
             configurarSistemaEstrellas('eval');
@@ -1595,50 +1676,21 @@
             // Cargar asesores
             cargarProfesoresSelects();
 
-            // Revisar si existe sesión previa persistida o ruta exclusiva
+            // Siempre iniciar sin sesión previa abierta al abrir o recargar la página
             verificarSesion();
+            iniciarMonitoreoServidor();
         };
 
         function verificarSesion() {
             const enJueces = esRutaExclusivaJueces();
             const enAdmin = esRutaAdmin();
-            const sesionStr = localStorage.getItem('carteles_uvm_usuario');
 
-            if (sesionStr) {
-                try {
-                    usuarioActual = JSON.parse(sesionStr);
-                    renderizarNavegacion();
-
-                    if (enJueces && usuarioActual.rol !== 'profesor') {
-                        // Si entró al link exclusivo de jueces pero tenía sesión de otro rol, mostrar login de jueces
-                        verVista('login-jueces');
-                        return;
-                    }
-                    if (enAdmin && usuarioActual.rol !== 'admin') {
-                        verVista('admin-login');
-                        return;
-                    }
-
-                    if (usuarioActual.rol === 'estudiante') {
-                        cargarDashboardAlumno();
-                        verVista('dashboard-alumno');
-                    } else if (usuarioActual.rol === 'profesor') {
-                        cargarDashboardProfesor();
-                        verVista('dashboard-profesor');
-                    } else if (usuarioActual.rol === 'admin') {
-                        cargarAdminDashboard();
-                        verVista('admin-dashboard');
-                    } else {
-                        verVista(enJueces ? 'login-jueces' : 'login-general');
-                    }
-                    return;
-                } catch (e) {
-                    localStorage.removeItem('carteles_uvm_usuario');
-                }
-            }
-
+            // Por seguridad ("no vaya a haber chanchullo"), al abrir la página nunca se restaura la última sesión abierta
+            limpiarAlmacenamientoSesion();
             usuarioActual = null;
+            cerrarTodosLosModales();
             renderizarNavegacion();
+
             if (enJueces) {
                 verVista('login-jueces');
             } else if (enAdmin) {
@@ -1650,9 +1702,9 @@
 
         function cerrarSesion() {
             const rolAnterior = usuarioActual ? usuarioActual.rol : null;
-            localStorage.removeItem('carteles_uvm_usuario');
+            limpiarAlmacenamientoSesion();
             usuarioActual = null;
-            cerrarModalInvitado();
+            cerrarTodosLosModales();
             renderizarNavegacion();
             if (esRutaExclusivaJueces() || rolAnterior === 'profesor') {
                 verVista('login-jueces');
@@ -1749,8 +1801,21 @@
         }
 
         function verVista(vista) {
-            // Restringir la vista de Ranking exclusivamente a Administradores con sesión iniciada
-            if (vista === 'ranking' && (!usuarioActual || usuarioActual.rol !== 'admin')) {
+            // Proteger vistas internas que requieren sesión activa según el rol
+            const vistasProtegidas = ['dashboard-alumno', 'registro', 'dashboard-profesor', 'admin-dashboard', 'ranking'];
+            if (vistasProtegidas.includes(vista) && !usuarioActual) {
+                irInicioSegunRol();
+                return;
+            }
+            if ((vista === 'ranking' || vista === 'admin-dashboard') && (!usuarioActual || usuarioActual.rol !== 'admin')) {
+                irInicioSegunRol();
+                return;
+            }
+            if (vista === 'dashboard-profesor' && (!usuarioActual || usuarioActual.rol !== 'profesor')) {
+                irInicioSegunRol();
+                return;
+            }
+            if (vista === 'dashboard-alumno' && (!usuarioActual || usuarioActual.rol !== 'estudiante')) {
                 irInicioSegunRol();
                 return;
             }
@@ -1807,11 +1872,13 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ usuario, password })
                 });
+                const bootHeader = res.headers.get('X-Server-Boot-Id');
+                if (bootHeader) servidorBootIdActual = bootHeader;
                 const data = await res.json();
 
                 if (res.ok) {
                     usuarioActual = data.usuario;
-                    localStorage.setItem('carteles_uvm_usuario', JSON.stringify(usuarioActual));
+                    limpiarAlmacenamientoSesion();
                     document.getElementById('form-login-general').reset();
                     
                     if (usuarioActual.rol === 'estudiante') {
@@ -1843,6 +1910,8 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ usuario, password })
                 });
+                const bootHeader = res.headers.get('X-Server-Boot-Id');
+                if (bootHeader) servidorBootIdActual = bootHeader;
                 const data = await res.json();
 
                 if (res.ok) {
@@ -1856,7 +1925,7 @@
                         nivel_asignado: data.nivel_asignado,
                         profesor_id: data.profesor_id || data.id
                     };
-                    localStorage.setItem('carteles_uvm_usuario', JSON.stringify(usuarioActual));
+                    limpiarAlmacenamientoSesion();
                     document.getElementById('form-login-jueces').reset();
                     cargarDashboardProfesor();
                     verVista('dashboard-profesor');
@@ -1884,12 +1953,14 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ nombre, matricula, email, carrera, semestre, password })
                 });
+                const bootHeader = res.headers.get('X-Server-Boot-Id');
+                if (bootHeader) servidorBootIdActual = bootHeader;
                 const data = await res.json();
 
                 if (res.ok) {
                     alert(data.mensaje);
                     usuarioActual = data.usuario;
-                    localStorage.setItem('carteles_uvm_usuario', JSON.stringify(usuarioActual));
+                    limpiarAlmacenamientoSesion();
                     document.getElementById('form-registro-alumno').reset();
                     cargarDashboardAlumno();
                     verVista('dashboard-alumno');
@@ -2303,11 +2374,13 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ usuario, password })
                 });
+                const bootHeader = res.headers.get('X-Server-Boot-Id');
+                if (bootHeader) servidorBootIdActual = bootHeader;
                 const data = await res.json();
 
                 if (res.ok) {
                     usuarioActual = data.usuario;
-                    localStorage.setItem('carteles_uvm_usuario', JSON.stringify(usuarioActual));
+                    limpiarAlmacenamientoSesion();
                     document.getElementById('form-admin-login').reset();
                     cargarAdminDashboard();
                     verVista('admin-dashboard');
@@ -2630,7 +2703,7 @@
                     // Si el administrador actual modificó su propio perfil o contraseña
                     if (usuarioActual && (usuarioActual.id == id || usuarioActual.matricula == data.usuario?.matricula)) {
                         usuarioActual = { ...usuarioActual, ...data.usuario };
-                        localStorage.setItem('carteles_uvm_usuario', JSON.stringify(usuarioActual));
+                        limpiarAlmacenamientoSesion();
                     }
                     cerrarModalPromover();
                     cargarAdminUsuarios();
