@@ -2324,6 +2324,22 @@ app.post('/api/evaluar-invitado', async (req, res) => {
     }
 });
 
+// Escala activa para visualización del Ranking y calificaciones (10 = sobre 10, 100 = sobre 100%)
+let escalaRankingGlobal = 10;
+
+app.get('/api/escala-ranking', (req, res) => {
+    res.json({ escala: escalaRankingGlobal });
+});
+
+app.post('/api/admin/escala-ranking', (req, res) => {
+    const nueva = parseInt(req.body && req.body.escala);
+    escalaRankingGlobal = (nueva === 100) ? 100 : 10;
+    res.json({
+        mensaje: `Escala del Ranking actualizada a base ${escalaRankingGlobal}.`,
+        escala: escalaRankingGlobal
+    });
+});
+
 // Ranking general por niveles con participantes, clave y promedio de estrellas ponderadas
 app.get('/api/dashboard/ranking', async (req, res) => {
     try {
@@ -2339,6 +2355,7 @@ app.get('/api/dashboard/ranking', async (req, res) => {
             ORDER BY c.nivel ASC, promedio_final DESC
         `;
         const [rows] = await pool.query(query);
+        res.setHeader('X-Escala-Ranking', String(escalaRankingGlobal));
         res.json(rows);
     } catch (err) {
         res.status(400).json({ error: err.message });

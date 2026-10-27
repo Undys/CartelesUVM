@@ -903,11 +903,23 @@
             <!-- ============================================================== -->
             <div id="admin-sec-ranking" class="hidden space-y-4">
                 <div class="bg-white p-6 rounded-2xl shadow-sm border space-y-4">
-                    <div class="flex justify-between items-center border-b pb-3">
-                        <h3 class="text-lg font-black text-slate-800">Ranking en Tiempo Real</h3>
-                        <button onclick="cargarRanking()" class="text-xs text-red-600 font-bold hover:underline">
-                            Actualizar Posiciones
-                        </button>
+                    <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-3 border-b pb-3">
+                        <div>
+                            <h3 class="text-lg font-black text-slate-800">Ranking en Tiempo Real</h3>
+                            <p class="text-xs text-slate-500">Elige si deseas visualizar las calificaciones ponderadas en escala sobre 10 o sobre 100.</p>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-3">
+                            <div class="flex items-center gap-2 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
+                                <span class="text-[11px] font-bold text-slate-600 pl-2">Escala:</span>
+                                <select id="select-escala-ranking-admin" onchange="cambiarEscalaRanking(this.value)" class="bg-white border border-slate-300 text-slate-800 text-xs font-extrabold rounded-lg px-2.5 py-1 focus:ring-2 focus:ring-red-500 cursor-pointer">
+                                    <option value="10">Base 10 (0.0 a 10.0)</option>
+                                    <option value="100">Base 100 (0% a 100%)</option>
+                                </select>
+                            </div>
+                            <button onclick="cargarRanking()" class="text-xs bg-red-600 hover:bg-red-700 text-white px-3.5 py-2 rounded-xl font-bold shadow transition">
+                                Actualizar Posiciones
+                            </button>
+                        </div>
                     </div>
                     <div id="admin-contenedor-ranking" class="space-y-6"></div>
                 </div>
@@ -924,12 +936,21 @@
                         Tablas de Posiciones (Ranking por Nivel)
                     </h2>
                     <p class="text-xs text-gray-500 mt-1">
-                        Resultados y calificaciones con promedio de estrellas (1 a 5) y nombres de los participantes en mayúsculas.
+                        Resultados y calificaciones con promedio ponderado de estrellas (1 a 5) y nombres de los participantes en mayúsculas.
                     </p>
                 </div>
-                <button onclick="cargarRanking()" class="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-bold text-xs shadow transition">
-                    Actualizar Rankings
-                </button>
+                <div class="flex flex-wrap items-center gap-3">
+                    <div id="contenedor-selector-escala-vista-ranking" class="flex items-center gap-2 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
+                        <span class="text-[11px] font-bold text-slate-600 pl-2">Escala:</span>
+                        <select id="select-escala-ranking-general" onchange="cambiarEscalaRanking(this.value)" class="bg-white border border-slate-300 text-slate-800 text-xs font-extrabold rounded-lg px-2.5 py-1 focus:ring-2 focus:ring-red-500 cursor-pointer">
+                            <option value="10">Base 10 (0.0 a 10.0)</option>
+                            <option value="100">Base 100 (0% a 100%)</option>
+                        </select>
+                    </div>
+                    <button onclick="cargarRanking()" class="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-bold text-xs shadow transition">
+                        Actualizar Rankings
+                    </button>
+                </div>
             </div>
 
             <!-- Filtros de Pestañas (Tabs) -->
@@ -1392,6 +1413,46 @@
         let filtroRolActual = 'todos';
         let datosRanking = [];
         let nivelFiltroActual = 'todos';
+        let escalaRankingActual = 10; // Por defecto sobre 10 (10 o 100), configurable por el Admin en el menú del Ranking
+
+        function formatearPuntajeSegunEscala(puntajeBase100) {
+            const p = parseFloat(puntajeBase100) || 0;
+            if (Number(escalaRankingActual) === 10) {
+                return `${(p / 10.0).toFixed(2)} / 10`;
+            }
+            return `${p.toFixed(1)}% / 100%`;
+        }
+
+        function sincronizarSelectoresEscalaRanking() {
+            const s1 = document.getElementById('select-escala-ranking-admin');
+            const s2 = document.getElementById('select-escala-ranking-general');
+            if (s1) s1.value = String(escalaRankingActual);
+            if (s2) s2.value = String(escalaRankingActual);
+            const contGeneral = document.getElementById('contenedor-selector-escala-vista-ranking');
+            if (contGeneral) {
+                // El selector en la vista de Ranking está disponible para que el Admin cambie entre 10 y 100
+                if (usuarioActual && usuarioActual.rol === 'admin') {
+                    contGeneral.classList.remove('hidden');
+                } else {
+                    contGeneral.classList.remove('hidden');
+                }
+            }
+        }
+
+        async function cambiarEscalaRanking(nuevaEscala) {
+            escalaRankingActual = (parseInt(nuevaEscala) === 100) ? 100 : 10;
+            sincronizarSelectoresEscalaRanking();
+            renderizarRankings();
+            actualizarResumenPuntaje('eval');
+            actualizarResumenPuntaje('invitado');
+            try {
+                await fetch('/api/admin/escala-ranking', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ escala: escalaRankingActual })
+                });
+            } catch (e) {}
+        }
 
         // Helper para convertir cualquier texto a MAYÚSCULAS COMPLETAS (Requerimiento)
         function convertirMayusculas(str) {
@@ -2237,7 +2298,7 @@
                 const data = await res.json();
 
                 if (res.ok) {
-                    alert(`¡Evaluación guardada exitosamente!\n\nPromedio Ponderado: ${data.estrellas_ponderadas} / ${CONFIG_RUBRICA_CARTELES.escala_max}.0 ★\nCalificación Ponderada: ${data.puntaje_total}% / 100%`);
+                    alert(`¡Evaluación guardada exitosamente!\n\nPromedio Ponderado: ${data.estrellas_ponderadas} / ${CONFIG_RUBRICA_CARTELES.escala_max}.0 ★\nCalificación Ponderada: ${formatearPuntajeSegunEscala(data.puntaje_total)}`);
                     document.getElementById('form-evaluar-profesor').reset();
                     reiniciarEstrellas('eval');
                     cargarDashboardProfesor();
@@ -2431,8 +2492,8 @@
             if (resumenEl) {
                 if (completos === totalCriterios) {
                     const promEstrellas = sumaEstrellasPonderada.toFixed(2);
-                    const porcentaje100 = ((sumaEstrellasPonderada / maxEscala) * 100).toFixed(1);
-                    resumenEl.innerHTML = `<strong>${promEstrellas} / ${maxEscala}.0 ★</strong> (${porcentaje100}% / 100%)`;
+                    const porcentaje100 = (sumaEstrellasPonderada / maxEscala) * 100;
+                    resumenEl.innerHTML = `<strong>${promEstrellas} / ${maxEscala}.0 ★</strong> (${formatearPuntajeSegunEscala(porcentaje100)})`;
                     resumenEl.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-sm';
                 } else {
                     resumenEl.innerText = `${completos} de ${totalCriterios} criterios calificados`;
@@ -3561,7 +3622,7 @@
 
             cont.innerHTML = asignados.map(a => {
                 const puntajeInfo = a.ya_evaluo && a.estrellas_otorgadas
-                    ? ` • ${parseFloat(a.estrellas_otorgadas).toFixed(2)} / 5.0 ★ (${parseFloat(a.puntaje_total).toFixed(1)}%)`
+                    ? ` • ${parseFloat(a.estrellas_otorgadas).toFixed(2)} / 5.0 ★ (${formatearPuntajeSegunEscala(a.puntaje_total)})`
                     : '';
                 return `
                     <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-3 p-3 rounded-xl border ${a.ya_evaluo ? 'bg-emerald-50/40 border-emerald-200' : 'bg-white border-slate-200'} text-xs shadow-sm">
@@ -3862,7 +3923,7 @@
                 const data = await res.json();
 
                 if (res.ok) {
-                    alert(`${data.mensaje}\n\nPromedio Ponderado: ${data.estrellas_ponderadas} / ${CONFIG_RUBRICA_CARTELES.escala_max}.0 ★\nCalificación Ponderada: ${data.puntaje_total}% / 100%`);
+                    alert(`${data.mensaje}\n\nPromedio Ponderado: ${data.estrellas_ponderadas} / ${CONFIG_RUBRICA_CARTELES.escala_max}.0 ★\nCalificación Ponderada: ${formatearPuntajeSegunEscala(data.puntaje_total)}`);
                     cerrarModalInvitado();
                     if (usuarioActual && usuarioActual.rol === 'profesor') cargarDashboardProfesor();
                     if (usuarioActual && usuarioActual.rol === 'admin') cargarAdminDashboard();
@@ -3900,6 +3961,11 @@
         async function cargarRanking() {
             try {
                 const res = await fetch('/api/dashboard/ranking');
+                const escalaHeader = res.headers.get('X-Escala-Ranking');
+                if (escalaHeader) {
+                    escalaRankingActual = (parseInt(escalaHeader) === 100) ? 100 : 10;
+                    sincronizarSelectoresEscalaRanking();
+                }
                 datosRanking = await res.json();
                 renderizarRankings();
             } catch (err) {
@@ -3908,6 +3974,7 @@
         }
 
         function cargarRankingAdmin() {
+            sincronizarSelectoresEscalaRanking();
             cargarRanking();
             const cont = document.getElementById('admin-contenedor-ranking');
             if (cont) {
@@ -3918,6 +3985,8 @@
         function renderizarRankings() {
             const contenedor = document.getElementById('contenedor-tablas-ranking');
             if (!contenedor) return;
+
+            sincronizarSelectoresEscalaRanking();
 
             const nivelesAMostrar = configNiveles.filter(cfg => {
                 if (nivelFiltroActual === 'todos') return true;
@@ -3962,15 +4031,17 @@
                         let promedioTexto = '';
                         if (r.promedio_final !== null && r.promedio_final !== undefined) {
                             const estrellas = r.promedio_estrellas ? parseFloat(r.promedio_estrellas).toFixed(2) : (parseFloat(r.promedio_final) / 20).toFixed(2);
+                            const califSegunEscala = formatearPuntajeSegunEscala(r.promedio_final);
                             promedioTexto = `
                                 <div>
-                                    <span class="text-base font-black text-amber-500">${estrellas} ★</span>
-                                    <span class="text-xs text-gray-400 font-bold">/ 5.0</span>
+                                    <span class="text-base font-black text-slate-900">${califSegunEscala}</span>
                                 </div>
-                                <div class="text-[11px] text-gray-500 font-semibold">(${parseFloat(r.promedio_final).toFixed(1)}% / 100%)</div>
+                                <div class="text-[11px] font-bold text-amber-600">
+                                    ${estrellas} ★ <span class="text-gray-400 font-semibold">/ 5.0</span>
+                                </div>
                             `;
                         } else {
-                            promedioTexto = `<span class="text-xs text-gray-400 italic">0.0%</span>`;
+                            promedioTexto = `<span class="text-xs text-gray-400 italic">${Number(escalaRankingActual) === 10 ? '0.00 / 10' : '0.0%'}</span>`;
                         }
 
                         return `
