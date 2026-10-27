@@ -135,6 +135,46 @@ function generarClaveAleatoria() {
     return `CART-${codigo}`;
 }
 
+// Helper para obtener la configuración SMTP activa (primero desde la base de datos configurada en el Panel Admin y luego desde .env)
+async function obtenerConfiguracionSmtp() {
+    let dbCfg = null;
+    if (pool) {
+        try {
+            const [rows] = await pool.query('SELECT * FROM configuracion_smtp WHERE id = 1 LIMIT 1');
+            if (rows.length > 0 && rows[0].smtp_user && rows[0].smtp_pass) {
+                dbCfg = rows[0];
+            }
+        } catch (e) {}
+    }
+
+    const rawUser = dbCfg ? dbCfg.smtp_user : (process.env.SMTP_USER || '');
+    const rawPass = dbCfg ? dbCfg.smtp_pass : (process.env.SMTP_PASS || '');
+    const rawHost = dbCfg ? dbCfg.smtp_host : (process.env.SMTP_HOST || '');
+    const rawPort = dbCfg ? dbCfg.smtp_port : (process.env.SMTP_PORT || '');
+    const rawFrom = dbCfg ? dbCfg.smtp_from : (process.env.SMTP_FROM || '');
+
+    const smtpUser = (rawUser || '').trim();
+    const smtpPass = (rawPass || '').trim().replace(/\s+/g, '');
+    let smtpHost = (rawHost || 'smtp.gmail.com').trim();
+    if (smtpUser.toLowerCase().endsWith('@gmail.com')) {
+        smtpHost = 'smtp.gmail.com';
+    }
+    const smtpPort = parseInt(rawPort) || 587;
+    const smtpSecure = process.env.SMTP_SECURE === 'true' || smtpPort === 465;
+    const smtpFrom = (rawFrom && rawFrom.trim()) ? rawFrom.trim() : `"Sistema de Carteles UVM" <${smtpUser}>`;
+
+    return {
+        smtpHost,
+        smtpPort,
+        smtpSecure,
+        smtpUser,
+        smtpPass,
+        smtpFrom,
+        configurado: Boolean(smtpUser && smtpPass),
+        origen: dbCfg ? 'panel_admin' : ((smtpUser && smtpPass) ? 'env' : 'ninguno')
+    };
+}
+
 // Helper para enviar correo automático con los datos de la cuenta y enlace al dashboard (Profesores / Usuarios)
 async function enviarCorreoDatosCuenta({ email, nombre, matricula, password, rol, carrera, nivel_asignado, baseUrl }) {
     const urlServidor = (baseUrl || process.env.PUBLIC_URL || `http://localhost:${process.env.PORT || 3000}`).replace(/\/+$/, '');
@@ -146,19 +186,11 @@ async function enviarCorreoDatosCuenta({ email, nombre, matricula, password, rol
         return { enviado: false, motivo: 'Sin correo electrónico proporcionado', enlace_acceso: enlaceAcceso };
     }
 
-    const smtpUser = (process.env.SMTP_USER || '').trim();
-    const smtpPass = (process.env.SMTP_PASS || '').trim().replace(/\s+/g, '');
-    let smtpHost = (process.env.SMTP_HOST || 'smtp.office365.com').trim();
-    if (smtpUser.toLowerCase().endsWith('@gmail.com')) {
-        smtpHost = 'smtp.gmail.com';
-    }
-    const smtpPort = parseInt(process.env.SMTP_PORT) || 587;
-    const smtpSecure = process.env.SMTP_SECURE === 'true' || smtpPort === 465;
-    const smtpFrom = (process.env.SMTP_FROM || `"Sistema de Carteles UVM" <${smtpUser}>`).trim();
+    const { smtpHost, smtpPort, smtpSecure, smtpUser, smtpPass, smtpFrom, configurado } = await obtenerConfiguracionSmtp();
 
-    if (!smtpUser || !smtpPass) {
-        console.warn(`[CORREO] No se pudo enviar correo a ${email}: Configura SMTP_USER y SMTP_PASS en tu archivo .env`);
-        return { enviado: false, motivo: 'SMTP no configurado en .env', enlace_acceso: enlaceAcceso };
+    if (!configurado) {
+        console.warn(`[CORREO] No se pudo enviar correo a ${email}: Configura el correo SMTP desde el Panel de Administrador.`);
+        return { enviado: false, motivo: 'SMTP no configurado (configúralo desde el botón "Configurar Correo SMTP" en el Panel de Administrador)', enlace_acceso: enlaceAcceso };
     }
 
     try {
@@ -388,6 +420,35 @@ async function asegurarEsquemaYColumnas() {
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         `);
+    } catch (e) {}
+
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS configuracion_smtp (
+                id INT PRIMARY KEY DEFAULT 1,
+                smtp_host VARCHAR(150) NOT NULL DEFAULT 'smtp.gmail.com',
+                smtp_port INT NOT NULL DEFAULT 587,
+                smtp_user VARCHAR(150) NOT NULL DEFAULT '',
+                smtp_pass VARCHAR(255) NOT NULL DEFAULT '',
+                smtp_from VARCHAR(200) NULL,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        `);
+        // Si existen variables en .env y la tabla está vacía, sincronizarlas inicialmente
+        const envUser = (process.env.SMTP_USER || '').trim();
+        const envPass = (process.env.SMTP_PASS || '').trim();
+        if (envUser && envPass) {
+            const [cfgRows] = await pool.query('SELECT id FROM configuracion_smtp WHERE id = 1');
+            if (cfgRows.length === 0) {
+                const envHost = (process.env.SMTP_HOST || (envUser.toLowerCase().endsWith('@gmail.com') ? 'smtp.gmail.com' : 'smtp.office365.com')).trim();
+                const envPort = parseInt(process.env.SMTP_PORT) || 587;
+                const envFrom = (process.env.SMTP_FROM || '').trim() || null;
+                await pool.query(
+                    'INSERT INTO configuracion_smtp (id, smtp_host, smtp_port, smtp_user, smtp_pass, smtp_from) VALUES (1, ?, ?, ?, ?, ?)',
+                    [envHost, envPort, envUser, envPass, envFrom]
+                );
+            }
+        }
     } catch (e) {}
 
     // 1. Asegurar columna email en usuarios (ejecución directa e independiente para evitar error "Unknown column 'email'")
@@ -864,7 +925,7 @@ app.post('/api/admin/usuarios/:id/reenviar-correo', async (req, res) => {
 
         if (!infoCorreo.enviado) {
             return res.status(400).json({
-                error: `No se pudo enviar el correo a ${emailDestino}: ${infoCorreo.motivo || 'Revisa tus credenciales SMTP en .env'}`,
+                error: `No se pudo enviar el correo a ${emailDestino}: ${infoCorreo.motivo || 'Revisa la configuración de correo SMTP en el Panel de Administrador'}`,
                 enlace_acceso: infoCorreo.enlace_acceso
             });
         }
@@ -874,6 +935,105 @@ app.post('/api/admin/usuarios/:id/reenviar-correo', async (req, res) => {
             correo_enviado: true,
             enlace_acceso: infoCorreo.enlace_acceso
         });
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
+});
+
+// Obtener configuración actual de correo SMTP para el Panel de Administrador
+app.get('/api/admin/smtp', async (req, res) => {
+    try {
+        const cfg = await obtenerConfiguracionSmtp();
+        res.json({
+            configurado: cfg.configurado,
+            smtp_host: cfg.smtpHost,
+            smtp_port: cfg.smtpPort,
+            smtp_user: cfg.smtpUser,
+            smtp_from: cfg.smtpFrom,
+            tiene_password: Boolean(cfg.smtpPass),
+            origen: cfg.origen
+        });
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
+});
+
+// Guardar configuración de correo SMTP desde el Panel de Administrador (se almacena en la BD para funcionar en el servidor sin .env)
+app.post('/api/admin/smtp', async (req, res) => {
+    try {
+        const { smtp_host, smtp_port, smtp_user, smtp_pass, smtp_from } = req.body;
+        const userLimpio = (smtp_user || '').trim();
+        if (!userLimpio) {
+            return res.status(400).json({ error: "El correo remitente (SMTP User) es obligatorio." });
+        }
+
+        let passLimpia = (smtp_pass || '').trim().replace(/\s+/g, '');
+        if (!passLimpia) {
+            const actual = await obtenerConfiguracionSmtp();
+            if (actual.smtpPass) {
+                passLimpia = actual.smtpPass;
+            } else {
+                return res.status(400).json({ error: "Ingresa la contraseña o contraseña de aplicación de 16 letras." });
+            }
+        }
+
+        let hostLimpio = (smtp_host || 'smtp.gmail.com').trim();
+        if (userLimpio.toLowerCase().endsWith('@gmail.com')) {
+            hostLimpio = 'smtp.gmail.com';
+        }
+        const portLimpio = parseInt(smtp_port) || 587;
+        const fromLimpio = (smtp_from || '').trim() || `"Sistema de Carteles UVM" <${userLimpio}>`;
+
+        await pool.query(
+            `INSERT INTO configuracion_smtp (id, smtp_host, smtp_port, smtp_user, smtp_pass, smtp_from)
+             VALUES (1, ?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE
+                smtp_host = VALUES(smtp_host),
+                smtp_port = VALUES(smtp_port),
+                smtp_user = VALUES(smtp_user),
+                smtp_pass = VALUES(smtp_pass),
+                smtp_from = VALUES(smtp_from)`,
+            [hostLimpio, portLimpio, userLimpio, passLimpia, fromLimpio]
+        );
+
+        res.json({
+            mensaje: "¡Configuración de correo SMTP guardada en la base de datos! Ahora el servidor ya puede enviar correos.",
+            configurado: true,
+            smtp_host: hostLimpio,
+            smtp_port: portLimpio,
+            smtp_user: userLimpio,
+            smtp_from: fromLimpio
+        });
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
+});
+
+// Probar envío de correo SMTP desde el Panel de Administrador
+app.post('/api/admin/smtp/probar', async (req, res) => {
+    try {
+        const cfg = await obtenerConfiguracionSmtp();
+        if (!cfg.configurado) {
+            return res.status(400).json({ error: "Primero guarda el correo remitente y la contraseña de aplicación." });
+        }
+
+        const destino = ((req.body && req.body.email_destino) ? req.body.email_destino.trim() : cfg.smtpUser);
+        const info = await enviarCorreoDatosCuenta({
+            email: destino,
+            nombre: 'PRUEBA DE CORREO ADMIN',
+            matricula: 'admin',
+            password: '(Tu contraseña actual)',
+            rol: 'profesor',
+            carrera: 'Ingeniería',
+            nivel_asignado: 1,
+            baseUrl: obtenerUrlBase(req)
+        });
+
+        if (!info.enviado) {
+            return res.status(400).json({ error: `Falló la prueba de envío: ${info.motivo}` });
+        }
+
+        res.json({ mensaje: `¡Correo de prueba enviado con éxito a ${destino}!` });
     } catch (err) {
         res.status(400).json({ error: err.message });
     }

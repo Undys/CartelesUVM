@@ -641,6 +641,10 @@
                     </p>
                 </div>
                 <div class="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+                    <button onclick="abrirModalConfigurarSmtp()" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-xl font-bold transition flex items-center gap-1.5 shadow-sm">
+                        <span>Configurar Correo (SMTP)</span>
+                        <span id="badge-estado-smtp" class="bg-white/20 text-[10px] px-1.5 py-0.5 rounded font-black">Verificar</span>
+                    </button>
                     <button onclick="abrirModalEditarPerfilAdmin()" class="text-xs bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded-xl font-bold transition flex items-center gap-1.5 shadow-sm">
                         <span>Mi Perfil / Contraseña</span>
                     </button>
@@ -707,6 +711,9 @@
                         </p>
                     </div>
                     <div class="flex flex-wrap items-center gap-2 shrink-0">
+                        <button type="button" onclick="abrirModalConfigurarSmtp()" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-3.5 py-2.5 rounded-xl text-xs font-black shadow-md transition">
+                            Configurar Correo SMTP
+                        </button>
                         <button type="button" onclick="copiarEnlaceJuezGeneral()" class="bg-white/15 hover:bg-white/25 text-white border border-white/30 px-3.5 py-2.5 rounded-xl text-xs font-bold transition">
                             Copiar Link de Jueces (/jueces)
                         </button>
@@ -1179,6 +1186,78 @@
     </div>
 
     <!-- ============================================================== -->
+    <!-- MODAL 2.A: CONFIGURAR CORREO SMTP DESDE EL PANEL ADMIN          -->
+    <!-- ============================================================== -->
+    <div id="modal-configurar-smtp" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl border space-y-4 my-8">
+            <div class="flex justify-between items-start border-b pb-3">
+                <div>
+                    <span class="inline-block bg-emerald-100 text-emerald-800 font-black text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-wider mb-1">Envío de Correos en el Servidor</span>
+                    <h3 class="font-black text-lg text-slate-800">Configurar Correo SMTP</h3>
+                    <p class="text-xs text-gray-500 mt-0.5">Se guarda directamente en la base de datos para que el servidor en la nube pueda enviar correos sin depender del archivo <code>.env</code>.</p>
+                </div>
+                <button onclick="cerrarModalConfigurarSmtp()" class="text-gray-400 hover:text-gray-600 text-lg font-bold">✕</button>
+            </div>
+
+            <div id="smtp-banner-estado" class="p-3 rounded-xl border text-xs font-semibold bg-slate-50 text-slate-700 border-slate-200">
+                Verificando configuración actual...
+            </div>
+
+            <form id="form-configurar-smtp" class="space-y-3">
+                <div>
+                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Proveedor Rápido:</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button type="button" onclick="seleccionarProveedorSmtp('gmail')" class="border border-red-200 bg-red-50 hover:bg-red-100 text-red-900 py-2 px-3 rounded-xl text-xs font-bold transition">
+                            Gmail (smtp.gmail.com)
+                        </button>
+                        <button type="button" onclick="seleccionarProveedorSmtp('outlook')" class="border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-900 py-2 px-3 rounded-xl text-xs font-bold transition">
+                            Outlook / UVM (Office 365)
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="col-span-2">
+                        <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Servidor SMTP (Host):</label>
+                        <input type="text" id="smtp_cfg_host" required value="smtp.gmail.com" placeholder="smtp.gmail.com" class="w-full border p-2.5 rounded-xl text-xs font-mono font-bold text-slate-800 focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Puerto:</label>
+                        <input type="number" id="smtp_cfg_port" required value="587" placeholder="587" class="w-full border p-2.5 rounded-xl text-xs font-mono font-bold text-slate-800 focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Correo Electrónico Remitente (SMTP_USER):</label>
+                    <input type="email" id="smtp_cfg_user" required placeholder="Ej. pocoluc@gmail.com" class="w-full border p-2.5 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-emerald-500">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Contraseña de Aplicación (SMTP_PASS):</label>
+                    <input type="password" id="smtp_cfg_pass" placeholder="Ej. ajfn hwbw ligy kgaa" class="w-full border p-2.5 rounded-xl text-xs font-mono font-bold text-slate-800 focus:ring-2 focus:ring-emerald-500">
+                    <p id="smtp_cfg_pass_ayuda" class="text-[11px] text-gray-500 mt-1">
+                        Para Gmail, usa tu Contraseña de Aplicación de 16 letras (se quitan los espacios automáticamente).
+                    </p>
+                </div>
+
+                <div class="pt-2 border-t flex flex-wrap justify-between items-center gap-2">
+                    <button type="button" onclick="probarEnvioSmtpAdmin()" class="bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 px-3.5 py-2 rounded-xl text-xs font-bold transition">
+                        Enviar Correo de Prueba
+                    </button>
+                    <div class="flex gap-2">
+                        <button type="button" onclick="cerrarModalConfigurarSmtp()" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100">
+                            Cerrar
+                        </button>
+                        <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-xl text-xs font-black shadow transition">
+                            Guardar Correo SMTP
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
     <!-- MODAL 2.B: ASIGNAR PROFESORES JUECES MANUALMENTE A UN CARTEL    -->
     <!-- ============================================================== -->
     <div id="modal-asignar-juez-cartel" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -1584,7 +1663,7 @@
         }
 
         function cerrarTodosLosModales() {
-            ['modal-evaluar-invitado', 'modal-crear-usuario', 'modal-promover-usuario', 'modal-asignar-juez-cartel', 'modal-ver-carteles-profesor'].forEach(id => {
+            ['modal-evaluar-invitado', 'modal-crear-usuario', 'modal-configurar-smtp', 'modal-promover-usuario', 'modal-asignar-juez-cartel', 'modal-ver-carteles-profesor'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.classList.add('hidden');
             });
@@ -2437,8 +2516,139 @@
                 cargarAdminUsuarios();
                 cargarAdminCarteles();
                 cargarDatosAsignacionManual();
+                cargarEstadoSmtpAdmin();
             } catch (err) {
                 console.error("Error al cargar dashboard admin:", err);
+            }
+        }
+
+        async function cargarEstadoSmtpAdmin() {
+            try {
+                const res = await fetch('/api/admin/smtp');
+                if (!res.ok) return;
+                const data = await res.json();
+                const badge = document.getElementById('badge-estado-smtp');
+                const banner = document.getElementById('smtp-banner-estado');
+
+                if (data.configurado) {
+                    if (badge) {
+                        badge.innerText = 'Activo';
+                        badge.className = 'bg-emerald-900/60 text-emerald-100 text-[10px] px-1.5 py-0.5 rounded font-black';
+                    }
+                    if (banner) {
+                        banner.innerHTML = `Correo activo: <strong>${data.smtp_user}</strong> (${data.smtp_host}:${data.smtp_port})`;
+                        banner.className = 'p-3 rounded-xl border text-xs font-semibold bg-emerald-50 text-emerald-900 border-emerald-200';
+                    }
+                } else {
+                    if (badge) {
+                        badge.innerText = 'Sin configurar';
+                        badge.className = 'bg-amber-400 text-slate-900 text-[10px] px-1.5 py-0.5 rounded font-black';
+                    }
+                    if (banner) {
+                        banner.innerHTML = `<strong>Correo SMTP aún no configurado en este servidor.</strong> Ingresa tu correo y contraseña de aplicación abajo y haz clic en Guardar.`;
+                        banner.className = 'p-3 rounded-xl border text-xs font-semibold bg-amber-50 text-amber-900 border-amber-300';
+                    }
+                }
+
+                if (data.smtp_host) document.getElementById('smtp_cfg_host').value = data.smtp_host;
+                if (data.smtp_port) document.getElementById('smtp_cfg_port').value = data.smtp_port;
+                if (data.smtp_user) document.getElementById('smtp_cfg_user').value = data.smtp_user;
+
+                const passInput = document.getElementById('smtp_cfg_pass');
+                if (passInput) {
+                    passInput.value = '';
+                    passInput.placeholder = data.tiene_password
+                        ? '•••••••• (Ya guardada - deja vacío para mantenerla o escribe una nueva)'
+                        : 'Ej. ajfn hwbw ligy kgaa';
+                }
+            } catch (e) {}
+        }
+
+        function abrirModalConfigurarSmtp() {
+            cargarEstadoSmtpAdmin();
+            document.getElementById('modal-configurar-smtp').classList.remove('hidden');
+        }
+
+        function cerrarModalConfigurarSmtp() {
+            document.getElementById('modal-configurar-smtp').classList.add('hidden');
+        }
+
+        function seleccionarProveedorSmtp(tipo) {
+            if (tipo === 'gmail') {
+                document.getElementById('smtp_cfg_host').value = 'smtp.gmail.com';
+                document.getElementById('smtp_cfg_port').value = '587';
+            } else {
+                document.getElementById('smtp_cfg_host').value = 'smtp.office365.com';
+                document.getElementById('smtp_cfg_port').value = '587';
+            }
+        }
+
+        document.getElementById('form-configurar-smtp').onsubmit = async (e) => {
+            e.preventDefault();
+            const smtp_host = document.getElementById('smtp_cfg_host').value.trim();
+            const smtp_port = document.getElementById('smtp_cfg_port').value.trim();
+            const smtp_user = document.getElementById('smtp_cfg_user').value.trim();
+            const smtp_pass = document.getElementById('smtp_cfg_pass').value.trim();
+
+            try {
+                const res = await fetch('/api/admin/smtp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ smtp_host, smtp_port, smtp_user, smtp_pass })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    alert(data.mensaje);
+                    await cargarEstadoSmtpAdmin();
+                    cerrarModalConfigurarSmtp();
+                } else {
+                    alert(data.error || "No se pudo guardar la configuración SMTP.");
+                }
+            } catch (err) {
+                alert("Error de conexión: " + err.message);
+            }
+        };
+
+        async function probarEnvioSmtpAdmin() {
+            const smtp_host = document.getElementById('smtp_cfg_host').value.trim();
+            const smtp_port = document.getElementById('smtp_cfg_port').value.trim();
+            const smtp_user = document.getElementById('smtp_cfg_user').value.trim();
+            const smtp_pass = document.getElementById('smtp_cfg_pass').value.trim();
+
+            if (!smtp_user) {
+                return alert("Primero ingresa el correo remitente (SMTP_USER).");
+            }
+
+            try {
+                // Guardar primero por si el admin acaba de escribir los datos sin haber presionado Guardar
+                const resSave = await fetch('/api/admin/smtp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ smtp_host, smtp_port, smtp_user, smtp_pass })
+                });
+                const dataSave = await resSave.json();
+                if (!resSave.ok) {
+                    return alert(dataSave.error || "No se pudo guardar la configuración SMTP antes de probar.");
+                }
+
+                await cargarEstadoSmtpAdmin();
+
+                const destino = prompt("¿A qué correo deseas enviar el correo de prueba?", smtp_user);
+                if (!destino || !destino.trim()) return;
+
+                const resTest = await fetch('/api/admin/smtp/probar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email_destino: destino.trim() })
+                });
+                const dataTest = await resTest.json();
+                if (resTest.ok) {
+                    alert(dataTest.mensaje);
+                } else {
+                    alert(dataTest.error || "No se pudo enviar el correo de prueba.");
+                }
+            } catch (err) {
+                alert("Error al probar correo: " + err.message);
             }
         }
 
