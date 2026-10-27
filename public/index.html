@@ -415,14 +415,20 @@
                     </select>
                 </div>
 
-                <!-- Aviso de Clave de Acceso Única -->
-                <div class="bg-amber-50/80 p-4 rounded-xl border border-amber-200 flex items-start gap-3">
-                    <div>
-                        <p class="font-bold text-xs text-amber-950">Clave de acceso de tu stand asignada automáticamente</p>
-                        <p class="text-xs text-amber-800 mt-0.5 leading-relaxed">
-                            El servidor generará una clave única (ej. <strong>CART-4B8X</strong>) para tu cartel. Esta clave la mostrarás a los profesores jueces en tu stand para que califiquen tu proyecto.
-                        </p>
+                <!-- Código / Clave de Acceso (Automático o Manual) -->
+                <div class="bg-amber-50/80 p-4 rounded-xl border border-amber-200 space-y-2.5">
+                    <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+                        <div>
+                            <p class="font-bold text-xs text-amber-950">Código / Clave del Cartel (Automático o Manual)</p>
+                            <p class="text-[11px] text-amber-800 mt-0.5 leading-relaxed">
+                                Déjalo en blanco para que el sistema genere una clave automática (ej. <strong>CART-4B8X</strong>), o escribe un código manualmente si ya tienes uno asignado.
+                            </p>
+                        </div>
+                        <button type="button" onclick="document.getElementById('clave_manual_cartel').value = generarClaveAleatoria()" class="text-[11px] bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 px-3 py-1.5 rounded-lg font-extrabold shadow-sm whitespace-nowrap self-start sm:self-auto">
+                            Generar código aleatorio
+                        </button>
                     </div>
+                    <input type="text" id="clave_manual_cartel" placeholder="Opcional: escribe un código manual (ej. CART-101) o déjalo vacío para automático" oninput="this.value = this.value.toUpperCase()" class="w-full border border-amber-300 p-2.5 rounded-lg bg-white font-mono font-black text-xs text-amber-950 uppercase tracking-wider focus:ring-2 focus:ring-amber-500 focus:outline-none">
                 </div>
 
                 <!-- Archivo PDF -->
@@ -817,7 +823,7 @@
                         </button>
                     </div>
 
-                    <form id="form-asignacion-manual" class="grid grid-cols-1 md:grid-cols-3 gap-3 items-end bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <form id="form-asignacion-manual" class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end bg-slate-50 p-4 rounded-xl border border-slate-200">
                         <div>
                             <label class="block font-bold text-xs uppercase text-slate-700 mb-1">1. Selecciona al Profesor Juez:</label>
                             <select id="manual-asig-profesor" required class="w-full border border-slate-300 p-2.5 rounded-xl text-xs font-semibold bg-white text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
@@ -825,10 +831,14 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block font-bold text-xs uppercase text-slate-700 mb-1">2. Selecciona el Cartel:</label>
-                            <select id="manual-asig-cartel" required class="w-full border border-slate-300 p-2.5 rounded-xl text-xs font-semibold bg-white text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
+                            <label class="block font-bold text-xs uppercase text-slate-700 mb-1">2A. Selecciona el Cartel de la lista:</label>
+                            <select id="manual-asig-cartel" onchange="if(this.value) document.getElementById('manual-asig-clave-cartel').value = ''" class="w-full border border-slate-300 p-2.5 rounded-xl text-xs font-semibold bg-white text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
                                 <option value="">-- Selecciona un Cartel --</option>
                             </select>
+                        </div>
+                        <div>
+                            <label class="block font-bold text-xs uppercase text-slate-700 mb-1">2B. O escribe el Código del Cartel:</label>
+                            <input type="text" id="manual-asig-clave-cartel" placeholder="Ej. CART-4B8X" oninput="this.value = this.value.toUpperCase(); if(this.value.trim()) document.getElementById('manual-asig-cartel').value = ''" class="w-full border border-amber-300 p-2.5 rounded-xl text-xs font-mono font-black uppercase bg-white text-amber-950 focus:ring-2 focus:ring-amber-500 focus:outline-none">
                         </div>
                         <div>
                             <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 px-4 rounded-xl font-black text-xs shadow transition transform active:scale-98">
@@ -878,8 +888,8 @@
                 <!-- Reparto Automático de Carteles -->
                 <div class="bg-red-50 border-l-4 border-red-600 p-5 rounded-2xl flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                     <div>
-                        <p class="font-extrabold text-red-900 text-base">Reparto Automático de Carteles a Profesores Jueces</p>
-                        <p class="text-xs text-red-700 mt-1">Asigna automáticamente 3 profesores por cada cartel respetando Área y Nivel académico.</p>
+                        <p class="font-extrabold text-red-900 text-base">Reparto Automático de Carteles a Profesores Jueces (Mín. 2 / Máx. 3 Jueces)</p>
+                        <p class="text-xs text-red-700 mt-1">Asigna automáticamente entre 2 (mínimo) y 3 (máximo) profesores jueces por cada cartel respetando Área y Nivel académico.</p>
                     </div>
                     <button onclick="repartirCarteles()" class="bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-xl font-bold text-xs shadow transition whitespace-nowrap">
                         Repartir Carteles Automáticamente
@@ -1287,16 +1297,19 @@
                 <button onclick="cerrarModalCartelesProfesor()" class="text-gray-400 hover:text-gray-600 text-lg font-bold">✕</button>
             </div>
 
-            <form id="form-modal-asignar-cartel-a-profe" class="space-y-2 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+            <form id="form-modal-asignar-cartel-a-profe" class="space-y-2.5 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
                 <input type="hidden" id="modal-profe-carteles-profesor-id">
                 <input type="hidden" id="modal-profe-carteles-usuario-id">
-                <label class="block font-bold text-xs uppercase text-slate-700">Asignar nuevo cartel a este profesor:</label>
-                <div class="flex flex-col sm:flex-row gap-2">
-                    <select id="modal-profe-select-cartel" required class="flex-1 border border-slate-300 p-2.5 rounded-xl text-xs font-semibold bg-white text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
-                        <option value="">-- Selecciona un Cartel para Asignar --</option>
+                <label class="block font-bold text-xs uppercase text-slate-700">Asignar nuevo cartel a este profesor (elige de la lista o escribe su código):</label>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <select id="modal-profe-select-cartel" onchange="if(this.value) document.getElementById('modal-profe-clave-manual').value = ''" class="sm:col-span-2 border border-slate-300 p-2.5 rounded-xl text-xs font-semibold bg-white text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
+                        <option value="">-- Selecciona un Cartel de la lista --</option>
                     </select>
-                    <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-xs font-black shadow whitespace-nowrap transition">
-                        + Asignar Cartel
+                    <input type="text" id="modal-profe-clave-manual" placeholder="O escribe código (CART-XXXX)" oninput="this.value = this.value.toUpperCase(); if(this.value.trim()) document.getElementById('modal-profe-select-cartel').value = ''" class="border border-amber-300 p-2.5 rounded-xl text-xs font-mono font-black uppercase bg-white text-amber-950 focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                </div>
+                <div class="flex justify-end">
+                    <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-black shadow whitespace-nowrap transition">
+                        + Asignar Cartel al Profesor
                     </button>
                 </div>
             </form>
@@ -1316,6 +1329,45 @@
                     Cerrar
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- MODAL 2.D: ASIGNAR O CAMBIAR CÓDIGO / CLAVE DE CARTEL MANUALMENTE -->
+    <!-- ============================================================== -->
+    <div id="modal-editar-clave-cartel" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border space-y-4 my-8">
+            <div class="flex justify-between items-start border-b pb-3">
+                <div>
+                    <span class="inline-block bg-amber-100 text-amber-900 font-black text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-wider mb-1">Código de Stand</span>
+                    <h3 class="font-black text-lg text-slate-800">Asignar / Cambiar Código del Cartel</h3>
+                    <p id="modal-editar-clave-subtitulo" class="text-xs text-gray-500 font-semibold mt-0.5"></p>
+                </div>
+                <button onclick="cerrarModalEditarClaveCartel()" class="text-gray-400 hover:text-gray-600 text-lg font-bold">✕</button>
+            </div>
+
+            <form id="form-modal-editar-clave-cartel" class="space-y-3">
+                <input type="hidden" id="modal-editar-clave-cartel-id">
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="block font-bold text-xs uppercase text-slate-700">Nuevo Código / Clave del Cartel:</label>
+                        <button type="button" onclick="document.getElementById('modal-editar-clave-input').value = generarClaveAleatoria()" class="text-[10px] bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold px-2.5 py-0.5 rounded border border-amber-300">
+                            Generar aleatorio
+                        </button>
+                    </div>
+                    <input type="text" id="modal-editar-clave-input" required placeholder="Ej. CART-101 o MESA-05" oninput="this.value = this.value.toUpperCase()" class="w-full border border-amber-300 p-2.5 rounded-xl font-mono font-black text-sm text-amber-950 uppercase tracking-widest focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                    <p class="text-[11px] text-slate-500 mt-1">Puedes escribir cualquier código personalizado o generar uno automático.</p>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-2 border-t">
+                    <button type="button" onclick="cerrarModalEditarClaveCartel()" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="bg-amber-600 hover:bg-amber-700 text-white px-5 py-2 rounded-xl text-xs font-black shadow">
+                        Guardar Código
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -1627,7 +1679,7 @@
         }
 
         function cerrarTodosLosModales() {
-            ['modal-evaluar-invitado', 'modal-crear-usuario', 'modal-configurar-smtp', 'modal-promover-usuario', 'modal-asignar-juez-cartel', 'modal-ver-carteles-profesor'].forEach(id => {
+            ['modal-evaluar-invitado', 'modal-crear-usuario', 'modal-configurar-smtp', 'modal-promover-usuario', 'modal-asignar-juez-cartel', 'modal-ver-carteles-profesor', 'modal-editar-clave-cartel'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.classList.add('hidden');
             });
@@ -2051,11 +2103,13 @@
                     const totalEval = Number(c.num_evaluaciones || 0);
                     let badgeEval = '';
                     if (totalEval >= 3) {
-                        badgeEval = `<span class="bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs px-2.5 py-1 rounded-full font-bold">3 de 3 Evaluaciones Completadas</span>`;
-                    } else if (totalEval > 0) {
-                        badgeEval = `<span class="bg-amber-100 text-amber-900 border border-amber-300 text-xs px-2.5 py-1 rounded-full font-bold">${totalEval} de 3 Evaluaciones</span>`;
+                        badgeEval = `<span class="bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs px-2.5 py-1 rounded-full font-bold">3 de 3 Evaluaciones Completadas (Máx.)</span>`;
+                    } else if (totalEval === 2) {
+                        badgeEval = `<span class="bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs px-2.5 py-1 rounded-full font-bold">2 Evaluaciones (Mínimo cumplido • Máx. 3)</span>`;
+                    } else if (totalEval === 1) {
+                        badgeEval = `<span class="bg-amber-100 text-amber-900 border border-amber-300 text-xs px-2.5 py-1 rounded-full font-bold">1 Evaluación (Mín. 2 • Máx. 3)</span>`;
                     } else {
-                        badgeEval = `<span class="bg-slate-100 text-slate-600 border border-slate-200 text-xs px-2.5 py-1 rounded-full font-semibold">Esperando evaluación (0/3)</span>`;
+                        badgeEval = `<span class="bg-slate-100 text-slate-600 border border-slate-200 text-xs px-2.5 py-1 rounded-full font-semibold">Esperando evaluación (Mín. 2 • Máx. 3)</span>`;
                     }
 
                     return `
@@ -2156,6 +2210,10 @@
             formData.append('semestre', document.getElementById('semestre').value);
             formData.append('titulo_cartel', titulo);
             formData.append('profesor_asesor_id', document.getElementById('select-asesor').value);
+            const claveManualVal = (document.getElementById('clave_manual_cartel')?.value || '').trim().toUpperCase();
+            if (claveManualVal) {
+                formData.append('clave_manual', claveManualVal);
+            }
             formData.append('archivo_pdf', document.getElementById('archivo_pdf').files[0]);
             if (usuarioActual) {
                 formData.append('usuario_id', usuarioActual.id);
@@ -3279,12 +3337,17 @@
                 return `
                 <tr class="border-b hover:bg-gray-50 transition text-xs">
                     <td class="p-2.5">
-                        <div class="flex items-center gap-1.5">
-                            <span class="font-mono font-black text-xs text-amber-900 bg-amber-100 border border-amber-300 px-2.5 py-1 rounded-md shadow-sm select-all">
-                                ${c.clave || 'Sin clave'}
-                            </span>
-                            <button onclick="copiarAlPortapapeles('${c.clave}')" class="text-xs bg-white hover:bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-1 rounded transition shadow-sm" title="Copiar clave">
-                                Copiar
+                        <div class="flex flex-col gap-1">
+                            <div class="flex items-center gap-1.5">
+                                <span class="font-mono font-black text-xs text-amber-900 bg-amber-100 border border-amber-300 px-2.5 py-1 rounded-md shadow-sm select-all">
+                                    ${c.clave || 'Sin clave'}
+                                </span>
+                                <button onclick="copiarAlPortapapeles('${c.clave}')" class="text-xs bg-white hover:bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-1 rounded transition shadow-sm" title="Copiar clave">
+                                    Copiar
+                                </button>
+                            </div>
+                            <button type="button" onclick="abrirModalEditarClaveCartel(${c.id})" class="text-[10px] text-amber-800 hover:text-amber-950 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2 py-0.5 rounded font-bold w-fit transition">
+                                Asignar / Editar Código
                             </button>
                         </div>
                     </td>
@@ -3295,7 +3358,7 @@
                             <strong>Alumnos:</strong> ${c.participantes || 'No registrados'}
                         </div>
                         <div class="mt-1.5 flex flex-wrap items-center gap-1">
-                            <span class="text-[11px] font-bold text-slate-600 mr-1">Jueces:</span>
+                            <span class="text-[11px] font-bold text-slate-600 mr-1">Jueces (${asignados.length} • Mín 2 / Máx 3):</span>
                             ${htmlAsignados}
                         </div>
                     </td>
@@ -3306,8 +3369,8 @@
                         <span class="block text-gray-500 font-bold mt-0.5">Nivel ${c.nivel} (Sem. ${c.semestre})</span>
                     </td>
                     <td class="p-2.5 text-center">
-                        <span class="font-bold text-xs ${Number(c.num_evaluaciones) >= 3 ? 'text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200' : 'text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200'}">
-                            ${c.num_evaluaciones}/3
+                        <span class="font-bold text-xs ${Number(c.num_evaluaciones) >= 2 ? 'text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200' : 'text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200'}">
+                            ${c.num_evaluaciones} eval. (Mín 2 / Máx 3)
                         </span>
                     </td>
                     <td class="p-2.5 text-center">
@@ -3319,6 +3382,9 @@
                     <td class="p-2.5 text-center space-x-1 whitespace-nowrap">
                         <button onclick="abrirModalAsignarJuezCartel(${c.id})" class="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded font-bold transition text-xs shadow-sm" title="Asignar profesor manualmente a este cartel">
                             + Asignar Profe
+                        </button>
+                        <button onclick="abrirModalEditarClaveCartel(${c.id})" class="bg-amber-500 hover:bg-amber-600 text-white px-2.5 py-1 rounded font-bold transition text-xs shadow-sm" title="Asignar o cambiar código de este cartel">
+                            Código
                         </button>
                         <button onclick="eliminarCartel(${c.id}, '${c.titulo_cartel.replace(/'/g, "\\'")}')" class="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-2.5 py-1 rounded font-bold transition text-xs" title="Eliminar cartel">
                             Eliminar
@@ -3521,21 +3587,24 @@
             e.preventDefault();
             const profesor_id = document.getElementById('manual-asig-profesor').value;
             const cartel_id = document.getElementById('manual-asig-cartel').value;
+            const clave_cartel = (document.getElementById('manual-asig-clave-cartel')?.value || '').trim().toUpperCase();
 
-            if (!profesor_id || !cartel_id) {
-                return alert("Selecciona tanto el profesor como el cartel.");
+            if (!profesor_id || (!cartel_id && !clave_cartel)) {
+                return alert("Selecciona al profesor y elige un cartel de la lista (o escribe su código manualmente).");
             }
 
             try {
                 const res = await fetch('/api/admin/asignaciones', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ profesor_id, cartel_id })
+                    body: JSON.stringify({ profesor_id, cartel_id, clave_cartel })
                 });
                 const data = await res.json();
 
                 if (res.ok) {
                     alert(data.mensaje);
+                    const inputClave = document.getElementById('manual-asig-clave-cartel');
+                    if (inputClave) inputClave.value = '';
                     await cargarDatosAsignacionManual();
                     await cargarAdminUsuarios();
                 } else {
@@ -3653,21 +3722,65 @@
             document.getElementById('modal-ver-carteles-profesor').classList.add('hidden');
         }
 
+        function abrirModalEditarClaveCartel(cartelId) {
+            const cartel = cartelesAdminCache.find(c => Number(c.id) === Number(cartelId));
+            if (!cartel) return;
+            document.getElementById('modal-editar-clave-cartel-id').value = cartel.id;
+            document.getElementById('modal-editar-clave-subtitulo').innerText = `Cartel: "${cartel.titulo_cartel}" • Clave actual: ${cartel.clave || 'Sin clave'}`;
+            document.getElementById('modal-editar-clave-input').value = cartel.clave || '';
+            document.getElementById('modal-editar-clave-cartel').classList.remove('hidden');
+        }
+
+        function cerrarModalEditarClaveCartel() {
+            document.getElementById('modal-editar-clave-cartel').classList.add('hidden');
+        }
+
+        document.getElementById('form-modal-editar-clave-cartel').onsubmit = async (e) => {
+            e.preventDefault();
+            const cartelId = document.getElementById('modal-editar-clave-cartel-id').value;
+            const nuevaClave = (document.getElementById('modal-editar-clave-input').value || '').trim().toUpperCase();
+            if (!cartelId || !nuevaClave) return;
+
+            try {
+                const res = await fetch(`/api/admin/carteles/${cartelId}/clave`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ clave: nuevaClave })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    alert(data.mensaje);
+                    cerrarModalEditarClaveCartel();
+                    await cargarDatosAsignacionManual();
+                    await cargarAdminUsuarios();
+                } else {
+                    alert(data.error || "No se pudo actualizar el código del cartel.");
+                }
+            } catch (err) {
+                alert("Error al guardar el código: " + err.message);
+            }
+        };
+
         document.getElementById('form-modal-asignar-cartel-a-profe').onsubmit = async (e) => {
             e.preventDefault();
             const profesor_id = document.getElementById('modal-profe-carteles-profesor-id').value;
             const cartel_id = document.getElementById('modal-profe-select-cartel').value;
-            if (!profesor_id || !cartel_id) return;
+            const clave_cartel = (document.getElementById('modal-profe-clave-manual')?.value || '').trim().toUpperCase();
+            if (!profesor_id || (!cartel_id && !clave_cartel)) {
+                return alert("Selecciona un cartel de la lista o escribe su código manualmente.");
+            }
 
             try {
                 const res = await fetch('/api/admin/asignaciones', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ cartel_id, profesor_id })
+                    body: JSON.stringify({ cartel_id, clave_cartel, profesor_id })
                 });
                 const data = await res.json();
                 if (res.ok) {
                     document.getElementById('modal-profe-select-cartel').value = '';
+                    const inputClave = document.getElementById('modal-profe-clave-manual');
+                    if (inputClave) inputClave.value = '';
                     await cargarDatosAsignacionManual();
                     await cargarAdminUsuarios();
                     renderizarListaCartelesDeProfesorModal(parseInt(profesor_id));
@@ -4024,9 +4137,10 @@
 
                         let badgeEvaluaciones = '';
                         const totalEval = Number(r.num_evaluaciones || 0);
-                        if (totalEval >= 3) badgeEvaluaciones = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">3/3 Listo</span>`;
-                        else if (totalEval > 0) badgeEvaluaciones = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">${totalEval}/3 En curso</span>`;
-                        else badgeEvaluaciones = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">0/3 Pendiente</span>`;
+                        if (totalEval >= 3) badgeEvaluaciones = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">3/3 Completo (Máx.)</span>`;
+                        else if (totalEval === 2) badgeEvaluaciones = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">2/3 Listo (Mín. OK)</span>`;
+                        else if (totalEval === 1) badgeEvaluaciones = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">1/2 En curso (Falta 1)</span>`;
+                        else badgeEvaluaciones = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">0/2 Pendiente</span>`;
 
                         let promedioTexto = '';
                         if (r.promedio_final !== null && r.promedio_final !== undefined) {

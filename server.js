@@ -1837,19 +1837,33 @@ app.get('/api/admin/asignaciones', async (req, res) => {
     }
 });
 
-// Asignar manualmente un cartel a un profesor juez (para pruebas o asignación directa)
+// Asignar manualmente un cartel a un profesor juez (por ID de cartel o por código/clave manual, máximo 3 jueces por cartel)
 app.post('/api/admin/asignaciones', async (req, res) => {
     try {
-        const cartelId = parseInt(req.body.cartel_id);
+        let cartelId = parseInt(req.body.cartel_id);
+        const claveCartel = (req.body.clave_cartel || req.body.clave || '').trim().toUpperCase();
         const profesorId = parseInt(req.body.profesor_id);
 
-        if (!cartelId || !profesorId) {
-            return res.status(400).json({ error: "Debes seleccionar un cartel y un profesor." });
+        if (!profesorId) {
+            return res.status(400).json({ error: "Debes seleccionar un profesor juez." });
         }
 
-        const [cRows] = await pool.query('SELECT id, titulo_cartel FROM carteles WHERE id = ?', [cartelId]);
-        if (cRows.length === 0) {
-            return res.status(404).json({ error: "El cartel seleccionado no existe." });
+        let cartelRow = null;
+        if (claveCartel) {
+            const [cPorClave] = await pool.query('SELECT id, titulo_cartel, clave, profesor_asesor_id FROM carteles WHERE LOWER(TRIM(clave)) = LOWER(?)', [claveCartel]);
+            if (cPorClave.length === 0) {
+                return res.status(404).json({ error: `No se encontró ningún cartel con el código/clave "${claveCartel}".` });
+            }
+            cartelRow = cPorClave[0];
+            cartelId = cartelRow.id;
+        } else if (cartelId) {
+            const [cRows] = await pool.query('SELECT id, titulo_cartel, clave, profesor_asesor_id FROM carteles WHERE id = ?', [cartelId]);
+            if (cRows.length === 0) {
+                return res.status(404).json({ error: "El cartel seleccionado no existe." });
+            }
+            cartelRow = cRows[0];
+        } else {
+            return res.status(400).json({ error: "Debes seleccionar un cartel o ingresar su código/clave." });
         }
 
         const [pRows] = await pool.query('SELECT id, nombre FROM profesores WHERE id = ?', [profesorId]);
@@ -1862,7 +1876,18 @@ app.post('/api/admin/asignaciones', async (req, res) => {
             [cartelId, profesorId]
         );
         if (existente.length > 0) {
-            return res.status(400).json({ error: `El cartel "${cRows[0].titulo_cartel}" ya está asignado al profesor ${pRows[0].nombre}.` });
+            return res.status(400).json({ error: `El cartel "${cartelRow.titulo_cartel}" [${cartelRow.clave}] ya está asignado al profesor ${pRows[0].nombre}.` });
+        }
+
+        // Validar máximo de 3 jueces por cartel (mínimo 2, máximo 3)
+        const [[conteoActual]] = await pool.query(
+            'SELECT COUNT(*) as total FROM asignaciones WHERE cartel_id = ?',
+            [cartelId]
+        );
+        if (conteoActual.total >= 3) {
+            return res.status(400).json({
+                error: `El cartel "${cartelRow.titulo_cartel}" [${cartelRow.clave}] ya tiene el máximo de 3 jueces asignados (${conteoActual.total}/3). Si deseas asignar otro, primero quita uno de los actuales.`
+            });
         }
 
         const [result] = await pool.query(
@@ -1870,9 +1895,10 @@ app.post('/api/admin/asignaciones', async (req, res) => {
             [cartelId, profesorId]
         );
 
+        const nuevoTotal = conteoActual.total + 1;
         res.json({
             id: result.insertId,
-            mensaje: `¡Cartel "${cRows[0].titulo_cartel}" asignado manualmente a ${pRows[0].nombre}!`
+            mensaje: `¡Cartel "${cartelRow.titulo_cartel}" [${cartelRow.clave}] asignado manualmente a ${pRows[0].nombre}! (Jueces asignados: ${nuevoTotal} — Mín. 2 / Máx. 3)`
         });
     } catch (err) {
         res.status(400).json({ error: err.message });
@@ -2036,10 +2062,52 @@ app.delete('/api/admin/carteles/todos', async (req, res) => {
     }
 });
 
-// Registrar nuevo cartel con asignación automática de clave y participantes (Nombres de alumnos en MAYÚSCULAS)
+// Asignar o cambiar manualmente el código/clave de un cartel (o generar uno aleatorio)
+app.put('/api/admin/carteles/:id/clave', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { clave, generar_automatico } = req.body || {};
+
+        const [cRows] = await pool.query('SELECT id, titulo_cartel, clave FROM carteles WHERE id = ?', [id]);
+        if (cRows.length === 0) {
+            return res.status(404).json({ error: "Cartel no encontrado." });
+        }
+
+        let nuevaClave = '';
+        if (generar_automatico) {
+            nuevaClave = generarClaveAleatoria();
+            let existe = true;
+            while (existe) {
+                const [dup] = await pool.query('SELECT id FROM carteles WHERE LOWER(TRIM(clave)) = LOWER(?) AND id != ?', [nuevaClave, id]);
+                if (dup.length === 0) existe = false;
+                else nuevaClave = generarClaveAleatoria();
+            }
+        } else {
+            nuevaClave = (clave || '').trim().toUpperCase();
+            if (!nuevaClave) {
+                return res.status(400).json({ error: "Por favor escribe el código/clave que deseas asignar al cartel." });
+            }
+            const [dup] = await pool.query('SELECT id, titulo_cartel FROM carteles WHERE LOWER(TRIM(clave)) = LOWER(?) AND id != ?', [nuevaClave, id]);
+            if (dup.length > 0) {
+                return res.status(400).json({ error: `El código "${nuevaClave}" ya está asignado a otro cartel ("${dup[0].titulo_cartel}").` });
+            }
+        }
+
+        await pool.query('UPDATE carteles SET clave = ? WHERE id = ?', [nuevaClave, id]);
+
+        res.json({
+            mensaje: `Código del cartel "${cRows[0].titulo_cartel}" actualizado exitosamente a: ${nuevaClave}`,
+            clave: nuevaClave
+        });
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
+});
+
+// Registrar nuevo cartel con asignación automática o manual de clave y participantes (Nombres de alumnos en MAYÚSCULAS)
 app.post('/api/carteles', upload.single('archivo_pdf'), async (req, res) => {
     try {
-        const { nombre_equipo, participantes, carrera, semestre, titulo_cartel, profesor_asesor_id, usuario_id } = req.body;
+        const { nombre_equipo, participantes, carrera, semestre, titulo_cartel, profesor_asesor_id, usuario_id, clave_manual } = req.body;
         const archivo_url = req.file ? `/uploads/${req.file.filename}` : '';
 
         const sem = parseInt(semestre);
@@ -2060,15 +2128,23 @@ app.post('/api/carteles', upload.single('archivo_pdf'), async (req, res) => {
         const tituloLimpio = (titulo_cartel || '').trim();
         const usrId = usuario_id ? parseInt(usuario_id) : null;
 
-        // Generar clave única automáticamente en el servidor
-        let claveGenerada = generarClaveAleatoria();
-        let existeClave = true;
-        while (existeClave) {
-            const [existentes] = await pool.query('SELECT id FROM carteles WHERE clave = ?', [claveGenerada]);
-            if (existentes.length === 0) {
-                existeClave = false;
-            } else {
-                claveGenerada = generarClaveAleatoria();
+        // Soportar código/clave manual o generar clave única automáticamente en el servidor
+        let claveGenerada = (clave_manual || '').trim().toUpperCase();
+        if (claveGenerada) {
+            const [dup] = await pool.query('SELECT id, titulo_cartel FROM carteles WHERE LOWER(TRIM(clave)) = LOWER(?)', [claveGenerada]);
+            if (dup.length > 0) {
+                return res.status(400).json({ error: `El código "${claveGenerada}" ya está en uso por otro cartel ("${dup[0].titulo_cartel}"). Ingresa otro o déjalo en blanco para generarlo automáticamente.` });
+            }
+        } else {
+            claveGenerada = generarClaveAleatoria();
+            let existeClave = true;
+            while (existeClave) {
+                const [existentes] = await pool.query('SELECT id FROM carteles WHERE clave = ?', [claveGenerada]);
+                if (existentes.length === 0) {
+                    existeClave = false;
+                } else {
+                    claveGenerada = generarClaveAleatoria();
+                }
             }
         }
 
@@ -2078,14 +2154,14 @@ app.post('/api/carteles', upload.single('archivo_pdf'), async (req, res) => {
         res.json({ 
             id: result.insertId, 
             clave: claveGenerada,
-            mensaje: `Cartel registrado con éxito en Nivel ${nivel}. Clave única asignada: ${claveGenerada}` 
+            mensaje: `Cartel registrado con éxito en Nivel ${nivel}. Clave asignada: ${claveGenerada}` 
         });
     } catch (err) {
         res.status(400).json({ error: err.message });
     }
 });
 
-// Repartir carteles entre profesores jueces
+// Repartir carteles entre profesores jueces (mínimo 2 jueces y máximo 3 jueces por cartel)
 async function ejecutarRepartoCarteles(req, res) {
     const connection = await pool.getConnection();
     try {
@@ -2111,13 +2187,14 @@ async function ejecutarRepartoCarteles(req, res) {
                 p.id !== cartel.profesor_asesor_id
             );
 
-            if (candidatosValidos.length < 3) {
+            if (candidatosValidos.length < 2) {
                 throw new Error(
-                    `El cartel "${cartel.titulo_cartel}" (Área: ${cartel.carrera}, Nivel ${cartel.nivel}) requiere mínimo 3 profesores jueces de su misma área y nivel. Disponibles actualmente: ${candidatosValidos.length}. Asigna o registra más profesores de ${cartel.carrera} en Nivel ${cartel.nivel}.`
+                    `El cartel "${cartel.titulo_cartel}" (Área: ${cartel.carrera}, Nivel ${cartel.nivel}) requiere mínimo 2 profesores jueces (máximo 3) de su misma área y nivel. Disponibles actualmente: ${candidatosValidos.length}. Asigna o registra al menos 2 profesores de ${cartel.carrera} en Nivel ${cartel.nivel}.`
                 );
             }
 
             candidatosValidos.sort((a, b) => cargaProfesores[a.id] - cargaProfesores[b.id]);
+            // Asignar mínimo 2 y máximo 3 jueces
             const asignados = candidatosValidos.slice(0, 3);
 
             for (const profe of asignados) {
@@ -2127,7 +2204,7 @@ async function ejecutarRepartoCarteles(req, res) {
         }
 
         await connection.commit();
-        res.json({ mensaje: "¡Carteles repartidos exitosamente entre los profesores jueces!" });
+        res.json({ mensaje: "¡Carteles repartidos exitosamente entre los profesores jueces (mínimo 2 y máximo 3 jueces por cartel)!" });
     } catch (err) {
         await connection.rollback();
         res.status(400).json({ error: err.message });
