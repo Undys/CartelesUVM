@@ -269,33 +269,50 @@
                 </div>
             </div>
 
-            <!-- Sección: Rúbrica de Evaluación UVM (Para que no haya chanchullo) -->
-            <div class="bg-gradient-to-br from-slate-50 to-red-50/40 p-6 rounded-2xl border border-red-100 space-y-4">
-                <div>
-                    <h4 class="font-black text-slate-800 text-base flex items-center gap-2">
-                        Rúbrica Oficial de Evaluación (Escala 1 a 5 Estrellas)
-                    </h4>
-                    <p class="text-xs text-slate-600 mt-0.5">
-                        Los profesores jueces calificarán tu proyecto en tu stand conforme a estos 4 rubros reglamentarios:
-                    </p>
+            <!-- Sección: Rúbrica Oficial de Evaluación de Carteles de Investigación (12 Criterios Ponderados) -->
+            <div class="bg-gradient-to-br from-slate-50 to-red-50/40 p-6 rounded-2xl border border-red-100 space-y-5">
+                <div class="flex flex-col md:flex-row justify-between md:items-center gap-2 border-b border-red-100 pb-3">
+                    <div>
+                        <h4 class="font-black text-slate-800 text-base flex items-center gap-2">
+                            Rúbrica para Evaluación de Carteles de Investigación (12 Criterios • 100%)
+                        </h4>
+                        <p class="text-xs text-slate-600 mt-0.5">
+                            Escala de evaluación de <strong>1 a 5 estrellas</strong> con equivalencia lógica en 3 niveles de desempeño:
+                        </p>
+                    </div>
+                    <span class="bg-red-100 text-red-900 border border-red-200 px-3 py-1 rounded-full text-xs font-extrabold self-start md:self-auto">
+                        12 Criterios Ponderados (Suma: 100%)
+                    </span>
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-                    <div class="bg-white p-3.5 rounded-xl border border-red-100 shadow-sm space-y-1">
-                        <span class="font-black text-red-950 block text-sm">1. Originalidad</span>
-                        <p class="text-slate-500">Creatividad de la propuesta, innovación técnica y aporte significativo.</p>
+
+                <!-- Equivalencia Lógica para Guiar la Puntuación -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                    <div class="bg-amber-50/90 border border-amber-200 p-3.5 rounded-xl space-y-1">
+                        <div class="flex items-center justify-between">
+                            <span class="font-black text-amber-950 uppercase text-[11px]">Nivel Inicial</span>
+                            <span class="bg-amber-200/80 text-amber-950 font-black px-2 py-0.5 rounded text-[11px]">★ a ★★ (1 - 2 Estrellas)</span>
+                        </div>
+                        <p class="text-amber-900 leading-relaxed">Desempeño básico, poco delimitado, ausente o superficial.</p>
                     </div>
-                    <div class="bg-white p-3.5 rounded-xl border border-red-100 shadow-sm space-y-1">
-                        <span class="font-black text-red-950 block text-sm">2. Calidad Estética</span>
-                        <p class="text-slate-500">Diseño visual profesional, limpieza, legibilidad gráfica y orden.</p>
+                    <div class="bg-blue-50/90 border border-blue-200 p-3.5 rounded-xl space-y-1">
+                        <div class="flex items-center justify-between">
+                            <span class="font-black text-blue-950 uppercase text-[11px]">Nivel Intermedio</span>
+                            <span class="bg-blue-200/80 text-blue-950 font-black px-2 py-0.5 rounded text-[11px]">★★★ a ★★★★ (3 - 4 Estrellas)</span>
+                        </div>
+                        <p class="text-blue-900 leading-relaxed">Desempeño claro, estructurado y funcional, con oportunidades de mejora.</p>
                     </div>
-                    <div class="bg-white p-3.5 rounded-xl border border-red-100 shadow-sm space-y-1">
-                        <span class="font-black text-red-950 block text-sm">3. Exposición Oral</span>
-                        <p class="text-slate-500">Fluidez, claridad al hablar y dominio absoluto del tema ante preguntas.</p>
+                    <div class="bg-emerald-50/90 border border-emerald-200 p-3.5 rounded-xl space-y-1">
+                        <div class="flex items-center justify-between">
+                            <span class="font-black text-emerald-950 uppercase text-[11px]">Nivel Avanzado</span>
+                            <span class="bg-emerald-200/80 text-emerald-950 font-black px-2 py-0.5 rounded text-[11px]">★★★★★ (5 Estrellas)</span>
+                        </div>
+                        <p class="text-emerald-900 leading-relaxed">Desempeño excelente, riguroso, innovador, profundo y con alto impacto.</p>
                     </div>
-                    <div class="bg-white p-3.5 rounded-xl border border-red-100 shadow-sm space-y-1">
-                        <span class="font-black text-red-950 block text-sm">4. Vestimenta Formal</span>
-                        <p class="text-slate-500">Presentación personal formal, vestimenta adecuada y seriedad profesional.</p>
-                    </div>
+                </div>
+
+                <!-- Contenedor dinámico de los 12 criterios en vista de alumno -->
+                <div id="contenedor-rubrica-alumno" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
+                    <!-- Renderizado dinámicamente desde CONFIG_RUBRICA_CARTELES -->
                 </div>
             </div>
         </div>
@@ -488,105 +505,39 @@
                 <form id="form-evaluar-profesor" class="space-y-4">
                     <input type="hidden" id="eval-cartel-id">
 
-                    <div class="flex justify-between items-center">
+                    <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
                         <div>
-                            <h4 class="font-bold text-slate-800 text-sm">Rúbrica de Calificación (1 a 5 Estrellas)</h4>
-                            <p class="text-xs text-gray-500">Selecciona de 1 a 5 estrellas para cada uno de los 4 rubros requeridos.</p>
+                            <h4 class="font-black text-slate-800 text-sm sm:text-base">Rúbrica para Evaluación de Carteles de Investigación (12 Criterios • 100%)</h4>
+                            <p class="text-xs text-gray-500">Califica cada uno de los 12 criterios utilizando la guía de equivalencia por niveles.</p>
                         </div>
-                        <span id="eval-resumen-puntaje" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">
-                            Califica los 4 rubros
+                        <span id="eval-resumen-puntaje" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200 self-start sm:self-auto">
+                            0 de 12 criterios calificados
                         </span>
                     </div>
 
-                    <!-- 4 Rubros con Estrellas (1 a 5) -->
-                    <div class="space-y-3">
-                        <!-- Rubro 1: Originalidad -->
-                        <div class="p-3.5 bg-slate-50 hover:bg-red-50/40 rounded-xl border border-slate-200 transition">
-                            <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-1 mb-2">
-                                <div>
-                                    <span class="font-bold text-slate-800 text-sm">1. Originalidad</span>
-                                    <p class="text-xs text-slate-500">Creatividad, innovación y propuesta novedosa del proyecto.</p>
-                                </div>
-                                <span id="eval-r1-badge" class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-500 border border-slate-200 self-start sm:self-auto">Sin calificar</span>
-                            </div>
-                            <div class="flex items-center gap-3">
-                                <div id="eval-r1-estrellas" class="flex items-center gap-1">
-                                    <button type="button" class="star-btn text-3xl text-slate-300 cursor-pointer focus:outline-none" title="1 estrella">★</button>
-                                    <button type="button" class="star-btn text-3xl text-slate-300 cursor-pointer focus:outline-none" title="2 estrellas">★</button>
-                                    <button type="button" class="star-btn text-3xl text-slate-300 cursor-pointer focus:outline-none" title="3 estrellas">★</button>
-                                    <button type="button" class="star-btn text-3xl text-slate-300 cursor-pointer focus:outline-none" title="4 estrellas">★</button>
-                                    <button type="button" class="star-btn text-3xl text-slate-300 cursor-pointer focus:outline-none" title="5 estrellas">★</button>
-                                </div>
-                                <input type="hidden" id="eval-r1" value="0">
-                            </div>
+                    <!-- Guía de Equivalencia Lógica para el Evaluador -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs bg-slate-50 p-3 rounded-xl border border-slate-200">
+                        <div class="bg-amber-50 border border-amber-200 p-2.5 rounded-lg">
+                            <span class="font-black text-amber-950 block">1 - 2 ★ (Nivel Inicial)</span>
+                            <span class="text-[11px] text-amber-900">Desempeño básico, poco delimitado, ausente o superficial.</span>
                         </div>
-
-                        <!-- Rubro 2: Estética y Diseño -->
-                        <div class="p-3.5 bg-slate-50 hover:bg-red-50/40 rounded-xl border border-slate-200 transition">
-                            <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-1 mb-2">
-                                <div>
-                                    <span class="font-bold text-slate-800 text-sm">2. Calidad Estética y Diseño</span>
-                                    <p class="text-xs text-slate-500">Diseño visual, estética gráfica, orden, limpieza y atractivo del cartel.</p>
-                                </div>
-                                <span id="eval-r2-badge" class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-500 border border-slate-200 self-start sm:self-auto">Sin calificar</span>
-                            </div>
-                            <div class="flex items-center gap-3">
-                                <div id="eval-r2-estrellas" class="flex items-center gap-1">
-                                    <button type="button" class="star-btn text-3xl text-slate-300 cursor-pointer focus:outline-none" title="1 estrella">★</button>
-                                    <button type="button" class="star-btn text-3xl text-slate-300 cursor-pointer focus:outline-none" title="2 estrellas">★</button>
-                                    <button type="button" class="star-btn text-3xl text-slate-300 cursor-pointer focus:outline-none" title="3 estrellas">★</button>
-                                    <button type="button" class="star-btn text-3xl text-slate-300 cursor-pointer focus:outline-none" title="4 estrellas">★</button>
-                                    <button type="button" class="star-btn text-3xl text-slate-300 cursor-pointer focus:outline-none" title="5 estrellas">★</button>
-                                </div>
-                                <input type="hidden" id="eval-r2" value="0">
-                            </div>
+                        <div class="bg-blue-50 border border-blue-200 p-2.5 rounded-lg">
+                            <span class="font-black text-blue-950 block">3 - 4 ★ (Nivel Intermedio)</span>
+                            <span class="text-[11px] text-blue-900">Desempeño claro, estructurado y funcional, con oportunidades de mejora.</span>
                         </div>
-
-                        <!-- Rubro 3: Exposición y Dominio del Tema -->
-                        <div class="p-3.5 bg-slate-50 hover:bg-red-50/40 rounded-xl border border-slate-200 transition">
-                            <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-1 mb-2">
-                                <div>
-                                    <span class="font-bold text-slate-800 text-sm">3. Exposición Oral</span>
-                                    <p class="text-xs text-slate-500">Claridad al hablar, dicción, fluidez y dominio del tema durante la explicación.</p>
-                                </div>
-                                <span id="eval-r3-badge" class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-500 border border-slate-200 self-start sm:self-auto">Sin calificar</span>
-                            </div>
-                            <div class="flex items-center gap-3">
-                                <div id="eval-r3-estrellas" class="flex items-center gap-1">
-                                    <button type="button" class="star-btn text-3xl text-slate-300 cursor-pointer focus:outline-none" title="1 estrella">★</button>
-                                    <button type="button" class="star-btn text-3xl text-slate-300 cursor-pointer focus:outline-none" title="2 estrellas">★</button>
-                                    <button type="button" class="star-btn text-3xl text-slate-300 cursor-pointer focus:outline-none" title="3 estrellas">★</button>
-                                    <button type="button" class="star-btn text-3xl text-slate-300 cursor-pointer focus:outline-none" title="4 estrellas">★</button>
-                                    <button type="button" class="star-btn text-3xl text-slate-300 cursor-pointer focus:outline-none" title="5 estrellas">★</button>
-                                </div>
-                                <input type="hidden" id="eval-r3" value="0">
-                            </div>
-                        </div>
-
-                        <!-- Rubro 4: Vestimenta Formal -->
-                        <div class="p-3.5 bg-slate-50 hover:bg-red-50/40 rounded-xl border border-slate-200 transition">
-                            <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-1 mb-2">
-                                <div>
-                                    <span class="font-bold text-slate-800 text-sm">4. Vestimenta y Formalidad</span>
-                                    <p class="text-xs text-slate-500">Presentación personal, vestimenta formal y presencia profesional del equipo.</p>
-                                </div>
-                                <span id="eval-r4-badge" class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-500 border border-slate-200 self-start sm:self-auto">Sin calificar</span>
-                            </div>
-                            <div class="flex items-center gap-3">
-                                <div id="eval-r4-estrellas" class="flex items-center gap-1">
-                                    <button type="button" class="star-btn text-3xl text-slate-300 cursor-pointer focus:outline-none" title="1 estrella">★</button>
-                                    <button type="button" class="star-btn text-3xl text-slate-300 cursor-pointer focus:outline-none" title="2 estrellas">★</button>
-                                    <button type="button" class="star-btn text-3xl text-slate-300 cursor-pointer focus:outline-none" title="3 estrellas">★</button>
-                                    <button type="button" class="star-btn text-3xl text-slate-300 cursor-pointer focus:outline-none" title="4 estrellas">★</button>
-                                    <button type="button" class="star-btn text-3xl text-slate-300 cursor-pointer focus:outline-none" title="5 estrellas">★</button>
-                                </div>
-                                <input type="hidden" id="eval-r4" value="0">
-                            </div>
+                        <div class="bg-emerald-50 border border-emerald-200 p-2.5 rounded-lg">
+                            <span class="font-black text-emerald-950 block">5 ★ (Nivel Avanzado)</span>
+                            <span class="text-[11px] text-emerald-900">Desempeño excelente, riguroso, innovador, profundo y con alto impacto.</span>
                         </div>
                     </div>
 
-                    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-extrabold text-sm shadow transition">
-                        Guardar Calificación del Cartel
+                    <!-- 12 Criterios Ponderados generados dinámicamente -->
+                    <div id="contenedor-criterios-eval" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <!-- Renderizado por renderizarFormularioRubrica('eval') -->
+                    </div>
+
+                    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3.5 rounded-xl font-extrabold text-sm shadow transition">
+                        Guardar Calificación del Cartel (12 Criterios)
                     </button>
                 </form>
             </div>
@@ -1099,7 +1050,7 @@
                 <button onclick="cerrarModalCrearUsuario()" class="text-gray-400 hover:text-gray-600 text-lg font-bold">✕</button>
             </div>
 
-            <form id="form-crear-usuario-admin" class="space-y-3">
+            <form id="form-crear-usuario-admin" autocomplete="off" class="space-y-3">
                 <div>
                     <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Rol a Asignar:</label>
                     <select id="admin_nuevo_rol" onchange="toggleCamposCrearUsuarioModal(this.value)" class="w-full border p-2.5 rounded-xl text-xs font-bold bg-white text-slate-800 focus:ring-2 focus:ring-red-500">
@@ -1123,23 +1074,23 @@
 
                 <div>
                     <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Nombre Completo:</label>
-                    <input type="text" id="admin_nuevo_nombre" required placeholder="Ej. MTRO. ROBERTO MENDOZA" oninput="this.value = this.value.toUpperCase()" class="w-full border p-2.5 rounded-xl uppercase font-bold text-xs text-slate-800 focus:ring-2 focus:ring-red-500">
+                    <input type="text" id="admin_nuevo_nombre" autocomplete="off" required placeholder="Ej. MTRO. ROBERTO MENDOZA" oninput="this.value = this.value.toUpperCase(); onInputNombreNuevoUsuarioAdmin();" class="w-full border p-2.5 rounded-xl uppercase font-bold text-xs text-slate-800 focus:ring-2 focus:ring-red-500">
                     <p class="text-[10px] text-gray-500 mt-0.5">Se guardará automáticamente en MAYÚSCULAS.</p>
                 </div>
 
                 <div>
                     <div class="flex justify-between items-center mb-1">
                         <label class="block font-bold text-xs uppercase text-slate-700">Usuario o Matrícula:</label>
-                        <button type="button" onclick="autocompletarUsuarioNuevoAdmin()" class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded border">
+                        <button type="button" onclick="autocompletarUsuarioNuevoAdmin(true)" class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded border">
                             Generar usuario automático
                         </button>
                     </div>
-                    <input type="text" id="admin_nuevo_matricula" required placeholder="Ej. prof_roberto o matrícula" class="w-full border p-2.5 rounded-xl font-semibold text-xs text-slate-800 focus:ring-2 focus:ring-red-500">
+                    <input type="text" id="admin_nuevo_matricula" name="nuevo_identificador_uvm" autocomplete="new-password" oninput="this.dataset.editadoManual = '1'" required placeholder="Ej. prof_roberto o matrícula" class="w-full border p-2.5 rounded-xl font-semibold text-xs text-slate-800 focus:ring-2 focus:ring-red-500">
                 </div>
 
                 <div>
                     <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Correo Electrónico (Recibirá su usuario, clave y link):</label>
-                    <input type="email" id="admin_nuevo_email" placeholder="Ej. profesor.apellido@uvmnet.edu" class="w-full border p-2.5 rounded-xl font-medium text-xs text-slate-800 focus:ring-2 focus:ring-red-500">
+                    <input type="email" id="admin_nuevo_email" name="nuevo_correo_uvm" autocomplete="off" placeholder="Ej. profesor.apellido@uvmnet.edu" class="w-full border p-2.5 rounded-xl font-medium text-xs text-slate-800 focus:ring-2 focus:ring-red-500">
                 </div>
 
                 <div class="grid grid-cols-2 gap-2">
@@ -1170,7 +1121,7 @@
                             Generar contraseña aleatoria
                         </button>
                     </div>
-                    <input type="text" id="admin_nuevo_pass" required placeholder="Ingresa o genera una contraseña" class="w-full border p-2.5 rounded-xl text-xs font-mono font-bold text-slate-800 focus:ring-2 focus:ring-red-500">
+                    <input type="text" id="admin_nuevo_pass" name="nueva_clave_uvm" autocomplete="new-password" required placeholder="Ingresa o genera una contraseña" class="w-full border p-2.5 rounded-xl text-xs font-mono font-bold text-slate-800 focus:ring-2 focus:ring-red-500">
                 </div>
 
                 <div class="flex justify-end gap-2 pt-2">
@@ -1401,71 +1352,23 @@
                         </select>
                     </div>
 
-                    <!-- Estrellas invitado -->
-                    <div class="space-y-3">
-                        <div class="p-3 bg-slate-50 rounded-xl border">
-                            <div class="flex justify-between items-center mb-1">
-                                <span class="font-bold text-xs">1. Originalidad</span>
-                                <span id="invitado-r1-badge" class="text-[10px] text-slate-500">Sin calificar</span>
-                            </div>
-                            <div id="invitado-r1-estrellas" class="flex gap-1">
-                                <button type="button" class="star-btn text-2xl text-slate-300">★</button>
-                                <button type="button" class="star-btn text-2xl text-slate-300">★</button>
-                                <button type="button" class="star-btn text-2xl text-slate-300">★</button>
-                                <button type="button" class="star-btn text-2xl text-slate-300">★</button>
-                                <button type="button" class="star-btn text-2xl text-slate-300">★</button>
-                            </div>
-                            <input type="hidden" id="invitado-r1" value="0">
+                    <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-2 pt-1">
+                        <div>
+                            <span class="font-black text-xs text-slate-800 block">Rúbrica Oficial de 12 Criterios (100%)</span>
+                            <span class="text-[11px] text-slate-500">1-2 ★ Nivel Inicial • 3-4 ★ Nivel Intermedio • 5 ★ Nivel Avanzado</span>
                         </div>
+                        <span id="invitado-resumen-puntaje" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200 self-start sm:self-auto">
+                            0 de 12 criterios calificados
+                        </span>
+                    </div>
 
-                        <div class="p-3 bg-slate-50 rounded-xl border">
-                            <div class="flex justify-between items-center mb-1">
-                                <span class="font-bold text-xs">2. Calidad Estética y Diseño</span>
-                                <span id="invitado-r2-badge" class="text-[10px] text-slate-500">Sin calificar</span>
-                            </div>
-                            <div id="invitado-r2-estrellas" class="flex gap-1">
-                                <button type="button" class="star-btn text-2xl text-slate-300">★</button>
-                                <button type="button" class="star-btn text-2xl text-slate-300">★</button>
-                                <button type="button" class="star-btn text-2xl text-slate-300">★</button>
-                                <button type="button" class="star-btn text-2xl text-slate-300">★</button>
-                                <button type="button" class="star-btn text-2xl text-slate-300">★</button>
-                            </div>
-                            <input type="hidden" id="invitado-r2" value="0">
-                        </div>
-
-                        <div class="p-3 bg-slate-50 rounded-xl border">
-                            <div class="flex justify-between items-center mb-1">
-                                <span class="font-bold text-xs">3. Exposición Oral</span>
-                                <span id="invitado-r3-badge" class="text-[10px] text-slate-500">Sin calificar</span>
-                            </div>
-                            <div id="invitado-r3-estrellas" class="flex gap-1">
-                                <button type="button" class="star-btn text-2xl text-slate-300">★</button>
-                                <button type="button" class="star-btn text-2xl text-slate-300">★</button>
-                                <button type="button" class="star-btn text-2xl text-slate-300">★</button>
-                                <button type="button" class="star-btn text-2xl text-slate-300">★</button>
-                                <button type="button" class="star-btn text-2xl text-slate-300">★</button>
-                            </div>
-                            <input type="hidden" id="invitado-r3" value="0">
-                        </div>
-
-                        <div class="p-3 bg-slate-50 rounded-xl border">
-                            <div class="flex justify-between items-center mb-1">
-                                <span class="font-bold text-xs">4. Vestimenta y Formalidad</span>
-                                <span id="invitado-r4-badge" class="text-[10px] text-slate-500">Sin calificar</span>
-                            </div>
-                            <div id="invitado-r4-estrellas" class="flex gap-1">
-                                <button type="button" class="star-btn text-2xl text-slate-300">★</button>
-                                <button type="button" class="star-btn text-2xl text-slate-300">★</button>
-                                <button type="button" class="star-btn text-2xl text-slate-300">★</button>
-                                <button type="button" class="star-btn text-2xl text-slate-300">★</button>
-                                <button type="button" class="star-btn text-2xl text-slate-300">★</button>
-                            </div>
-                            <input type="hidden" id="invitado-r4" value="0">
-                        </div>
+                    <!-- 12 Criterios invitado generados dinámicamente -->
+                    <div id="contenedor-criterios-invitado" class="space-y-2.5 max-h-96 overflow-y-auto pr-1">
+                        <!-- Renderizado por renderizarFormularioRubrica('invitado') -->
                     </div>
 
                     <button type="submit" class="w-full bg-amber-600 hover:bg-amber-700 text-white py-3 rounded-xl font-bold text-xs shadow">
-                        Guardar Evaluación del Invitado
+                        Guardar Evaluación del Invitado (12 Criterios)
                     </button>
                 </form>
             </div>
@@ -1474,7 +1377,7 @@
 
     <!-- FOOTER -->
     <footer class="bg-slate-800 text-slate-400 text-xs py-5 text-center mt-12 border-t border-slate-700">
-        <p>Sistema de Evaluación de Carteles UVM • Rúbrica de 4 Rubros (1 a 5 Estrellas) • Generador de Claves</p>
+        <p>Sistema de Evaluación de Carteles UVM • Rúbrica de Investigación de 12 Criterios Ponderados (1 a 5 Estrellas) • Generador de Claves</p>
     </footer>
 
     <!-- ============================================================== -->
@@ -2310,22 +2213,20 @@
             e.preventDefault();
 
             const cartelId = parseInt(document.getElementById('eval-cartel-id').value);
-            const r1 = parseInt(document.getElementById('eval-r1').value);
-            const r2 = parseInt(document.getElementById('eval-r2').value);
-            const r3 = parseInt(document.getElementById('eval-r3').value);
-            const r4 = parseInt(document.getElementById('eval-r4').value);
-
-            if (!r1 || !r2 || !r3 || !r4) {
-                return alert("Por favor califica todos los 4 rubros (1 a 5 estrellas) antes de guardar.");
-            }
-
             const profId = usuarioActual.profesor_id || usuarioActual.id;
 
             const body = {
                 cartel_id: cartelId,
-                profesor_id: profId,
-                r1, r2, r3, r4
+                profesor_id: profId
             };
+
+            for (const c of CONFIG_RUBRICA_CARTELES.criterios) {
+                const v = parseInt(document.getElementById(`eval-${c.id}`)?.value);
+                if (!v || v < 1 || v > CONFIG_RUBRICA_CARTELES.escala_max) {
+                    return alert(`Por favor califica los 12 criterios antes de guardar (falta "${c.numero}. ${c.titulo}").`);
+                }
+                body[c.id] = v;
+            }
 
             try {
                 const res = await fetch('/api/evaluar', { 
@@ -2336,7 +2237,7 @@
                 const data = await res.json();
 
                 if (res.ok) {
-                    alert('¡Evaluación guardada exitosamente!');
+                    alert(`¡Evaluación guardada exitosamente!\n\nPromedio Ponderado: ${data.estrellas_ponderadas} / ${CONFIG_RUBRICA_CARTELES.escala_max}.0 ★\nCalificación Ponderada: ${data.puntaje_total}% / 100%`);
                     document.getElementById('form-evaluar-profesor').reset();
                     reiniciarEstrellas('eval');
                     cargarDashboardProfesor();
@@ -2349,19 +2250,114 @@
         };
 
         // ==============================================================
-        // 5. SISTEMA DE CALIFICACIÓN POR ESTRELLAS (1 A 5)
+        // 5. SISTEMA DE RÚBRICA DE INVESTIGACIÓN (12 CRITERIOS PONDERADOS)
+        // Estructurada con escala_max = 5 (1-2 Inicial, 3-4 Intermedio, 5 Avanzado)
+        // y preparada para cambiar a 3 niveles (escala_max = 3) si se requiere.
         // ==============================================================
-        function configurarSistemaEstrellas(prefijo) {
-            const rubros = ['r1', 'r2', 'r3', 'r4'];
-            const etiquetas = {
-                1: '1/5 - Deficiente',
-                2: '2/5 - Regular',
-                3: '3/5 - Bueno',
-                4: '4/5 - Muy Bueno',
-                5: '5/5 - Excelente'
-            };
+        const CONFIG_RUBRICA_CARTELES = {
+            modo_escala: '5_estrellas', // Cambiar a '3_niveles' y escala_max: 3 si se requiere ajustar a 3 niveles
+            escala_max: 5,
+            criterios: [
+                { id: 'r1', numero: 1, titulo: 'Problema de investigación', peso: 5, descripcion: 'Delimitación y contextualización de la problemática.' },
+                { id: 'r2', numero: 2, titulo: 'Objetivos y justificación', peso: 10, descripcion: 'Claridad, enfoque estratégico e impacto de los objetivos.' },
+                { id: 'r3', numero: 3, titulo: 'Marco teórico, citas y referencias', peso: 10, descripcion: 'Calidad de la literatura, citas y análisis crítico.' },
+                { id: 'r4', numero: 4, titulo: 'Metodología', peso: 15, descripcion: 'Coherencia, validación y aplicación del diseño metodológico.' },
+                { id: 'r5', numero: 5, titulo: 'Resultados', peso: 15, descripcion: 'Validez, solidez y completitud de los hallazgos.' },
+                { id: 'r6', numero: 6, titulo: 'Aplicación del conocimiento', peso: 5, descripcion: 'Integración sólida de saberes previos y adquiridos.' },
+                { id: 'r7', numero: 7, titulo: 'Análisis e interpretación', peso: 15, descripcion: 'Profundidad en el análisis crítico y discusión de datos.' },
+                { id: 'r8', numero: 8, titulo: 'Resolución de problema real', peso: 5, descripcion: 'Relevancia y vigencia de la problemática abordada.' },
+                { id: 'r9', numero: 9, titulo: 'Impacto y transferencia', peso: 10, descripcion: 'Propuesta de producto, prototipo o transferencia del conocimiento.' },
+                { id: 'r10', numero: 10, titulo: 'Originalidad e innovación', peso: 10, descripcion: 'Valor agregado y elementos novedosos del proyecto.' },
+                { id: 'r11', numero: 11, titulo: 'Presentación visual', peso: 5, descripcion: 'Diseño del cartel (organización, atractivo visual y claridad).' },
+                { id: 'r12', numero: 12, titulo: 'Comunicación oral y dominio', peso: 5, descripcion: 'Claridad, seguridad y dominio del tema al exponer.' }
+            ]
+        };
 
-            rubros.forEach(r => {
+        function obtenerInfoEquivalenciaValor(valor) {
+            const max = CONFIG_RUBRICA_CARTELES.escala_max;
+            if (max === 3) {
+                if (valor === 1) return { etiqueta: `1/${max} • Nivel Inicial`, clase: 'bg-amber-100 text-amber-900 border-amber-300', desc: 'Desempeño básico, poco delimitado, ausente o superficial.' };
+                if (valor === 2) return { etiqueta: `2/${max} • Nivel Intermedio`, clase: 'bg-blue-100 text-blue-900 border-blue-300', desc: 'Desempeño claro, estructurado y funcional, con oportunidades de mejora.' };
+                return { etiqueta: `3/${max} • Nivel Avanzado`, clase: 'bg-emerald-100 text-emerald-900 border-emerald-300', desc: 'Desempeño excelente, riguroso, innovador, profundo y con alto impacto.' };
+            }
+            if (valor <= 2) {
+                return {
+                    etiqueta: `${valor}/5 ★ • Nivel Inicial`,
+                    clase: 'bg-amber-100 text-amber-900 border-amber-300',
+                    desc: 'Nivel Inicial (1-2 ★): Desempeño básico, poco delimitado, ausente o superficial.'
+                };
+            }
+            if (valor <= 4) {
+                return {
+                    etiqueta: `${valor}/5 ★ • Nivel Intermedio`,
+                    clase: 'bg-blue-100 text-blue-900 border-blue-300',
+                    desc: 'Nivel Intermedio (3-4 ★): Desempeño claro, estructurado y funcional, con oportunidades de mejora.'
+                };
+            }
+            return {
+                etiqueta: `5/5 ★ • Nivel Avanzado`,
+                clase: 'bg-emerald-100 text-emerald-900 border-emerald-300',
+                desc: 'Nivel Avanzado (5 ★): Desempeño excelente, riguroso, innovador, profundo y con alto impacto.'
+            };
+        }
+
+        function renderizarRubricaAlumno() {
+            const cont = document.getElementById('contenedor-rubrica-alumno');
+            if (!cont) return;
+            cont.innerHTML = CONFIG_RUBRICA_CARTELES.criterios.map(c => `
+                <div class="bg-white p-3.5 rounded-xl border border-red-100 shadow-sm flex flex-col justify-between space-y-1.5">
+                    <div>
+                        <div class="flex items-start justify-between gap-2">
+                            <span class="font-black text-red-950 text-xs sm:text-sm leading-snug">${c.numero}. ${c.titulo}</span>
+                            <span class="shrink-0 bg-red-100 text-red-800 border border-red-200 px-2 py-0.5 rounded-full text-[11px] font-black">${c.peso}%</span>
+                        </div>
+                        <p class="text-slate-500 text-xs mt-1 leading-relaxed">${c.descripcion}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderizarFormularioRubrica(prefijo) {
+            const cont = document.getElementById(`contenedor-criterios-${prefijo}`);
+            if (!cont) return;
+            const max = CONFIG_RUBRICA_CARTELES.escala_max;
+
+            cont.innerHTML = CONFIG_RUBRICA_CARTELES.criterios.map(c => {
+                let botonesEstrellas = '';
+                for (let i = 1; i <= max; i++) {
+                    const infoEq = obtenerInfoEquivalenciaValor(i);
+                    botonesEstrellas += `<button type="button" class="star-btn text-2xl sm:text-3xl text-slate-300 cursor-pointer focus:outline-none" title="${infoEq.desc}">★</button>`;
+                }
+
+                return `
+                    <div class="p-3.5 bg-slate-50 hover:bg-red-50/40 rounded-xl border border-slate-200 transition flex flex-col justify-between gap-2">
+                        <div>
+                            <div class="flex justify-between items-start gap-2">
+                                <span class="font-bold text-slate-800 text-xs sm:text-sm leading-snug">${c.numero}. ${c.titulo}</span>
+                                <span class="shrink-0 bg-red-100 text-red-900 border border-red-200 px-2 py-0.5 rounded-full text-[11px] font-black">${c.peso}%</span>
+                            </div>
+                            <p class="text-xs text-slate-500 mt-0.5">${c.descripcion}</p>
+                        </div>
+                        <div class="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-200/70">
+                            <div id="${prefijo}-${c.id}-estrellas" class="flex items-center gap-1">
+                                ${botonesEstrellas}
+                            </div>
+                            <span id="${prefijo}-${c.id}-badge" class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-500 border border-slate-200">
+                                Sin calificar
+                            </span>
+                            <input type="hidden" id="${prefijo}-${c.id}" value="0">
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function configurarSistemaEstrellas(prefijo) {
+            renderizarRubricaAlumno();
+            renderizarFormularioRubrica(prefijo);
+
+            CONFIG_RUBRICA_CARTELES.criterios.forEach(c => {
+                const r = c.id;
                 const contenedor = document.getElementById(`${prefijo}-${r}-estrellas`);
                 if (!contenedor) return;
                 const botones = contenedor.querySelectorAll('.star-btn');
@@ -2386,8 +2382,9 @@
                         input.value = valor;
                         pintar(valor);
                         if (badge) {
-                            badge.innerText = etiquetas[valor] || `${valor} estrellas`;
-                            badge.className = 'px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-300';
+                            const infoEq = obtenerInfoEquivalenciaValor(valor);
+                            badge.innerText = infoEq.etiqueta;
+                            badge.className = `px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${infoEq.clase}`;
                         }
                         actualizarResumenPuntaje(prefijo);
                     };
@@ -2396,7 +2393,8 @@
         }
 
         function reiniciarEstrellas(prefijo) {
-            ['r1', 'r2', 'r3', 'r4'].forEach(r => {
+            CONFIG_RUBRICA_CARTELES.criterios.forEach(c => {
+                const r = c.id;
                 const input = document.getElementById(`${prefijo}-${r}`);
                 if (input) input.value = '0';
                 const cont = document.getElementById(`${prefijo}-${r}-estrellas`);
@@ -2408,33 +2406,36 @@
                 const badge = document.getElementById(`${prefijo}-${r}-badge`);
                 if (badge) {
                     badge.innerText = 'Sin calificar';
-                    badge.className = 'px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-500 border border-slate-200';
+                    badge.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-500 border border-slate-200';
                 }
             });
             actualizarResumenPuntaje(prefijo);
         }
 
         function actualizarResumenPuntaje(prefijo) {
-            const rubros = ['r1', 'r2', 'r3', 'r4'];
-            let total = 0;
+            const totalCriterios = CONFIG_RUBRICA_CARTELES.criterios.length;
+            const maxEscala = CONFIG_RUBRICA_CARTELES.escala_max;
+            let sumaEstrellasPonderada = 0;
             let completos = 0;
-            rubros.forEach(r => {
-                const v = parseInt(document.getElementById(`${prefijo}-${r}`)?.value) || 0;
+
+            CONFIG_RUBRICA_CARTELES.criterios.forEach(c => {
+                const v = parseInt(document.getElementById(`${prefijo}-${c.id}`)?.value) || 0;
                 if (v > 0) {
-                    total += v;
+                    sumaEstrellasPonderada += v * (c.peso / 100.0);
                     completos++;
                 }
             });
 
             const resumenEl = document.getElementById(`${prefijo}-resumen-puntaje`);
             if (resumenEl) {
-                if (completos === 4) {
-                    const prom = (total / 4).toFixed(2);
-                    resumenEl.innerHTML = `<strong>${prom} / 5.0</strong> (${total} / 20 pts)`;
-                    resumenEl.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-sm';
+                if (completos === totalCriterios) {
+                    const promEstrellas = sumaEstrellasPonderada.toFixed(2);
+                    const porcentaje100 = ((sumaEstrellasPonderada / maxEscala) * 100).toFixed(1);
+                    resumenEl.innerHTML = `<strong>${promEstrellas} / ${maxEscala}.0 ★</strong> (${porcentaje100}% / 100%)`;
+                    resumenEl.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-sm';
                 } else {
-                    resumenEl.innerText = `${completos} de 4 rubros calificados`;
-                    resumenEl.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200';
+                    resumenEl.innerText = `${completos} de ${totalCriterios} criterios calificados`;
+                    resumenEl.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200';
                 }
             }
         }
@@ -2995,11 +2996,23 @@
             }
         }
 
-        function autocompletarUsuarioNuevoAdmin() {
+        let sufijoUsuarioNuevoAdmin = Math.floor(100 + Math.random() * 900);
+
+        function autocompletarUsuarioNuevoAdmin(regenerarSufijo = false) {
+            if (regenerarSufijo) {
+                sufijoUsuarioNuevoAdmin = Math.floor(100 + Math.random() * 900);
+            }
             const nombre = (document.getElementById('admin_nuevo_nombre')?.value || '').trim().toLowerCase();
             const rol = document.getElementById('admin_nuevo_rol')?.value || 'profesor';
-            const partes = nombre.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(Boolean);
-            const num = Math.floor(100 + Math.random() * 900);
+            // Ignorar títulos comunes como mtro, dr, ing, lic para un usuario más limpio
+            const partes = nombre
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .replace(/[^a-z0-9\s]/g, '')
+                .split(/\s+/)
+                .filter(p => p && !['mtro', 'mtra', 'dr', 'dra', 'ing', 'lic', 'prof', 'profr', 'profra'].includes(p));
+
+            const num = sufijoUsuarioNuevoAdmin;
             let sugerido = '';
             if (partes.length >= 2) {
                 sugerido = `${rol === 'profesor' ? 'prof_' : ''}${partes[0]}_${partes[1]}${num}`;
@@ -3009,7 +3022,21 @@
                 sugerido = `${rol === 'profesor' ? 'prof_' : 'uvm_'}${num}`;
             }
             const inputMat = document.getElementById('admin_nuevo_matricula');
-            if (inputMat) inputMat.value = sugerido;
+            if (inputMat) {
+                inputMat.value = sugerido;
+                delete inputMat.dataset.editadoManual;
+            }
+        }
+
+        function onInputNombreNuevoUsuarioAdmin() {
+            const inputMat = document.getElementById('admin_nuevo_matricula');
+            const rol = document.getElementById('admin_nuevo_rol')?.value || 'profesor';
+            if (!inputMat) return;
+            const valorActual = (inputMat.value || '').trim().toLowerCase();
+            // Si no fue editado manualmente por el admin (o si el navegador autocompletó 'admin'), actualizamos conforme escribe el nombre
+            if (!inputMat.dataset.editadoManual || (rol !== 'admin' && valorActual === 'admin')) {
+                autocompletarUsuarioNuevoAdmin(false);
+            }
         }
 
         function autocompletarPassNuevoAdmin() {
@@ -3026,7 +3053,14 @@
             document.getElementById('form-crear-usuario-admin').reset();
             const selRol = document.getElementById('admin_nuevo_rol');
             if (selRol) selRol.value = rolInicial;
+            const inputMat = document.getElementById('admin_nuevo_matricula');
+            if (inputMat) {
+                inputMat.value = '';
+                delete inputMat.dataset.editadoManual;
+            }
+            sufijoUsuarioNuevoAdmin = Math.floor(100 + Math.random() * 900);
             if (rolInicial === 'profesor') {
+                autocompletarUsuarioNuevoAdmin(true);
                 autocompletarPassNuevoAdmin();
             }
             toggleCamposCrearUsuarioModal(rolInicial);
@@ -3526,7 +3560,7 @@
 
             cont.innerHTML = asignados.map(a => {
                 const puntajeInfo = a.ya_evaluo && a.estrellas_otorgadas
-                    ? ` • ${parseFloat(a.estrellas_otorgadas).toFixed(2)} / 5.0 ★ (${a.puntaje_total} pts)`
+                    ? ` • ${parseFloat(a.estrellas_otorgadas).toFixed(2)} / 5.0 ★ (${parseFloat(a.puntaje_total).toFixed(1)}%)`
                     : '';
                 return `
                     <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-3 p-3 rounded-xl border ${a.ya_evaluo ? 'bg-emerald-50/40 border-emerald-200' : 'bg-white border-slate-200'} text-xs shadow-sm">
@@ -3802,32 +3836,32 @@
             const nombre = document.getElementById('invitado_nombre').value.trim().toUpperCase();
             const suplirId = document.getElementById('invitado-select-suplir').value;
 
-            const r1 = parseInt(document.getElementById('invitado-r1').value);
-            const r2 = parseInt(document.getElementById('invitado-r2').value);
-            const r3 = parseInt(document.getElementById('invitado-r3').value);
-            const r4 = parseInt(document.getElementById('invitado-r4').value);
+            const payload = {
+                clave,
+                nombre_maestro: nombre,
+                suplir_profesor_id: suplirId || null,
+                usuario_id: usuarioActual.id || null,
+                profesor_id: usuarioActual.profesor_id || null
+            };
 
-            if (!r1 || !r2 || !r3 || !r4) {
-                return alert("Por favor califica todos los 4 rubros (1 a 5 estrellas) antes de guardar.");
+            for (const c of CONFIG_RUBRICA_CARTELES.criterios) {
+                const v = parseInt(document.getElementById(`invitado-${c.id}`)?.value);
+                if (!v || v < 1 || v > CONFIG_RUBRICA_CARTELES.escala_max) {
+                    return alert(`Por favor califica los 12 criterios antes de guardar (falta "${c.numero}. ${c.titulo}").`);
+                }
+                payload[c.id] = v;
             }
 
             try {
                 const res = await fetch('/api/evaluar-invitado', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        clave,
-                        nombre_maestro: nombre,
-                        suplir_profesor_id: suplirId || null,
-                        r1, r2, r3, r4,
-                        usuario_id: usuarioActual.id || null,
-                        profesor_id: usuarioActual.profesor_id || null
-                    })
+                    body: JSON.stringify(payload)
                 });
                 const data = await res.json();
 
                 if (res.ok) {
-                    alert(`${data.mensaje}\nCalificación registrada con éxito.`);
+                    alert(`${data.mensaje}\n\nPromedio Ponderado: ${data.estrellas_ponderadas} / ${CONFIG_RUBRICA_CARTELES.escala_max}.0 ★\nCalificación Ponderada: ${data.puntaje_total}% / 100%`);
                     cerrarModalInvitado();
                     if (usuarioActual && usuarioActual.rol === 'profesor') cargarDashboardProfesor();
                     if (usuarioActual && usuarioActual.rol === 'admin') cargarAdminDashboard();
@@ -3926,16 +3960,16 @@
 
                         let promedioTexto = '';
                         if (r.promedio_final !== null && r.promedio_final !== undefined) {
-                            const estrellas = r.promedio_estrellas ? parseFloat(r.promedio_estrellas).toFixed(2) : (parseFloat(r.promedio_final) / 4).toFixed(2);
+                            const estrellas = r.promedio_estrellas ? parseFloat(r.promedio_estrellas).toFixed(2) : (parseFloat(r.promedio_final) / 20).toFixed(2);
                             promedioTexto = `
                                 <div>
-                                    <span class="text-base font-black text-amber-500">${estrellas}</span>
+                                    <span class="text-base font-black text-amber-500">${estrellas} ★</span>
                                     <span class="text-xs text-gray-400 font-bold">/ 5.0</span>
                                 </div>
-                                <div class="text-[11px] text-gray-500 font-semibold">(${parseFloat(r.promedio_final).toFixed(1)} / 20 pts)</div>
+                                <div class="text-[11px] text-gray-500 font-semibold">(${parseFloat(r.promedio_final).toFixed(1)}% / 100%)</div>
                             `;
                         } else {
-                            promedioTexto = `<span class="text-xs text-gray-400 italic">0.00 pts</span>`;
+                            promedioTexto = `<span class="text-xs text-gray-400 italic">0.0%</span>`;
                         }
 
                         return `

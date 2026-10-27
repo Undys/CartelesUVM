@@ -135,6 +135,92 @@ function generarClaveAleatoria() {
     return `CART-${codigo}`;
 }
 
+// =========================================================================
+// RÚBRICA OFICIAL PARA EVALUACIÓN DE CARTELES DE INVESTIGACIÓN (12 CRITERIOS)
+// Estructurada para operar en escala de 1 a 5 estrellas con equivalencia en
+// 3 niveles de desempeño y adaptable a escala de 3 niveles (escala_max: 3).
+// =========================================================================
+const RUBRICA_EVALUACION = {
+    modo_escala: '5_estrellas', // Puede ajustarse a '3_niveles' (cambiando escala_max a 3)
+    escala_max: 5,
+    niveles_equivalencia: [
+        {
+            id: 'inicial',
+            rango_5: [1, 2],
+            valor_3: 1,
+            etiqueta_5: '1 - 2 Estrellas',
+            etiqueta_3: 'Nivel 1',
+            nombre: 'Nivel Inicial',
+            descripcion: 'Desempeño básico, poco delimitado, ausente o superficial.'
+        },
+        {
+            id: 'intermedio',
+            rango_5: [3, 4],
+            valor_3: 2,
+            etiqueta_5: '3 - 4 Estrellas',
+            etiqueta_3: 'Nivel 2',
+            nombre: 'Nivel Intermedio',
+            descripcion: 'Desempeño claro, estructurado y funcional, con oportunidades de mejora.'
+        },
+        {
+            id: 'avanzado',
+            rango_5: [5, 5],
+            valor_3: 3,
+            etiqueta_5: '5 Estrellas',
+            etiqueta_3: 'Nivel 3',
+            nombre: 'Nivel Avanzado',
+            descripcion: 'Desempeño excelente, riguroso, innovador, profundo y con alto impacto.'
+        }
+    ],
+    criterios: [
+        { id: 'r1', numero: 1, titulo: 'Problema de investigación', peso: 5, descripcion: 'Delimitación y contextualización de la problemática.' },
+        { id: 'r2', numero: 2, titulo: 'Objetivos y justificación', peso: 10, descripcion: 'Claridad, enfoque estratégico e impacto de los objetivos.' },
+        { id: 'r3', numero: 3, titulo: 'Marco teórico, citas y referencias', peso: 10, descripcion: 'Calidad de la literatura, citas y análisis crítico.' },
+        { id: 'r4', numero: 4, titulo: 'Metodología', peso: 15, descripcion: 'Coherencia, validación y aplicación del diseño metodológico.' },
+        { id: 'r5', numero: 5, titulo: 'Resultados', peso: 15, descripcion: 'Validez, solidez y completitud de los hallazgos.' },
+        { id: 'r6', numero: 6, titulo: 'Aplicación del conocimiento', peso: 5, descripcion: 'Integración sólida de saberes previos y adquiridos.' },
+        { id: 'r7', numero: 7, titulo: 'Análisis e interpretación', peso: 15, descripcion: 'Profundidad en el análisis crítico y discusión de datos.' },
+        { id: 'r8', numero: 8, titulo: 'Resolución de problema real', peso: 5, descripcion: 'Relevancia y vigencia de la problemática abordada.' },
+        { id: 'r9', numero: 9, titulo: 'Impacto y transferencia', peso: 10, descripcion: 'Propuesta de producto, prototipo o transferencia del conocimiento.' },
+        { id: 'r10', numero: 10, titulo: 'Originalidad e innovación', peso: 10, descripcion: 'Valor agregado y elementos novedosos del proyecto.' },
+        { id: 'r11', numero: 11, titulo: 'Presentación visual', peso: 5, descripcion: 'Diseño del cartel (organización, atractivo visual y claridad).' },
+        { id: 'r12', numero: 12, titulo: 'Comunicación oral y dominio', peso: 5, descripcion: 'Claridad, seguridad y dominio del tema al exponer.' }
+    ]
+};
+
+function calcularPuntajeRubrica(datos) {
+    const maxEscala = RUBRICA_EVALUACION.escala_max;
+    const valores = {};
+    let sumaPonderadaEstrellas = 0;
+
+    for (const crit of RUBRICA_EVALUACION.criterios) {
+        const val = parseInt(datos[crit.id]);
+        if (isNaN(val) || val < 1 || val > maxEscala) {
+            return {
+                valido: false,
+                error: `El criterio "${crit.numero}. ${crit.titulo}" debe calificarse en la escala de 1 a ${maxEscala}.`
+            };
+        }
+        valores[crit.id] = val;
+        sumaPonderadaEstrellas += val * (crit.peso / 100.0);
+    }
+
+    const estrellasPonderadas = Math.round(sumaPonderadaEstrellas * 100) / 100;
+    const calificacionPonderada100 = Math.round(((sumaPonderadaEstrellas / maxEscala) * 100) * 100) / 100;
+
+    return {
+        valido: true,
+        escala_max: maxEscala,
+        valores,
+        estrellas_ponderadas: estrellasPonderadas,
+        puntaje_total: calificacionPonderada100
+    };
+}
+
+app.get('/api/rubrica', (req, res) => {
+    res.json(RUBRICA_EVALUACION);
+});
+
 // Helper para obtener la configuración SMTP activa (primero desde la base de datos configurada en el Panel Admin y luego desde .env)
 async function obtenerConfiguracionSmtp() {
     let dbCfg = null;
@@ -393,12 +479,21 @@ async function asegurarEsquemaYColumnas() {
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 cartel_id INT NOT NULL,
                 profesor_id INT NOT NULL,
-                r1 INT NOT NULL,
-                r2 INT NOT NULL,
-                r3 INT NOT NULL,
-                r4 INT NOT NULL,
-                r5 INT DEFAULT 0,
-                puntaje_total INT GENERATED ALWAYS AS (r1 + r2 + r3 + r4 + r5) STORED,
+                r1 INT NOT NULL DEFAULT 0,
+                r2 INT NOT NULL DEFAULT 0,
+                r3 INT NOT NULL DEFAULT 0,
+                r4 INT NOT NULL DEFAULT 0,
+                r5 INT NOT NULL DEFAULT 0,
+                r6 INT NOT NULL DEFAULT 0,
+                r7 INT NOT NULL DEFAULT 0,
+                r8 INT NOT NULL DEFAULT 0,
+                r9 INT NOT NULL DEFAULT 0,
+                r10 INT NOT NULL DEFAULT 0,
+                r11 INT NOT NULL DEFAULT 0,
+                r12 INT NOT NULL DEFAULT 0,
+                escala_max INT NOT NULL DEFAULT 5,
+                estrellas_ponderadas DECIMAL(6,2) NOT NULL DEFAULT 0,
+                puntaje_total DECIMAL(6,2) NOT NULL DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         `);
@@ -518,11 +613,37 @@ async function asegurarEsquemaYColumnas() {
         }
     } catch (e) {}
 
-    // 5. Permitir r5 con default 0 en evaluaciones (solo si aún no tiene default)
+    // 5. Asegurar las 12 columnas de la Rúbrica (r1 a r12), escala_max, estrellas_ponderadas y puntaje_total en evaluaciones
     try {
-        const [r5Cols] = await pool.query("SHOW COLUMNS FROM evaluaciones LIKE 'r5'");
-        if (r5Cols.length > 0 && r5Cols[0].Default === null) {
-            await pool.query("ALTER TABLE evaluaciones MODIFY COLUMN r5 INT(11) DEFAULT 0");
+        const [evalCols] = await pool.query("SHOW COLUMNS FROM evaluaciones");
+        const nombresCols = new Set(evalCols.map(c => c.Field));
+
+        for (let i = 1; i <= 12; i++) {
+            const col = `r${i}`;
+            if (!nombresCols.has(col)) {
+                await pool.query(`ALTER TABLE evaluaciones ADD COLUMN ${col} INT NOT NULL DEFAULT 0`);
+            }
+        }
+
+        if (!nombresCols.has('escala_max')) {
+            await pool.query("ALTER TABLE evaluaciones ADD COLUMN escala_max INT NOT NULL DEFAULT 5");
+        }
+        if (!nombresCols.has('estrellas_ponderadas')) {
+            await pool.query("ALTER TABLE evaluaciones ADD COLUMN estrellas_ponderadas DECIMAL(6,2) NOT NULL DEFAULT 0");
+        }
+
+        const colPuntaje = evalCols.find(c => c.Field === 'puntaje_total');
+        if (!colPuntaje) {
+            await pool.query("ALTER TABLE evaluaciones ADD COLUMN puntaje_total DECIMAL(6,2) NOT NULL DEFAULT 0");
+        } else if ((colPuntaje.Extra && colPuntaje.Extra.toUpperCase().includes('GENERATED')) || !String(colPuntaje.Type).toLowerCase().includes('decimal')) {
+            try {
+                await pool.query("ALTER TABLE evaluaciones DROP COLUMN puntaje_total");
+                await pool.query("ALTER TABLE evaluaciones ADD COLUMN puntaje_total DECIMAL(6,2) NOT NULL DEFAULT 0");
+            } catch (eDrop) {
+                try {
+                    await pool.query("ALTER TABLE evaluaciones MODIFY COLUMN puntaje_total DECIMAL(6,2) NOT NULL DEFAULT 0");
+                } catch (eMod) {}
+            }
         }
     } catch (e) {}
 
@@ -752,7 +873,7 @@ app.get('/api/estudiantes/:id/carteles', async (req, res) => {
                 c.id, c.titulo_cartel, c.clave, c.nombre_equipo, c.participantes, c.carrera, c.semestre, c.nivel, c.archivo_url,
                 COUNT(e.id) as num_evaluaciones,
                 ROUND(AVG(e.puntaje_total), 2) as promedio_final,
-                ROUND(AVG(e.puntaje_total) / 4.0, 2) as promedio_estrellas,
+                ROUND(AVG(COALESCE(NULLIF(e.estrellas_ponderadas, 0), e.puntaje_total / 20.0)), 2) as promedio_estrellas,
                 (SELECT nombre FROM profesores p WHERE p.id = c.profesor_asesor_id) as asesor_nombre
             FROM carteles c
             LEFT JOIN evaluaciones e ON c.id = e.cartel_id
@@ -803,7 +924,7 @@ app.get('/api/admin/usuarios', async (req, res) => {
                 c.archivo_url,
                 CASE WHEN e.id IS NOT NULL THEN 1 ELSE 0 END as ya_evaluo,
                 e.puntaje_total,
-                ROUND(e.puntaje_total / 4.0, 2) as estrellas_otorgadas
+                ROUND(COALESCE(NULLIF(e.estrellas_ponderadas, 0), e.puntaje_total / 20.0), 2) as estrellas_otorgadas
             FROM asignaciones a
             JOIN carteles c ON a.cartel_id = c.id
             LEFT JOIN evaluaciones e ON (e.cartel_id = a.cartel_id AND e.profesor_id = a.profesor_id)
@@ -827,25 +948,146 @@ app.get('/api/admin/usuarios', async (req, res) => {
     }
 });
 
+// Función auxiliar para generar un identificador de usuario único para profesores/usuarios
+async function generarMatriculaUnica(nombre, rol = 'profesor', matriculaBase = '') {
+    const limpio = (nombre || '')
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9\s]/g, '')
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean);
+
+    const prefijo = rol === 'profesor' ? 'prof_' : (rol === 'admin' ? 'admin_' : 'uvm_');
+    let base = (matriculaBase || '').trim().toLowerCase().replace(/\s+/g, '_');
+
+    if (!base || (rol !== 'admin' && base === 'admin')) {
+        if (limpio.length >= 2) {
+            base = `${prefijo}${limpio[0]}_${limpio[1]}`;
+        } else if (limpio.length === 1) {
+            base = `${prefijo}${limpio[0]}`;
+        } else {
+            base = `${prefijo}${Math.floor(100 + Math.random() * 900)}`;
+        }
+    }
+
+    let candidato = base;
+    for (let intento = 0; intento < 15; intento++) {
+        const [rows] = await pool.query('SELECT id FROM usuarios WHERE LOWER(TRIM(matricula)) = LOWER(?)', [candidato]);
+        if (rows.length === 0) {
+            return candidato;
+        }
+        candidato = `${base}_${Math.floor(100 + Math.random() * 900)}`;
+    }
+    return `${base}_${Date.now().toString().slice(-4)}`;
+}
+
 // Admin da de alta a un usuario manualmente (eligiendo si es estudiante o profesor)
 app.post('/api/admin/usuarios', async (req, res) => {
     try {
         const { nombre, matricula, email, password, rol, carrera, semestre, nivel_asignado } = req.body;
-        if (!nombre || !matricula || !password) {
-            return res.status(400).json({ error: "Nombre, usuario/matrícula y contraseña son obligatorios." });
+        if (!nombre || !password) {
+            return res.status(400).json({ error: "Nombre y contraseña son obligatorios." });
         }
 
         const nombreMayus = convertirMayusculas(nombre);
-        const mat = matricula.trim();
         const emailVal = email ? email.trim().toLowerCase() : null;
         const rolVal = (rol === 'profesor' || rol === 'admin') ? rol : 'estudiante';
         const carreraVal = (carrera && carrera.trim()) ? carrera.trim() : 'Ingeniería';
         const semVal = parseInt(semestre) || 1;
         const nivelVal = parseInt(nivel_asignado) || 1;
 
-        const [existente] = await pool.query('SELECT id FROM usuarios WHERE LOWER(TRIM(matricula)) = LOWER(?)', [mat]);
+        let mat = (matricula || '').trim();
+        // Si el navegador autocompletó "admin" por error al crear un profesor/estudiante o viene vacío, generamos uno limpio
+        if (!mat || (rolVal !== 'admin' && mat.toLowerCase() === 'admin')) {
+            mat = await generarMatriculaUnica(nombreMayus, rolVal, '');
+        }
+
+        // Buscar si ya existe por matrícula, o si es profesor y ya existe con el mismo nombre o correo
+        let [existente] = await pool.query('SELECT * FROM usuarios WHERE LOWER(TRIM(matricula)) = LOWER(?)', [mat]);
+
+        if (existente.length === 0 && rolVal === 'profesor') {
+            if (emailVal) {
+                const [porCorreo] = await pool.query(
+                    'SELECT * FROM usuarios WHERE LOWER(TRIM(email)) = LOWER(?) AND LOWER(TRIM(nombre)) = LOWER(?)',
+                    [emailVal, nombreMayus]
+                );
+                if (porCorreo.length > 0) existente = porCorreo;
+            }
+        }
+
         if (existente.length > 0) {
-            return res.status(400).json({ error: "Esa matrícula o usuario ya existe." });
+            const uPrevio = existente[0];
+            const mismoNombre = (uPrevio.nombre || '').trim().toUpperCase() === nombreMayus;
+            const mismoCorreo = Boolean(emailVal && (uPrevio.email || '').trim().toLowerCase() === emailVal);
+
+            // Verificar si era un registro huérfano (se eliminó de profesores pero quedó en usuarios)
+            let esHuerfano = false;
+            if (uPrevio.profesor_id) {
+                const [pCheck] = await pool.query('SELECT id FROM profesores WHERE id = ?', [uPrevio.profesor_id]);
+                if (pCheck.length === 0) esHuerfano = true;
+            }
+
+            // Si es la misma persona (ej. reintento tras configurar SMTP) o un registro huérfano, lo reactivamos/actualizamos
+            if (mismoNombre || mismoCorreo || esHuerfano) {
+                let profId = uPrevio.profesor_id;
+                if (rolVal === 'profesor') {
+                    if (profId && !esHuerfano) {
+                        await pool.query(
+                            'UPDATE profesores SET nombre = ?, email = ?, carrera = ?, nivel_asignado = ?, password = ? WHERE id = ?',
+                            [nombreMayus, emailVal, carreraVal, nivelVal, password, profId]
+                        );
+                    } else {
+                        const [pIns] = await pool.query(
+                            'INSERT INTO profesores (nombre, email, carrera, nivel_asignado, password) VALUES (?, ?, ?, ?, ?)',
+                            [nombreMayus, emailVal, carreraVal, nivelVal, password]
+                        );
+                        profId = pIns.insertId;
+                    }
+                }
+
+                const matFinal = (rolVal !== 'admin' && (uPrevio.matricula || '').trim().toLowerCase() === 'admin')
+                    ? await generarMatriculaUnica(nombreMayus, rolVal, '')
+                    : uPrevio.matricula;
+
+                await pool.query(
+                    'UPDATE usuarios SET nombre = ?, matricula = ?, email = ?, password = ?, rol = ?, carrera = ?, semestre = ?, nivel_asignado = ?, profesor_id = ? WHERE id = ?',
+                    [nombreMayus, matFinal, emailVal, password, rolVal, carreraVal, semVal, nivelVal, profId, uPrevio.id]
+                );
+
+                let infoCorreo = { enviado: false };
+                if (emailVal) {
+                    infoCorreo = await enviarCorreoDatosCuenta({
+                        email: emailVal,
+                        nombre: nombreMayus,
+                        matricula: matFinal,
+                        password,
+                        rol: rolVal,
+                        carrera: carreraVal,
+                        nivel_asignado: nivelVal,
+                        baseUrl: obtenerUrlBase(req)
+                    });
+                }
+
+                const msgExtraCorreo = infoCorreo.enviado
+                    ? ` Se enviaron automáticamente el usuario (${matFinal}), contraseña y enlace de acceso a ${emailVal}.`
+                    : (emailVal ? ` (Aviso de correo: ${infoCorreo.motivo || 'revisa tu configuración SMTP en el Panel de Administrador'})` : '');
+
+                return res.json({
+                    mensaje: `Usuario ${nombreMayus} registrado/actualizado como ${rolVal} exitosamente con usuario "${matFinal}".${msgExtraCorreo}`,
+                    correo_enviado: infoCorreo.enviado,
+                    enlace_acceso: infoCorreo.enlace_acceso,
+                    usuario: { id: uPrevio.id, nombre: nombreMayus, matricula: matFinal, email: emailVal, rol: rolVal, carrera: carreraVal, nivel_asignado: nivelVal, profesor_id: profId }
+                });
+            }
+
+            // Si es un profesor o administrador NUEVO (persona distinta) y sólo coincidió el identificador de usuario, generamos uno único automáticamente
+            if (rolVal === 'profesor' || rolVal === 'admin') {
+                mat = await generarMatriculaUnica(nombreMayus, rolVal, mat);
+            } else {
+                return res.status(400).json({ error: `La matrícula "${mat}" ya está registrada por otro estudiante (${uPrevio.nombre}).` });
+            }
         }
 
         let profId = null;
@@ -877,11 +1119,11 @@ app.post('/api/admin/usuarios', async (req, res) => {
         }
 
         const msgExtraCorreo = infoCorreo.enviado
-            ? ` Se enviaron automáticamente el usuario, contraseña y enlace de acceso a ${emailVal}.`
-            : (emailVal ? ` (Aviso de correo: ${infoCorreo.motivo || 'revisa tu configuración SMTP en .env'})` : '');
+            ? ` Se enviaron automáticamente el usuario (${mat}), contraseña y enlace de acceso a ${emailVal}.`
+            : (emailVal ? ` (Aviso de correo: ${infoCorreo.motivo || 'revisa tu configuración SMTP en el Panel de Administrador'})` : '');
 
         res.json({
-            mensaje: `Usuario ${nombreMayus} registrado como ${rolVal} exitosamente.${msgExtraCorreo}`,
+            mensaje: `Usuario ${nombreMayus} registrado como ${rolVal} exitosamente con usuario "${mat}".${msgExtraCorreo}`,
             correo_enviado: infoCorreo.enviado,
             enlace_acceso: infoCorreo.enlace_acceso,
             usuario: { id: uIns.insertId, nombre: nombreMayus, matricula: mat, email: emailVal, rol: rolVal, carrera: carreraVal, nivel_asignado: nivelVal, profesor_id: profId }
@@ -1182,13 +1424,11 @@ app.delete('/api/admin/usuarios/:id', async (req, res) => {
             }
         }
 
-        // Si tiene profesor_id y tiene asignaciones o evaluaciones, no borrar directamente o limpiar
+        // Si tiene profesor_id, limpiar sus relaciones y eliminar de profesores también
         if (u[0].profesor_id) {
-            const [asigs] = await pool.query('SELECT id FROM asignaciones WHERE profesor_id = ?', [u[0].profesor_id]);
-            const [evals] = await pool.query('SELECT id FROM evaluaciones WHERE profesor_id = ?', [u[0].profesor_id]);
-            if (asigs.length > 0 || evals.length > 0) {
-                return res.status(400).json({ error: "No se puede eliminar porque este profesor ya tiene asignaciones o evaluaciones registradas." });
-            }
+            await pool.query('DELETE FROM asignaciones WHERE profesor_id = ?', [u[0].profesor_id]);
+            await pool.query('DELETE FROM evaluaciones WHERE profesor_id = ?', [u[0].profesor_id]);
+            await pool.query('UPDATE carteles SET profesor_asesor_id = NULL WHERE profesor_asesor_id = ?', [u[0].profesor_id]);
             await pool.query('DELETE FROM profesores WHERE id = ?', [u[0].profesor_id]);
         }
 
@@ -1279,6 +1519,7 @@ app.delete('/api/profesores/:id', async (req, res) => {
         await connection.execute('DELETE FROM asignaciones WHERE profesor_id = ?', [id]);
         await connection.execute('DELETE FROM evaluaciones WHERE profesor_id = ?', [id]);
         await connection.execute('UPDATE carteles SET profesor_asesor_id = NULL WHERE profesor_asesor_id = ?', [id]);
+        await connection.execute('DELETE FROM usuarios WHERE profesor_id = ?', [id]);
         await connection.execute('DELETE FROM profesores WHERE id = ?', [id]);
 
         await connection.commit();
@@ -1582,7 +1823,7 @@ app.get('/api/admin/asignaciones', async (req, res) => {
                 p.nivel_asignado as profesor_nivel,
                 CASE WHEN e.id IS NOT NULL THEN 1 ELSE 0 END as ya_evaluo,
                 e.puntaje_total,
-                ROUND(e.puntaje_total / 4.0, 2) as estrellas_otorgadas
+                ROUND(COALESCE(NULLIF(e.estrellas_ponderadas, 0), e.puntaje_total / 20.0), 2) as estrellas_otorgadas
             FROM asignaciones a
             JOIN carteles c ON a.cartel_id = c.id
             JOIN profesores p ON a.profesor_id = p.id
@@ -1915,18 +2156,14 @@ app.get('/api/profesores/:profesor_id/carteles-asignados', async (req, res) => {
     }
 });
 
-// Evaluar por profesor asignado (Escala 1 a 5 estrellas en 4 rubros)
+// Evaluar por profesor asignado (Rúbrica Oficial de 12 Criterios Ponderados)
 app.post('/api/evaluar', async (req, res) => {
     try {
-        const { cartel_id, profesor_id, r1, r2, r3, r4 } = req.body;
+        const { cartel_id, profesor_id } = req.body;
+        const resultadoRubrica = calcularPuntajeRubrica(req.body);
 
-        const valR1 = parseInt(r1);
-        const valR2 = parseInt(r2);
-        const valR3 = parseInt(r3);
-        const valR4 = parseInt(r4);
-
-        if ([valR1, valR2, valR3, valR4].some(v => isNaN(v) || v < 1 || v > 5)) {
-            return res.status(400).json({ error: "Todos los rubros (Originalidad, Estética, Exposición y Vestimenta) deben calificarse con estrellas de 1 a 5." });
+        if (!resultadoRubrica.valido) {
+            return res.status(400).json({ error: resultadoRubrica.error });
         }
 
         const [conteo] = await pool.query(`SELECT COUNT(*) as total FROM evaluaciones WHERE cartel_id = ?`, [cartel_id]);
@@ -1934,11 +2171,27 @@ app.post('/api/evaluar', async (req, res) => {
             return res.status(400).json({ error: "Este cartel ya cuenta con sus 3 evaluaciones completadas." });
         }
 
-        // r5 se envía en 0 para satisfacer la estructura existente de evaluaciones
-        const query = `INSERT INTO evaluaciones (cartel_id, profesor_id, r1, r2, r3, r4, r5) VALUES (?, ?, ?, ?, ?, ?, 0)`;
-        await pool.query(query, [cartel_id, profesor_id, valR1, valR2, valR3, valR4]);
+        const v = resultadoRubrica.valores;
+        const query = `
+            INSERT INTO evaluaciones (
+                cartel_id, profesor_id,
+                r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12,
+                escala_max, estrellas_ponderadas, puntaje_total
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `;
+        await pool.query(query, [
+            cartel_id, profesor_id,
+            v.r1, v.r2, v.r3, v.r4, v.r5, v.r6, v.r7, v.r8, v.r9, v.r10, v.r11, v.r12,
+            resultadoRubrica.escala_max,
+            resultadoRubrica.estrellas_ponderadas,
+            resultadoRubrica.puntaje_total
+        ]);
 
-        res.json({ mensaje: "Evaluación registrada con éxito" });
+        res.json({
+            mensaje: "Evaluación registrada con éxito",
+            estrellas_ponderadas: resultadoRubrica.estrellas_ponderadas,
+            puntaje_total: resultadoRubrica.puntaje_total
+        });
     } catch (err) {
         res.status(400).json({ error: "Error o ya habías evaluado este cartel." });
     }
@@ -1949,7 +2202,7 @@ app.post('/api/evaluar-invitado', async (req, res) => {
     const connection = await pool.getConnection();
     try {
         await connection.beginTransaction();
-        const { clave, nombre_maestro, suplir_profesor_id, r1, r2, r3, r4, usuario_id, profesor_id } = req.body;
+        const { clave, nombre_maestro, suplir_profesor_id, usuario_id, profesor_id } = req.body;
 
         const autorizado = await verificarAccesoProfesorJuez(connection, usuario_id, profesor_id);
         if (!autorizado) {
@@ -1964,14 +2217,10 @@ app.post('/api/evaluar-invitado', async (req, res) => {
             return res.status(400).json({ error: "La clave del cartel y el nombre del Maestro Invitado son requeridos." });
         }
 
-        const valR1 = parseInt(r1);
-        const valR2 = parseInt(r2);
-        const valR3 = parseInt(r3);
-        const valR4 = parseInt(r4);
-
-        if ([valR1, valR2, valR3, valR4].some(v => isNaN(v) || v < 1 || v > 5)) {
+        const resultadoRubrica = calcularPuntajeRubrica(req.body);
+        if (!resultadoRubrica.valido) {
             await connection.rollback();
-            return res.status(400).json({ error: "Todos los rubros deben calificarse de 1 a 5 estrellas." });
+            return res.status(400).json({ error: resultadoRubrica.error });
         }
 
         // Buscar cartel por clave
@@ -2042,16 +2291,29 @@ app.post('/api/evaluar-invitado', async (req, res) => {
             }
         }
 
-        // Guardar la evaluación
+        // Guardar la evaluación con los 12 criterios ponderados
+        const v = resultadoRubrica.valores;
         await connection.execute(
-            'INSERT INTO evaluaciones (cartel_id, profesor_id, r1, r2, r3, r4, r5) VALUES (?, ?, ?, ?, ?, ?, 0)',
-            [cartel.id, profesorId, valR1, valR2, valR3, valR4]
+            `INSERT INTO evaluaciones (
+                cartel_id, profesor_id,
+                r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12,
+                escala_max, estrellas_ponderadas, puntaje_total
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+                cartel.id, profesorId,
+                v.r1, v.r2, v.r3, v.r4, v.r5, v.r6, v.r7, v.r8, v.r9, v.r10, v.r11, v.r12,
+                resultadoRubrica.escala_max,
+                resultadoRubrica.estrellas_ponderadas,
+                resultadoRubrica.puntaje_total
+            ]
         );
 
         await connection.commit();
         res.json({ 
             mensaje: `¡Evaluación registrada exitosamente por ${nombreFormateado}!`,
-            cartel_id: cartel.id
+            cartel_id: cartel.id,
+            estrellas_ponderadas: resultadoRubrica.estrellas_ponderadas,
+            puntaje_total: resultadoRubrica.puntaje_total
         });
     } catch (err) {
         await connection.rollback();
@@ -2061,7 +2323,7 @@ app.post('/api/evaluar-invitado', async (req, res) => {
     }
 });
 
-// Ranking general por niveles con participantes, clave y promedio de estrellas
+// Ranking general por niveles con participantes, clave y promedio de estrellas ponderadas
 app.get('/api/dashboard/ranking', async (req, res) => {
     try {
         const query = `
@@ -2069,7 +2331,7 @@ app.get('/api/dashboard/ranking', async (req, res) => {
                 c.id, c.titulo_cartel, c.clave, c.nombre_equipo, c.participantes, c.nivel, c.carrera, c.archivo_url,
                 COUNT(e.id) as num_evaluaciones,
                 ROUND(AVG(e.puntaje_total), 2) as promedio_final,
-                ROUND(AVG(e.puntaje_total) / 4.0, 2) as promedio_estrellas
+                ROUND(AVG(COALESCE(NULLIF(e.estrellas_ponderadas, 0), e.puntaje_total / 20.0)), 2) as promedio_estrellas
             FROM carteles c
             LEFT JOIN evaluaciones e ON c.id = e.cartel_id
             GROUP BY c.id
