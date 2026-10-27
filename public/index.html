@@ -2415,13 +2415,14 @@
         function actualizarResumenPuntaje(prefijo) {
             const totalCriterios = CONFIG_RUBRICA_CARTELES.criterios.length;
             const maxEscala = CONFIG_RUBRICA_CARTELES.escala_max;
+            const sumaTotalPesos = CONFIG_RUBRICA_CARTELES.criterios.reduce((acc, c) => acc + (Number(c.peso) || 0), 0) || 100;
             let sumaEstrellasPonderada = 0;
             let completos = 0;
 
             CONFIG_RUBRICA_CARTELES.criterios.forEach(c => {
                 const v = parseInt(document.getElementById(`${prefijo}-${c.id}`)?.value) || 0;
                 if (v > 0) {
-                    sumaEstrellasPonderada += v * (c.peso / 100.0);
+                    sumaEstrellasPonderada += v * (c.peso / sumaTotalPesos);
                     completos++;
                 }
             });

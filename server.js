@@ -191,6 +191,7 @@ const RUBRICA_EVALUACION = {
 function calcularPuntajeRubrica(datos) {
     const maxEscala = RUBRICA_EVALUACION.escala_max;
     const valores = {};
+    const sumaTotalPesos = RUBRICA_EVALUACION.criterios.reduce((acc, c) => acc + (Number(c.peso) || 0), 0) || 100;
     let sumaPonderadaEstrellas = 0;
 
     for (const crit of RUBRICA_EVALUACION.criterios) {
@@ -202,7 +203,7 @@ function calcularPuntajeRubrica(datos) {
             };
         }
         valores[crit.id] = val;
-        sumaPonderadaEstrellas += val * (crit.peso / 100.0);
+        sumaPonderadaEstrellas += val * (crit.peso / sumaTotalPesos);
     }
 
     const estrellasPonderadas = Math.round(sumaPonderadaEstrellas * 100) / 100;
