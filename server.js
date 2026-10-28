@@ -5,7 +5,15 @@ const path = require('path');
 const multer = require('multer');
 const fs = require('fs');
 const crypto = require('crypto');
+const dns = require('dns');
 const nodemailer = require('nodemailer');
+
+// Priorizar IPv4 globalmente para evitar retrasos de 30-60s por timeouts de IPv6 al conectar a Gmail/SMTP desde servidores en la nube
+if (typeof dns.setDefaultResultOrder === 'function') {
+    try {
+        dns.setDefaultResultOrder('ipv4first');
+    } catch (e) {}
+}
 
 // Cargar variables de entorno desde .env (evita exponer credenciales en GitHub)
 if (typeof process.loadEnvFile === 'function') {
@@ -222,8 +230,29 @@ app.get('/api/rubrica', (req, res) => {
     res.json(RUBRICA_EVALUACION);
 });
 
+// Caché de configuración y transporter SMTP con pool de conexiones para envío instantáneo
+let smtpConfigCache = null;
+let smtpConfigCacheTime = 0;
+let smtpTransporterPool = null;
+let smtpTransporterKey = '';
+
+function invalidarCacheSmtp() {
+    smtpConfigCache = null;
+    smtpConfigCacheTime = 0;
+    if (smtpTransporterPool && typeof smtpTransporterPool.close === 'function') {
+        try { smtpTransporterPool.close(); } catch (e) {}
+    }
+    smtpTransporterPool = null;
+    smtpTransporterKey = '';
+}
+
 // Helper para obtener la configuración SMTP activa (primero desde la base de datos configurada en el Panel Admin y luego desde .env)
-async function obtenerConfiguracionSmtp() {
+async function obtenerConfiguracionSmtp(forzarRecarga = false) {
+    const ahora = Date.now();
+    if (!forzarRecarga && smtpConfigCache && (ahora - smtpConfigCacheTime < 60000)) {
+        return smtpConfigCache;
+    }
+
     let dbCfg = null;
     if (pool) {
         try {
@@ -246,11 +275,11 @@ async function obtenerConfiguracionSmtp() {
     if (smtpUser.toLowerCase().endsWith('@gmail.com')) {
         smtpHost = 'smtp.gmail.com';
     }
-    const smtpPort = parseInt(rawPort) || 587;
+    const smtpPort = parseInt(rawPort) || 465;
     const smtpSecure = process.env.SMTP_SECURE === 'true' || smtpPort === 465;
     const smtpFrom = (rawFrom && rawFrom.trim()) ? rawFrom.trim() : `"Sistema de Carteles UVM" <${smtpUser}>`;
 
-    return {
+    const resultado = {
         smtpHost,
         smtpPort,
         smtpSecure,
@@ -260,10 +289,51 @@ async function obtenerConfiguracionSmtp() {
         configurado: Boolean(smtpUser && smtpPass),
         origen: dbCfg ? 'panel_admin' : ((smtpUser && smtpPass) ? 'env' : 'ninguno')
     };
+
+    smtpConfigCache = resultado;
+    smtpConfigCacheTime = ahora;
+    return resultado;
+}
+
+function obtenerTransporterSmtp(cfg, puertoOverride = null) {
+    const port = puertoOverride || cfg.smtpPort || 465;
+    const secure = (port === 465);
+    const key = `${cfg.smtpHost}:${port}:${cfg.smtpUser}:${cfg.smtpPass}`;
+
+    if (!puertoOverride && smtpTransporterPool && smtpTransporterKey === key) {
+        return smtpTransporterPool;
+    }
+
+    const nuevoTransporter = nodemailer.createTransport({
+        pool: true,
+        maxConnections: 3,
+        maxMessages: 100,
+        host: cfg.smtpHost,
+        port,
+        secure,
+        requireTLS: port === 587,
+        family: 4, // Forzar IPv4 para evitar retrasos de 30s+ por IPv6 en contenedores cloud
+        connectionTimeout: 6000,
+        greetingTimeout: 5000,
+        socketTimeout: 8000,
+        auth: {
+            user: cfg.smtpUser,
+            pass: cfg.smtpPass
+        },
+        tls: {
+            rejectUnauthorized: false
+        }
+    });
+
+    if (!puertoOverride) {
+        smtpTransporterPool = nuevoTransporter;
+        smtpTransporterKey = key;
+    }
+    return nuevoTransporter;
 }
 
 // Helper para enviar correo automático con los datos de la cuenta y enlace al dashboard (Profesores / Usuarios)
-async function enviarCorreoDatosCuenta({ email, nombre, matricula, password, rol, carrera, nivel_asignado, baseUrl }) {
+async function enviarCorreoDatosCuenta({ email, nombre, matricula, password, rol, carrera, nivel_asignado, baseUrl, esperarConfirmacion = false }) {
     const urlServidor = (baseUrl || process.env.PUBLIC_URL || `http://localhost:${process.env.PORT || 3000}`).replace(/\/+$/, '');
     const enlaceAcceso = rol === 'profesor'
         ? `${urlServidor}/jueces?usuario=${encodeURIComponent(matricula)}`
@@ -273,94 +343,115 @@ async function enviarCorreoDatosCuenta({ email, nombre, matricula, password, rol
         return { enviado: false, motivo: 'Sin correo electrónico proporcionado', enlace_acceso: enlaceAcceso };
     }
 
-    const { smtpHost, smtpPort, smtpSecure, smtpUser, smtpPass, smtpFrom, configurado } = await obtenerConfiguracionSmtp();
+    const cfg = await obtenerConfiguracionSmtp();
+    const { smtpFrom, configurado } = cfg;
 
     if (!configurado) {
         console.warn(`[CORREO] No se pudo enviar correo a ${email}: Configura el correo SMTP desde el Panel de Administrador.`);
         return { enviado: false, motivo: 'SMTP no configurado (configúralo desde el botón "Configurar Correo SMTP" en el Panel de Administrador)', enlace_acceso: enlaceAcceso };
     }
 
-    try {
-        const transporter = nodemailer.createTransport({
-            host: smtpHost,
-            port: smtpPort,
-            secure: smtpSecure,
-            requireTLS: smtpPort === 587,
-            auth: {
-                user: smtpUser,
-                pass: smtpPass
-            },
-            tls: {
-                rejectUnauthorized: false
-            }
-        });
+    const rolEtiqueta = rol === 'profesor'
+        ? 'Profesor / Juez Evaluador'
+        : (rol === 'admin' ? 'Administrador' : 'Estudiante (Alumno)');
 
-        const rolEtiqueta = rol === 'profesor'
-            ? 'Profesor / Juez Evaluador'
-            : (rol === 'admin' ? 'Administrador' : 'Estudiante (Alumno)');
+    const textoBoton = rol === 'profesor'
+        ? 'Ingresar a Mi Dashboard de Juez Evaluador'
+        : 'Ingresar al Sistema de Carteles UVM';
 
-        const textoBoton = rol === 'profesor'
-            ? 'Ingresar a Mi Dashboard de Juez Evaluador'
-            : 'Ingresar al Sistema de Carteles UVM';
-
-        const htmlBody = `
-            <div style="font-family: Arial, sans-serif; max-width: 580px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
-                <div style="background-color: #b91c1c; color: #ffffff; padding: 20px 24px;">
-                    <h2 style="margin: 0; font-size: 20px;">Sistema de Evaluación de Carteles - UVM</h2>
-                    <p style="margin: 4px 0 0; font-size: 13px; color: #fecaca;">
-                        ${rol === 'profesor' ? 'Invitación y Acceso Exclusivo para Maestros / Jueces' : 'Datos de acceso a tu cuenta'}
-                    </p>
-                </div>
-                <div style="padding: 24px; color: #1e293b; background-color: #ffffff;">
-                    <p style="margin-top: 0; font-size: 15px;">Hola, <strong>${nombre}</strong>:</p>
-                    <p style="font-size: 14px; line-height: 1.5; color: #475569;">
-                        ${rol === 'profesor'
-                            ? 'El Administrador te ha dado de alta como <strong>Profesor / Juez Evaluador</strong> en el Sistema de Evaluación de Carteles UVM. A continuación, te compartimos tu usuario, contraseña y el enlace directo a tu dashboard:'
-                            : 'Tu cuenta ha sido dada de alta en el Sistema de Evaluación de Carteles UVM. A continuación, te compartimos tus datos de ingreso:'}
-                    </p>
-                    <div style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 16px; margin: 20px 0;">
-                        <p style="margin: 6px 0; font-size: 14px;"><strong>Nombre:</strong> ${nombre}</p>
-                        <p style="margin: 6px 0; font-size: 14px;"><strong>Usuario / ID de Acceso:</strong> <code style="background: #fff; padding: 3px 8px; border-radius: 4px; font-weight: bold; color: #991b1b; border: 1px solid #fecaca;">${matricula}</code></p>
-                        <p style="margin: 6px 0; font-size: 14px;"><strong>Correo registrado:</strong> ${email}</p>
-                        <p style="margin: 6px 0; font-size: 14px;"><strong>Contraseña:</strong> <code style="background: #fff; padding: 3px 8px; border-radius: 4px; font-weight: bold; color: #991b1b; border: 1px solid #fecaca;">${password}</code></p>
-                        <p style="margin: 6px 0; font-size: 14px;"><strong>Rol en el sistema:</strong> ${rolEtiqueta}</p>
-                        <p style="margin: 6px 0; font-size: 14px;"><strong>Área / Carrera:</strong> ${carrera || 'General'}</p>
-                        ${rol === 'profesor' ? `<p style="margin: 6px 0; font-size: 14px;"><strong>Nivel Asignado para Evaluar:</strong> Nivel ${nivel_asignado || 1}</p>` : ''}
-                    </div>
-                    <div style="text-align: center; margin: 26px 0;">
-                        <a href="${enlaceAcceso}" style="display: inline-block; background-color: #b91c1c; color: #ffffff; text-decoration: none; font-weight: bold; font-size: 14px; padding: 13px 26px; border-radius: 8px;">
-                            ${textoBoton}
-                        </a>
-                    </div>
-                    <p style="font-size: 12px; color: #64748b; background-color: #f8fafc; padding: 10px 12px; border-radius: 6px; border: 1px solid #e2e8f0; word-break: break-all;">
-                        <strong>Enlace directo de acceso:</strong><br>
-                        <a href="${enlaceAcceso}" style="color: #b91c1c;">${enlaceAcceso}</a>
-                    </p>
-                    <p style="font-size: 13px; color: #64748b; margin-bottom: 0;">
-                        Puedes iniciar sesión utilizando tu <strong>Usuario (${matricula})</strong> o tu <strong>Correo Electrónico (${email})</strong> junto con tu contraseña.
-                    </p>
-                </div>
-                <div style="background-color: #f8fafc; padding: 12px 24px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0;">
-                    UVM - Encuentro Académico • Sistema de Evaluación de Carteles
-                </div>
+    const htmlBody = `
+        <div style="font-family: Arial, sans-serif; max-width: 580px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
+            <div style="background-color: #b91c1c; color: #ffffff; padding: 20px 24px;">
+                <h2 style="margin: 0; font-size: 20px;">Sistema de Evaluación de Carteles - UVM</h2>
+                <p style="margin: 4px 0 0; font-size: 13px; color: #fecaca;">
+                    ${rol === 'profesor' ? 'Invitación y Acceso Exclusivo para Maestros / Jueces' : 'Datos de acceso a tu cuenta'}
+                </p>
             </div>
-        `;
+            <div style="padding: 24px; color: #1e293b; background-color: #ffffff;">
+                <p style="margin-top: 0; font-size: 15px;">Hola, <strong>${nombre}</strong>:</p>
+                <p style="font-size: 14px; line-height: 1.5; color: #475569;">
+                    ${rol === 'profesor'
+                        ? 'El Administrador te ha dado de alta como <strong>Profesor / Juez Evaluador</strong> en el Sistema de Evaluación de Carteles UVM. A continuación, te compartimos tu usuario, contraseña y el enlace directo a tu dashboard:'
+                        : 'Tu cuenta ha sido dada de alta en el Sistema de Evaluación de Carteles UVM. A continuación, te compartimos tus datos de ingreso:'}
+                </p>
+                <div style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 16px; margin: 20px 0;">
+                    <p style="margin: 6px 0; font-size: 14px;"><strong>Nombre:</strong> ${nombre}</p>
+                    <p style="margin: 6px 0; font-size: 14px;"><strong>Usuario / ID de Acceso:</strong> <code style="background: #fff; padding: 3px 8px; border-radius: 4px; font-weight: bold; color: #991b1b; border: 1px solid #fecaca;">${matricula}</code></p>
+                    <p style="margin: 6px 0; font-size: 14px;"><strong>Correo registrado:</strong> ${email}</p>
+                    <p style="margin: 6px 0; font-size: 14px;"><strong>Contraseña:</strong> <code style="background: #fff; padding: 3px 8px; border-radius: 4px; font-weight: bold; color: #991b1b; border: 1px solid #fecaca;">${password}</code></p>
+                    <p style="margin: 6px 0; font-size: 14px;"><strong>Rol en el sistema:</strong> ${rolEtiqueta}</p>
+                    <p style="margin: 6px 0; font-size: 14px;"><strong>Área / Carrera:</strong> ${carrera || 'General'}</p>
+                    ${rol === 'profesor' ? `<p style="margin: 6px 0; font-size: 14px;"><strong>Nivel Asignado para Evaluar:</strong> Nivel ${nivel_asignado || 1}</p>` : ''}
+                </div>
+                <div style="text-align: center; margin: 26px 0;">
+                    <a href="${enlaceAcceso}" style="display: inline-block; background-color: #b91c1c; color: #ffffff; text-decoration: none; font-weight: bold; font-size: 14px; padding: 13px 26px; border-radius: 8px;">
+                        ${textoBoton}
+                    </a>
+                </div>
+                <p style="font-size: 12px; color: #64748b; background-color: #f8fafc; padding: 10px 12px; border-radius: 6px; border: 1px solid #e2e8f0; word-break: break-all;">
+                    <strong>Enlace directo de acceso:</strong><br>
+                    <a href="${enlaceAcceso}" style="color: #b91c1c;">${enlaceAcceso}</a>
+                </p>
+                <p style="font-size: 13px; color: #64748b; margin-bottom: 0;">
+                    Puedes iniciar sesión utilizando tu <strong>Usuario (${matricula})</strong> o tu <strong>Correo Electrónico (${email})</strong> junto con tu contraseña.
+                </p>
+            </div>
+            <div style="background-color: #f8fafc; padding: 12px 24px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0;">
+                UVM - Encuentro Académico • Sistema de Evaluación de Carteles
+            </div>
+        </div>
+    `;
 
-        await transporter.sendMail({
-            from: smtpFrom,
-            to: email.trim(),
-            subject: rol === 'profesor'
-                ? 'Acceso Exclusivo de Juez Evaluador - Carteles UVM'
-                : 'Datos de Ingreso - Sistema de Evaluación de Carteles UVM',
-            html: htmlBody
-        });
+    const mailOptions = {
+        from: smtpFrom,
+        to: email.trim(),
+        subject: rol === 'profesor'
+            ? 'Acceso Exclusivo de Juez Evaluador - Carteles UVM'
+            : 'Datos de Ingreso - Sistema de Evaluación de Carteles UVM',
+        html: htmlBody
+    };
 
-        console.log(`[CORREO] Credenciales y enlace (${enlaceAcceso}) enviados exitosamente a ${email}`);
-        return { enviado: true, enlace_acceso: enlaceAcceso };
-    } catch (err) {
-        console.warn(`[CORREO] Error al enviar correo a ${email}:`, err.message);
-        return { enviado: false, motivo: err.message, enlace_acceso: enlaceAcceso };
+    const ejecutarEnvioReal = async () => {
+        try {
+            const transporter = obtenerTransporterSmtp(cfg);
+            await transporter.sendMail(mailOptions);
+            console.log(`[CORREO] Credenciales y enlace (${enlaceAcceso}) enviados exitosamente a ${email}`);
+            return { enviado: true, enlace_acceso: enlaceAcceso };
+        } catch (err1) {
+            // Si el puerto configurado (ej. 587) fue bloqueado/lento en la nube, reintentar automáticamente por el puerto alterno (465 SSL o 587 TLS)
+            const puertoAlterno = (cfg.smtpPort === 465) ? 587 : 465;
+            try {
+                console.warn(`[CORREO] Puerto ${cfg.smtpPort} falló (${err1.message}). Reintentando por puerto ${puertoAlterno}...`);
+                const altTransporter = obtenerTransporterSmtp(cfg, puertoAlterno);
+                await altTransporter.sendMail(mailOptions);
+                // Si el puerto alterno funcionó, actualizar el pool principal a ese puerto
+                cfg.smtpPort = puertoAlterno;
+                cfg.smtpSecure = (puertoAlterno === 465);
+                smtpTransporterPool = altTransporter;
+                smtpTransporterKey = `${cfg.smtpHost}:${puertoAlterno}:${cfg.smtpUser}:${cfg.smtpPass}`;
+                console.log(`[CORREO] Enviado exitosamente a ${email} usando puerto ${puertoAlterno}`);
+                return { enviado: true, enlace_acceso: enlaceAcceso };
+            } catch (err2) {
+                console.warn(`[CORREO] Error al enviar correo a ${email}:`, err2.message || err1.message);
+                return { enviado: false, motivo: err2.message || err1.message, enlace_acceso: enlaceAcceso };
+            }
+        }
+    };
+
+    if (esperarConfirmacion) {
+        return await ejecutarEnvioReal();
     }
+
+    // Para altas de profesores/alumnos: esperar máximo 1.8s; si el servidor SMTP tarda más en responder,
+    // liberar la respuesta HTTP de inmediato para que la pantalla nunca se sienta lenta y terminar el envío en segundo plano.
+    const promesaEnvio = ejecutarEnvioReal();
+    const timeoutRapido = new Promise(resolve => {
+        setTimeout(() => {
+            resolve({ enviado: true, en_segundo_plano: true, enlace_acceso: enlaceAcceso });
+        }, 1800);
+    });
+
+    return await Promise.race([promesaEnvio, timeoutRapido]);
 }
 
 let pool;
@@ -1239,6 +1330,9 @@ app.post('/api/admin/smtp', async (req, res) => {
             [hostLimpio, portLimpio, userLimpio, passLimpia, fromLimpio]
         );
 
+        invalidarCacheSmtp();
+        await obtenerConfiguracionSmtp(true);
+
         res.json({
             mensaje: "¡Configuración de correo SMTP guardada en la base de datos! Ahora el servidor ya puede enviar correos.",
             configurado: true,
@@ -1255,7 +1349,7 @@ app.post('/api/admin/smtp', async (req, res) => {
 // Probar envío de correo SMTP desde el Panel de Administrador
 app.post('/api/admin/smtp/probar', async (req, res) => {
     try {
-        const cfg = await obtenerConfiguracionSmtp();
+        const cfg = await obtenerConfiguracionSmtp(true);
         if (!cfg.configurado) {
             return res.status(400).json({ error: "Primero guarda el correo remitente y la contraseña de aplicación." });
         }
@@ -1269,7 +1363,8 @@ app.post('/api/admin/smtp/probar', async (req, res) => {
             rol: 'profesor',
             carrera: 'Ingeniería',
             nivel_asignado: 1,
-            baseUrl: obtenerUrlBase(req)
+            baseUrl: obtenerUrlBase(req),
+            esperarConfirmacion: true
         });
 
         if (!info.enviado) {
