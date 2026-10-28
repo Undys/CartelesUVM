@@ -1259,8 +1259,17 @@ app.post('/api/admin/usuarios/:id/reenviar-correo', async (req, res) => {
 
         if (!infoCorreo.enviado) {
             return res.status(400).json({
-                error: `No se pudo enviar el correo a ${emailDestino}: ${infoCorreo.motivo || 'Revisa la configuración de correo SMTP en el Panel de Administrador'}`,
-                enlace_acceso: infoCorreo.enlace_acceso
+                error: `No se pudo enviar automáticamente por SMTP a ${emailDestino}: ${infoCorreo.motivo || 'Revisa la configuración SMTP o el bloqueo de puertos de tu servidor cloud'}`,
+                enlace_acceso: infoCorreo.enlace_acceso,
+                datos_cuenta: {
+                    nombre: u.nombre,
+                    matricula: u.matricula,
+                    password: u.password,
+                    email: emailDestino,
+                    carrera: u.carrera || 'General',
+                    nivel_asignado: u.nivel_asignado || 1,
+                    enlace_acceso: infoCorreo.enlace_acceso
+                }
             });
         }
 

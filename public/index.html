@@ -2717,7 +2717,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ smtp_host, smtp_port, smtp_user, smtp_pass })
                 });
-                const data = await res.json();
+                const data = await leerRespuestaJsonSegura(res);
                 if (res.ok) {
                     alert(data.mensaje);
                     await cargarEstadoSmtpAdmin();
@@ -2747,7 +2747,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ smtp_host, smtp_port, smtp_user, smtp_pass })
                 });
-                const dataSave = await resSave.json();
+                const dataSave = await leerRespuestaJsonSegura(resSave);
                 if (!resSave.ok) {
                     return alert(dataSave.error || "No se pudo guardar la configuración SMTP antes de probar.");
                 }
@@ -2762,7 +2762,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email_destino: destino.trim() })
                 });
-                const dataTest = await resTest.json();
+                const dataTest = await leerRespuestaJsonSegura(resTest);
                 if (resTest.ok) {
                     alert(dataTest.mensaje);
                 } else {
@@ -3086,6 +3086,38 @@
             }
         }
 
+        async function leerRespuestaJsonSegura(res) {
+            const texto = await res.text();
+            try {
+                return JSON.parse(texto);
+            } catch (e) {
+                throw new Error("El servidor tardó demasiado en conectar al servicio de correo o se estaba actualizando. Si tu servidor gratuito bloquea los puertos SMTP (465/587), puedes enviar el correo directo con 1 clic.");
+            }
+        }
+
+        function abrirCorreoDirectoGmail(datos) {
+            const asunto = encodeURIComponent('Acceso Exclusivo de Juez Evaluador - Carteles UVM');
+            const cuerpo = encodeURIComponent(
+`Hola, ${datos.nombre}:
+
+El Administrador te ha dado de alta como Profesor / Juez Evaluador en el Sistema de Evaluación de Carteles UVM.
+
+TUS DATOS DE INGRESO:
+• Usuario / ID: ${datos.matricula}
+• Contraseña: ${datos.password}
+• Área / Carrera: ${datos.carrera || 'General'}
+• Nivel Asignado: Nivel ${datos.nivel_asignado || 1}
+
+Enlace directo a tu Dashboard de Juez Evaluador:
+${datos.enlace_acceso}
+
+Atentamente,
+Sistema de Evaluación de Carteles UVM`
+            );
+            const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(datos.email)}&su=${asunto}&body=${cuerpo}`;
+            window.open(gmailUrl, '_blank');
+        }
+
         async function reenviarCorreoUsuario(id, emailActual, nombre) {
             let correo = (emailActual || '').trim();
             if (!correo) {
@@ -3104,15 +3136,32 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email: correo })
                 });
-                const data = await res.json();
+                const data = await leerRespuestaJsonSegura(res);
                 if (res.ok) {
                     alert(data.mensaje);
                     cargarAdminUsuarios();
                 } else {
-                    alert(data.error || "No se pudo enviar el correo.");
+                    if (data.datos_cuenta && confirm(`${data.error}\n\n¿Deseas abrir Gmail ahora mismo con el correo ya redactado (con su usuario, contraseña y link) listo para darle clic en "Enviar"?`)) {
+                        abrirCorreoDirectoGmail(data.datos_cuenta);
+                    } else {
+                        alert(data.error || "No se pudo enviar el correo.");
+                    }
                 }
             } catch (err) {
-                alert("Error de conexión al enviar correo: " + err.message);
+                const u = usuariosAdminCache.find(item => Number(item.id) === Number(id));
+                if (u && confirm(`${err.message}\n\n¿Deseas abrir Gmail ahora mismo con el correo ya redactado para ${nombre} (${correo}) listo para darle clic en "Enviar"?`)) {
+                    abrirCorreoDirectoGmail({
+                        nombre: u.nombre,
+                        matricula: u.matricula,
+                        password: u.password || '(Tu contraseña asignada)',
+                        email: correo,
+                        carrera: u.carrera,
+                        nivel_asignado: u.nivel_asignado,
+                        enlace_acceso: obtenerUrlExclusivaJueces(u.matricula)
+                    });
+                } else {
+                    alert("Aviso al enviar correo: " + err.message);
+                }
             }
         }
 
@@ -3236,12 +3285,26 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ nombre, matricula, email, rol, carrera, nivel_asignado, password })
                 });
-                const data = await res.json();
+                const data = await leerRespuestaJsonSegura(res);
                 if (res.ok) {
-                    alert(data.mensaje);
                     cerrarModalCrearUsuario();
                     cargarAdminUsuarios();
                     cargarAdminDashboard();
+                    if (email && !data.correo_enviado) {
+                        if (confirm(`${data.mensaje}\n\n¿Deseas abrir Gmail ahora mismo con el correo ya redactado (usuario, contraseña y link) listo para darle clic en "Enviar"?`)) {
+                            abrirCorreoDirectoGmail({
+                                nombre,
+                                matricula: data.usuario?.matricula || matricula,
+                                password,
+                                email,
+                                carrera,
+                                nivel_asignado,
+                                enlace_acceso: data.enlace_acceso || obtenerUrlExclusivaJueces(data.usuario?.matricula || matricula)
+                            });
+                        }
+                    } else {
+                        alert(data.mensaje);
+                    }
                 } else {
                     alert(data.error);
                 }
