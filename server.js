@@ -257,7 +257,7 @@ async function obtenerConfiguracionSmtp(forzarRecarga = false) {
     if (pool) {
         try {
             const [rows] = await pool.query('SELECT * FROM configuracion_smtp WHERE id = 1 LIMIT 1');
-            if (rows.length > 0 && rows[0].smtp_user && rows[0].smtp_pass) {
+            if (rows.length > 0 && ((rows[0].smtp_user && rows[0].smtp_pass) || rows[0].webhook_url)) {
                 dbCfg = rows[0];
             }
         } catch (e) {}
@@ -268,16 +268,18 @@ async function obtenerConfiguracionSmtp(forzarRecarga = false) {
     const rawHost = dbCfg ? dbCfg.smtp_host : (process.env.SMTP_HOST || '');
     const rawPort = dbCfg ? dbCfg.smtp_port : (process.env.SMTP_PORT || '');
     const rawFrom = dbCfg ? dbCfg.smtp_from : (process.env.SMTP_FROM || '');
+    const rawWebhook = (dbCfg && dbCfg.webhook_url) ? dbCfg.webhook_url : (process.env.SMTP_WEBHOOK_URL || '');
 
     const smtpUser = (rawUser || '').trim();
     const smtpPass = (rawPass || '').trim().replace(/\s+/g, '');
+    const webhookUrl = (rawWebhook || '').trim();
     let smtpHost = (rawHost || 'smtp.gmail.com').trim();
     if (smtpUser.toLowerCase().endsWith('@gmail.com')) {
         smtpHost = 'smtp.gmail.com';
     }
     const smtpPort = parseInt(rawPort) || 465;
     const smtpSecure = process.env.SMTP_SECURE === 'true' || smtpPort === 465;
-    const smtpFrom = (rawFrom && rawFrom.trim()) ? rawFrom.trim() : `"Sistema de Carteles UVM" <${smtpUser}>`;
+    const smtpFrom = (rawFrom && rawFrom.trim()) ? rawFrom.trim() : `"Sistema de Carteles UVM" <${smtpUser || 'notificaciones@uvm.edu.mx'}>`;
 
     const resultado = {
         smtpHost,
@@ -286,8 +288,9 @@ async function obtenerConfiguracionSmtp(forzarRecarga = false) {
         smtpUser,
         smtpPass,
         smtpFrom,
-        configurado: Boolean(smtpUser && smtpPass),
-        origen: dbCfg ? 'panel_admin' : ((smtpUser && smtpPass) ? 'env' : 'ninguno')
+        webhookUrl,
+        configurado: Boolean(webhookUrl || (smtpUser && smtpPass)),
+        origen: dbCfg ? 'panel_admin' : ((webhookUrl || (smtpUser && smtpPass)) ? 'env' : 'ninguno')
     };
 
     smtpConfigCache = resultado;
@@ -305,17 +308,15 @@ function obtenerTransporterSmtp(cfg, puertoOverride = null) {
     }
 
     const nuevoTransporter = nodemailer.createTransport({
-        pool: true,
-        maxConnections: 3,
-        maxMessages: 100,
+        pool: false,
         host: cfg.smtpHost,
         port,
         secure,
         requireTLS: port === 587,
         family: 4, // Forzar IPv4 para evitar retrasos de 30s+ por IPv6 en contenedores cloud
-        connectionTimeout: 6000,
-        greetingTimeout: 5000,
-        socketTimeout: 8000,
+        connectionTimeout: 3500,
+        greetingTimeout: 3500,
+        socketTimeout: 5000,
         auth: {
             user: cfg.smtpUser,
             pass: cfg.smtpPass
@@ -333,7 +334,7 @@ function obtenerTransporterSmtp(cfg, puertoOverride = null) {
 }
 
 // Helper para enviar correo automático con los datos de la cuenta y enlace al dashboard (Profesores / Usuarios)
-async function enviarCorreoDatosCuenta({ email, nombre, matricula, password, rol, carrera, nivel_asignado, baseUrl, esperarConfirmacion = false }) {
+async function enviarCorreoDatosCuenta({ email, nombre, matricula, password, rol, carrera, nivel_asignado, baseUrl }) {
     const urlServidor = (baseUrl || process.env.PUBLIC_URL || `http://localhost:${process.env.PORT || 3000}`).replace(/\/+$/, '');
     const enlaceAcceso = rol === 'profesor'
         ? `${urlServidor}/jueces?usuario=${encodeURIComponent(matricula)}`
@@ -411,20 +412,58 @@ async function enviarCorreoDatosCuenta({ email, nombre, matricula, password, rol
         html: htmlBody
     };
 
-    const ejecutarEnvioReal = async () => {
+    // 1. Si hay un Puente HTTPS configurado (ej. Google Apps Script Web App en puerto 443), usarlo primero (nunca es bloqueado por Render/Railway)
+    if (cfg.webhookUrl) {
         try {
-            const transporter = obtenerTransporterSmtp(cfg);
-            await transporter.sendMail(mailOptions);
-            console.log(`[CORREO] Credenciales y enlace (${enlaceAcceso}) enviados exitosamente a ${email}`);
-            return { enviado: true, enlace_acceso: enlaceAcceso };
-        } catch (err1) {
-            // Si el puerto configurado (ej. 587) fue bloqueado/lento en la nube, reintentar automáticamente por el puerto alterno (465 SSL o 587 TLS)
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), 8000);
+            const resp = await fetch(cfg.webhookUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    to: email.trim(),
+                    subject: mailOptions.subject,
+                    html: htmlBody,
+                    name: 'Sistema de Carteles UVM'
+                }),
+                redirect: 'follow',
+                signal: controller.signal
+            });
+            clearTimeout(timer);
+            if (resp.ok) {
+                console.log(`[CORREO HTTPS] Enviado exitosamente a ${email} vía Puente HTTPS (puerto 443)`);
+                return { enviado: true, enlace_acceso: enlaceAcceso };
+            }
+            const errTxt = await resp.text().catch(() => '');
+            console.warn(`[CORREO HTTPS] Puente HTTPS respondió ${resp.status}: ${errTxt.slice(0, 140)}`);
+            if (!cfg.smtpUser || !cfg.smtpPass) {
+                return { enviado: false, motivo: `Error en Puente HTTPS (${resp.status})`, enlace_acceso: enlaceAcceso };
+            }
+        } catch (errWebhook) {
+            console.warn(`[CORREO HTTPS] Error al conectar con Puente HTTPS:`, errWebhook.message);
+            if (!cfg.smtpUser || !cfg.smtpPass) {
+                return { enviado: false, motivo: `Error en Puente HTTPS: ${errWebhook.message}`, enlace_acceso: enlaceAcceso };
+            }
+        }
+    }
+
+    // 2. Envío directo por SMTP (espera confirmación real, sin dar falsos positivos)
+    try {
+        const transporter = obtenerTransporterSmtp(cfg);
+        await transporter.sendMail(mailOptions);
+        console.log(`[CORREO] Credenciales y enlace (${enlaceAcceso}) enviados exitosamente a ${email}`);
+        return { enviado: true, enlace_acceso: enlaceAcceso };
+    } catch (err1) {
+        const msg1 = (err1 && err1.message) ? err1.message : String(err1);
+        const esTimeout = /timeout|ETIMEDOUT|ECONNREFUSED|ESOCKET/i.test(msg1) || (err1 && (err1.code === 'ETIMEDOUT' || err1.code === 'ESOCKET'));
+
+        // Si el error NO fue bloqueo de red/timeout (ej. falló TLS en 587 pero hay red), probar el puerto alterno
+        if (!esTimeout) {
             const puertoAlterno = (cfg.smtpPort === 465) ? 587 : 465;
             try {
-                console.warn(`[CORREO] Puerto ${cfg.smtpPort} falló (${err1.message}). Reintentando por puerto ${puertoAlterno}...`);
+                console.warn(`[CORREO] Puerto ${cfg.smtpPort} falló (${msg1}). Reintentando por puerto ${puertoAlterno}...`);
                 const altTransporter = obtenerTransporterSmtp(cfg, puertoAlterno);
                 await altTransporter.sendMail(mailOptions);
-                // Si el puerto alterno funcionó, actualizar el pool principal a ese puerto
                 cfg.smtpPort = puertoAlterno;
                 cfg.smtpSecure = (puertoAlterno === 465);
                 smtpTransporterPool = altTransporter;
@@ -432,26 +471,16 @@ async function enviarCorreoDatosCuenta({ email, nombre, matricula, password, rol
                 console.log(`[CORREO] Enviado exitosamente a ${email} usando puerto ${puertoAlterno}`);
                 return { enviado: true, enlace_acceso: enlaceAcceso };
             } catch (err2) {
-                console.warn(`[CORREO] Error al enviar correo a ${email}:`, err2.message || err1.message);
-                return { enviado: false, motivo: err2.message || err1.message, enlace_acceso: enlaceAcceso };
+                console.warn(`[CORREO] Error al enviar correo a ${email}:`, err2.message || msg1);
             }
         }
-    };
 
-    if (esperarConfirmacion) {
-        return await ejecutarEnvioReal();
+        const motivoClaro = esTimeout
+            ? 'Tu servidor en la nube (Render/Railway) bloquea los puertos SMTP (465 y 587). Configura el Puente HTTPS gratuito en "Configurar Correo SMTP" o envíalo con 1 clic por Gmail Web.'
+            : msg1;
+        console.warn(`[CORREO] No se pudo enviar por SMTP a ${email}: ${motivoClaro}`);
+        return { enviado: false, motivo: motivoClaro, enlace_acceso: enlaceAcceso };
     }
-
-    // Para altas de profesores/alumnos: esperar máximo 1.8s; si el servidor SMTP tarda más en responder,
-    // liberar la respuesta HTTP de inmediato para que la pantalla nunca se sienta lenta y terminar el envío en segundo plano.
-    const promesaEnvio = ejecutarEnvioReal();
-    const timeoutRapido = new Promise(resolve => {
-        setTimeout(() => {
-            resolve({ enviado: true, en_segundo_plano: true, enlace_acceso: enlaceAcceso });
-        }, 1800);
-    });
-
-    return await Promise.race([promesaEnvio, timeoutRapido]);
 }
 
 let pool;
@@ -618,21 +647,31 @@ async function asegurarEsquemaYColumnas() {
                 smtp_user VARCHAR(150) NOT NULL DEFAULT '',
                 smtp_pass VARCHAR(255) NOT NULL DEFAULT '',
                 smtp_from VARCHAR(200) NULL,
+                webhook_url TEXT NULL,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         `);
+        try {
+            const [wCols] = await pool.query("SHOW COLUMNS FROM configuracion_smtp LIKE 'webhook_url'");
+            if (wCols.length === 0) {
+                await pool.query("ALTER TABLE configuracion_smtp ADD COLUMN webhook_url TEXT NULL");
+            }
+        } catch (ew) {
+            try { await pool.query("ALTER TABLE configuracion_smtp ADD COLUMN webhook_url TEXT NULL"); } catch (ew2) {}
+        }
         // Si existen variables en .env y la tabla está vacía, sincronizarlas inicialmente
         const envUser = (process.env.SMTP_USER || '').trim();
         const envPass = (process.env.SMTP_PASS || '').trim();
-        if (envUser && envPass) {
+        const envWebhook = (process.env.SMTP_WEBHOOK_URL || '').trim() || null;
+        if ((envUser && envPass) || envWebhook) {
             const [cfgRows] = await pool.query('SELECT id FROM configuracion_smtp WHERE id = 1');
             if (cfgRows.length === 0) {
                 const envHost = (process.env.SMTP_HOST || (envUser.toLowerCase().endsWith('@gmail.com') ? 'smtp.gmail.com' : 'smtp.office365.com')).trim();
                 const envPort = parseInt(process.env.SMTP_PORT) || 587;
                 const envFrom = (process.env.SMTP_FROM || '').trim() || null;
                 await pool.query(
-                    'INSERT INTO configuracion_smtp (id, smtp_host, smtp_port, smtp_user, smtp_pass, smtp_from) VALUES (1, ?, ?, ?, ?, ?)',
-                    [envHost, envPort, envUser, envPass, envFrom]
+                    'INSERT INTO configuracion_smtp (id, smtp_host, smtp_port, smtp_user, smtp_pass, smtp_from, webhook_url) VALUES (1, ?, ?, ?, ?, ?, ?)',
+                    [envHost, envPort, envUser, envPass, envFrom, envWebhook]
                 );
             }
         }
@@ -1293,6 +1332,7 @@ app.get('/api/admin/smtp', async (req, res) => {
             smtp_port: cfg.smtpPort,
             smtp_user: cfg.smtpUser,
             smtp_from: cfg.smtpFrom,
+            webhook_url: cfg.webhookUrl || '',
             tiene_password: Boolean(cfg.smtpPass),
             origen: cfg.origen
         });
@@ -1304,10 +1344,12 @@ app.get('/api/admin/smtp', async (req, res) => {
 // Guardar configuración de correo SMTP desde el Panel de Administrador (se almacena en la BD para funcionar en el servidor sin .env)
 app.post('/api/admin/smtp', async (req, res) => {
     try {
-        const { smtp_host, smtp_port, smtp_user, smtp_pass, smtp_from } = req.body;
+        const { smtp_host, smtp_port, smtp_user, smtp_pass, smtp_from, webhook_url } = req.body;
         const userLimpio = (smtp_user || '').trim();
-        if (!userLimpio) {
-            return res.status(400).json({ error: "El correo remitente (SMTP User) es obligatorio." });
+        const webhookLimpio = (webhook_url || '').trim();
+
+        if (!userLimpio && !webhookLimpio) {
+            return res.status(400).json({ error: "Ingresa el correo remitente (SMTP User) o el enlace del Puente HTTPS (Google Apps Script)." });
         }
 
         let passLimpia = (smtp_pass || '').trim().replace(/\s+/g, '');
@@ -1315,8 +1357,8 @@ app.post('/api/admin/smtp', async (req, res) => {
             const actual = await obtenerConfiguracionSmtp();
             if (actual.smtpPass) {
                 passLimpia = actual.smtpPass;
-            } else {
-                return res.status(400).json({ error: "Ingresa la contraseña o contraseña de aplicación de 16 letras." });
+            } else if (!webhookLimpio) {
+                return res.status(400).json({ error: "Ingresa la contraseña o contraseña de aplicación de 16 letras (o pega el enlace del Puente HTTPS)." });
             }
         }
 
@@ -1325,30 +1367,32 @@ app.post('/api/admin/smtp', async (req, res) => {
             hostLimpio = 'smtp.gmail.com';
         }
         const portLimpio = parseInt(smtp_port) || 587;
-        const fromLimpio = (smtp_from || '').trim() || `"Sistema de Carteles UVM" <${userLimpio}>`;
+        const fromLimpio = (smtp_from || '').trim() || `"Sistema de Carteles UVM" <${userLimpio || 'notificaciones@uvm.edu.mx'}>`;
 
         await pool.query(
-            `INSERT INTO configuracion_smtp (id, smtp_host, smtp_port, smtp_user, smtp_pass, smtp_from)
-             VALUES (1, ?, ?, ?, ?, ?)
+            `INSERT INTO configuracion_smtp (id, smtp_host, smtp_port, smtp_user, smtp_pass, smtp_from, webhook_url)
+             VALUES (1, ?, ?, ?, ?, ?, ?)
              ON DUPLICATE KEY UPDATE
                 smtp_host = VALUES(smtp_host),
                 smtp_port = VALUES(smtp_port),
                 smtp_user = VALUES(smtp_user),
                 smtp_pass = VALUES(smtp_pass),
-                smtp_from = VALUES(smtp_from)`,
-            [hostLimpio, portLimpio, userLimpio, passLimpia, fromLimpio]
+                smtp_from = VALUES(smtp_from),
+                webhook_url = VALUES(webhook_url)`,
+            [hostLimpio, portLimpio, userLimpio, passLimpia, fromLimpio, webhookLimpio || null]
         );
 
         invalidarCacheSmtp();
         await obtenerConfiguracionSmtp(true);
 
         res.json({
-            mensaje: "¡Configuración de correo SMTP guardada en la base de datos! Ahora el servidor ya puede enviar correos.",
+            mensaje: "¡Configuración de correo guardada en la base de datos!",
             configurado: true,
             smtp_host: hostLimpio,
             smtp_port: portLimpio,
             smtp_user: userLimpio,
-            smtp_from: fromLimpio
+            smtp_from: fromLimpio,
+            webhook_url: webhookLimpio
         });
     } catch (err) {
         res.status(400).json({ error: err.message });

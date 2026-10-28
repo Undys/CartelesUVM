@@ -1211,7 +1211,7 @@
 
                 <div>
                     <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Correo Electrónico Remitente (SMTP_USER):</label>
-                    <input type="email" id="smtp_cfg_user" required placeholder="Ej. pocoluc@gmail.com" class="w-full border p-2.5 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-emerald-500">
+                    <input type="email" id="smtp_cfg_user" placeholder="Ej. pocoluc@gmail.com" class="w-full border p-2.5 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-emerald-500">
                 </div>
 
                 <div>
@@ -1219,6 +1219,19 @@
                     <input type="password" id="smtp_cfg_pass" placeholder="Ej. ajfn hwbw ligy kgaa" class="w-full border p-2.5 rounded-xl text-xs font-mono font-bold text-slate-800 focus:ring-2 focus:ring-emerald-500">
                     <p id="smtp_cfg_pass_ayuda" class="text-[11px] text-gray-500 mt-1">
                         Para Gmail, usa tu Contraseña de Aplicación de 16 letras (se quitan los espacios automáticamente).
+                    </p>
+                </div>
+
+                <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 space-y-2">
+                    <div class="flex justify-between items-center gap-2">
+                        <label class="block font-black text-[11px] uppercase text-blue-900">Puente HTTPS Puerto 443 (Opcional - Si tu hosting bloquea puertos 465/587):</label>
+                        <button type="button" onclick="copiarCodigoAppsScript()" class="bg-blue-700 hover:bg-blue-800 text-white px-2.5 py-1 rounded-lg text-[10px] font-bold whitespace-nowrap shadow-sm transition">
+                            Copiar Código Google Script
+                        </button>
+                    </div>
+                    <input type="url" id="smtp_cfg_webhook" placeholder="https://script.google.com/macros/s/.../exec" class="w-full border border-blue-300 bg-white p-2 rounded-lg text-xs font-mono text-slate-800 focus:ring-2 focus:ring-blue-500">
+                    <p class="text-[10px] text-blue-800 leading-relaxed">
+                        Servidores gratuitos como <strong>Render</strong> o <strong>Railway</strong> bloquean los puertos SMTP 465 y 587. Si pegas aquí la URL de un Google Apps Script (puerto HTTPS 443), los correos saldrán en 0.4 segundos sin ningún bloqueo.
                     </p>
                 </div>
 
@@ -2653,11 +2666,13 @@
 
                 if (data.configurado) {
                     if (badge) {
-                        badge.innerText = 'Activo';
+                        badge.innerText = data.webhook_url ? 'HTTPS Activo' : 'Activo';
                         badge.className = 'bg-emerald-900/60 text-emerald-100 text-[10px] px-1.5 py-0.5 rounded font-black';
                     }
                     if (banner) {
-                        banner.innerHTML = `Correo activo: <strong>${data.smtp_user}</strong> (${data.smtp_host}:${data.smtp_port})`;
+                        banner.innerHTML = data.webhook_url
+                            ? `Puente HTTPS (Puerto 443) activo ${data.smtp_user ? `• Remitente: <strong>${data.smtp_user}</strong>` : ''}`
+                            : `Correo activo: <strong>${data.smtp_user}</strong> (${data.smtp_host}:${data.smtp_port})`;
                         banner.className = 'p-3 rounded-xl border text-xs font-semibold bg-emerald-50 text-emerald-900 border-emerald-200';
                     }
                 } else {
@@ -2666,7 +2681,7 @@
                         badge.className = 'bg-amber-400 text-slate-900 text-[10px] px-1.5 py-0.5 rounded font-black';
                     }
                     if (banner) {
-                        banner.innerHTML = `<strong>Correo SMTP aún no configurado en este servidor.</strong> Ingresa tu correo y contraseña de aplicación abajo y haz clic en Guardar.`;
+                        banner.innerHTML = `<strong>Correo SMTP aún no configurado en este servidor.</strong> Ingresa tu correo y contraseña de aplicación abajo (o tu Puente HTTPS) y haz clic en Guardar.`;
                         banner.className = 'p-3 rounded-xl border text-xs font-semibold bg-amber-50 text-amber-900 border-amber-300';
                     }
                 }
@@ -2674,6 +2689,8 @@
                 if (data.smtp_host) document.getElementById('smtp_cfg_host').value = data.smtp_host;
                 if (data.smtp_port) document.getElementById('smtp_cfg_port').value = data.smtp_port;
                 if (data.smtp_user) document.getElementById('smtp_cfg_user').value = data.smtp_user;
+                const webhookInput = document.getElementById('smtp_cfg_webhook');
+                if (webhookInput) webhookInput.value = data.webhook_url || '';
 
                 const passInput = document.getElementById('smtp_cfg_pass');
                 if (passInput) {
@@ -2683,6 +2700,15 @@
                         : 'Ej. ajfn hwbw ligy kgaa';
                 }
             } catch (e) {}
+        }
+
+        function copiarCodigoAppsScript() {
+            const codigo = `function doPost(e) {\n  var d = JSON.parse(e.postData.contents);\n  MailApp.sendEmail({ to: d.to, subject: d.subject, htmlBody: d.html, name: d.name || "Sistema de Carteles UVM" });\n  return ContentService.createTextOutput(JSON.stringify({ ok: true })).setMimeType(ContentService.MimeType.JSON);\n}`;
+            navigator.clipboard.writeText(codigo).then(() => {
+                alert("¡Código de 5 líneas copiado al portapapeles!\n\nPASOS RÁPIDOS (1 minuto):\n1. Entra a https://script.google.com y crea un 'Nuevo proyecto'.\n2. Borra lo que tenga, pega este código y dale en 'Implementar' -> 'Nueva implementación'.\n3. En tipo elige 'Aplicación web', en Acceso elige 'Cualquier persona' y copia la URL que termina en /exec.\n4. Pega esa URL en el campo Puente HTTPS y guarda.");
+            }).catch(() => {
+                prompt("Copia este código y pégalo en https://script.google.com (Implementar -> Aplicación web -> Acceso: Cualquier persona):", codigo);
+            });
         }
 
         function abrirModalConfigurarSmtp() {
@@ -2710,12 +2736,13 @@
             const smtp_port = document.getElementById('smtp_cfg_port').value.trim();
             const smtp_user = document.getElementById('smtp_cfg_user').value.trim();
             const smtp_pass = document.getElementById('smtp_cfg_pass').value.trim();
+            const webhook_url = document.getElementById('smtp_cfg_webhook')?.value.trim() || '';
 
             try {
                 const res = await fetch('/api/admin/smtp', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ smtp_host, smtp_port, smtp_user, smtp_pass })
+                    body: JSON.stringify({ smtp_host, smtp_port, smtp_user, smtp_pass, webhook_url })
                 });
                 const data = await leerRespuestaJsonSegura(res);
                 if (res.ok) {
@@ -2735,9 +2762,10 @@
             const smtp_port = document.getElementById('smtp_cfg_port').value.trim();
             const smtp_user = document.getElementById('smtp_cfg_user').value.trim();
             const smtp_pass = document.getElementById('smtp_cfg_pass').value.trim();
+            const webhook_url = document.getElementById('smtp_cfg_webhook')?.value.trim() || '';
 
-            if (!smtp_user) {
-                return alert("Primero ingresa el correo remitente (SMTP_USER).");
+            if (!smtp_user && !webhook_url) {
+                return alert("Primero ingresa el correo remitente (SMTP_USER) o la URL del Puente HTTPS.");
             }
 
             try {
@@ -2745,7 +2773,7 @@
                 const resSave = await fetch('/api/admin/smtp', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ smtp_host, smtp_port, smtp_user, smtp_pass })
+                    body: JSON.stringify({ smtp_host, smtp_port, smtp_user, smtp_pass, webhook_url })
                 });
                 const dataSave = await leerRespuestaJsonSegura(resSave);
                 if (!resSave.ok) {
@@ -2754,7 +2782,7 @@
 
                 await cargarEstadoSmtpAdmin();
 
-                const destino = prompt("¿A qué correo deseas enviar el correo de prueba?", smtp_user);
+                const destino = prompt("¿A qué correo deseas enviar el correo de prueba?", smtp_user || '');
                 if (!destino || !destino.trim()) return;
 
                 const resTest = await fetch('/api/admin/smtp/probar', {
