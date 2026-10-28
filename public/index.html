@@ -1253,6 +1253,60 @@
     </div>
 
     <!-- ============================================================== -->
+    <!-- MODAL 2.A2: ENVÍO RÁPIDO EN 1 CLIC (SIN BLOQUEO DE POPUPS)      -->
+    <!-- ============================================================== -->
+    <div id="modal-envio-rapido-correo" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl border space-y-4 my-8">
+            <div class="flex justify-between items-start border-b pb-3">
+                <div>
+                    <span class="inline-block bg-emerald-100 text-emerald-800 font-black text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-wider mb-1">Correo Redactado Listo para Enviar</span>
+                    <h3 class="font-black text-lg text-slate-800" id="modal-envio-rapido-titulo">Enviar Credenciales al Profesor</h3>
+                    <p id="modal-envio-rapido-aviso" class="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 font-semibold mt-1.5">
+                        Tu servidor gratuito bloquea los puertos SMTP (465/587). Haz clic en cualquiera de las opciones de abajo para abrir el correo ya redactado:
+                    </p>
+                </div>
+                <button onclick="cerrarModalEnvioRapidoCorreo()" class="text-gray-400 hover:text-gray-600 text-lg font-bold">✕</button>
+            </div>
+
+            <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-xs space-y-1.5">
+                <div class="flex justify-between gap-2"><span class="text-slate-500 font-bold">Destinatario:</span> <span id="envio-rapido-email" class="font-black text-slate-800 break-all"></span></div>
+                <div class="flex justify-between gap-2"><span class="text-slate-500 font-bold">Nombre:</span> <span id="envio-rapido-nombre" class="font-bold text-slate-800"></span></div>
+                <div class="flex justify-between gap-2"><span class="text-slate-500 font-bold">Usuario / ID:</span> <code id="envio-rapido-usuario" class="bg-red-50 text-red-800 border border-red-200 px-2 py-0.5 rounded font-mono font-black"></code></div>
+                <div class="flex justify-between gap-2"><span class="text-slate-500 font-bold">Contraseña:</span> <code id="envio-rapido-pass" class="bg-red-50 text-red-800 border border-red-200 px-2 py-0.5 rounded font-mono font-black"></code></div>
+                <div class="pt-1 border-t border-slate-200">
+                    <span class="text-slate-500 font-bold block mb-0.5">Enlace Directo de Juez:</span>
+                    <a id="envio-rapido-link" href="#" target="_blank" class="text-red-700 underline font-mono text-[11px] break-all"></a>
+                </div>
+            </div>
+
+            <div class="space-y-2.5">
+                <a id="btn-link-gmail-directo" href="#" target="_blank" rel="noopener noreferrer" onclick="cerrarModalEnvioRapidoCorreo()" class="flex items-center justify-center gap-2 w-full bg-red-600 hover:bg-red-700 text-white font-black text-xs py-3 px-4 rounded-xl shadow-md transition text-center">
+                    <span>Abrir en Gmail Web (Correo ya redactado)</span>
+                </a>
+
+                <a id="btn-link-outlook-directo" href="#" target="_blank" rel="noopener noreferrer" onclick="cerrarModalEnvioRapidoCorreo()" class="flex items-center justify-center gap-2 w-full bg-blue-600 hover:bg-blue-700 text-white font-black text-xs py-3 px-4 rounded-xl shadow-md transition text-center">
+                    <span>Abrir en Outlook Web / Correo UVM (Correo ya redactado)</span>
+                </a>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <a id="btn-link-mailto-directo" href="#" class="flex items-center justify-center bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs py-2.5 px-3 rounded-xl shadow transition text-center">
+                        App de Correo (PC/Cel)
+                    </a>
+                    <button type="button" onclick="copiarTextoMensajeRapido()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-2.5 px-3 rounded-xl shadow transition">
+                        Copiar Todo el Mensaje
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex justify-end pt-2 border-t">
+                <button type="button" onclick="cerrarModalEnvioRapidoCorreo()" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
     <!-- MODAL 2.B: ASIGNAR PROFESORES JUECES MANUALMENTE A UN CARTEL    -->
     <!-- ============================================================== -->
     <div id="modal-asignar-juez-cartel" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -3123,10 +3177,24 @@
             }
         }
 
-        function abrirCorreoDirectoGmail(datos) {
-            const asunto = encodeURIComponent('Acceso Exclusivo de Juez Evaluador - Carteles UVM');
-            const cuerpo = encodeURIComponent(
-`Hola, ${datos.nombre}:
+        let ultimoTextoMensajeRapido = '';
+
+        function cerrarModalEnvioRapidoCorreo() {
+            const modal = document.getElementById('modal-envio-rapido-correo');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function copiarTextoMensajeRapido() {
+            if (!ultimoTextoMensajeRapido) return;
+            navigator.clipboard.writeText(ultimoTextoMensajeRapido).then(() => {
+                alert('¡Mensaje completo con usuario, contraseña y link copiado al portapapeles!');
+            }).catch(() => {
+                prompt('Copia el mensaje completo:', ultimoTextoMensajeRapido);
+            });
+        }
+
+        function abrirCorreoDirectoGmail(datos, avisoTexto = '') {
+            const textoPlano = `Hola, ${datos.nombre}:
 
 El Administrador te ha dado de alta como Profesor / Juez Evaluador en el Sistema de Evaluación de Carteles UVM.
 
@@ -3140,10 +3208,45 @@ Enlace directo a tu Dashboard de Juez Evaluador:
 ${datos.enlace_acceso}
 
 Atentamente,
-Sistema de Evaluación de Carteles UVM`
-            );
-            const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(datos.email)}&su=${asunto}&body=${cuerpo}`;
-            window.open(gmailUrl, '_blank');
+Sistema de Evaluación de Carteles UVM`;
+
+            ultimoTextoMensajeRapido = textoPlano;
+
+            const asuntoRaw = 'Acceso Exclusivo de Juez Evaluador - Carteles UVM';
+            const asunto = encodeURIComponent(asuntoRaw);
+            const cuerpo = encodeURIComponent(textoPlano);
+            const emailDest = encodeURIComponent(datos.email || '');
+
+            const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${emailDest}&su=${asunto}&body=${cuerpo}`;
+            const outlookUrl = `https://outlook.office.com/mail/deeplink/compose?to=${emailDest}&subject=${asunto}&body=${cuerpo}`;
+            const mailtoUrl = `mailto:${datos.email || ''}?subject=${asunto}&body=${cuerpo}`;
+
+            document.getElementById('envio-rapido-email').innerText = datos.email || '';
+            document.getElementById('envio-rapido-nombre').innerText = datos.nombre || '';
+            document.getElementById('envio-rapido-usuario').innerText = datos.matricula || '';
+            document.getElementById('envio-rapido-pass').innerText = datos.password || '';
+            const linkEl = document.getElementById('envio-rapido-link');
+            if (linkEl) {
+                linkEl.href = datos.enlace_acceso || '#';
+                linkEl.innerText = datos.enlace_acceso || '';
+            }
+
+            const avisoEl = document.getElementById('modal-envio-rapido-aviso');
+            if (avisoEl) {
+                avisoEl.innerText = avisoTexto || 'Tu servidor en la nube bloquea los puertos SMTP (465/587). Haz clic en uno de los botones de abajo para abrir el correo ya redactado (sin bloqueo de ventanas emergentes):';
+            }
+
+            const btnGmail = document.getElementById('btn-link-gmail-directo');
+            if (btnGmail) btnGmail.href = gmailUrl;
+
+            const btnOutlook = document.getElementById('btn-link-outlook-directo');
+            if (btnOutlook) btnOutlook.href = outlookUrl;
+
+            const btnMailto = document.getElementById('btn-link-mailto-directo');
+            if (btnMailto) btnMailto.href = mailtoUrl;
+
+            const modal = document.getElementById('modal-envio-rapido-correo');
+            if (modal) modal.classList.remove('hidden');
         }
 
         async function reenviarCorreoUsuario(id, emailActual, nombre) {
@@ -3152,10 +3255,6 @@ Sistema de Evaluación de Carteles UVM`
                 const ingresado = prompt(`El profesor ${nombre} aún no tiene correo registrado.\nIngresa su correo electrónico para enviarle su usuario, contraseña y link directo a su dashboard:`);
                 if (!ingresado || !ingresado.trim()) return;
                 correo = ingresado.trim();
-            } else {
-                if (!confirm(`¿Deseas enviar a ${correo} los datos de acceso (usuario, contraseña y link directo al dashboard de juez) de ${nombre}?`)) {
-                    return;
-                }
             }
 
             try {
@@ -3169,15 +3268,15 @@ Sistema de Evaluación de Carteles UVM`
                     alert(data.mensaje);
                     cargarAdminUsuarios();
                 } else {
-                    if (data.datos_cuenta && confirm(`${data.error}\n\n¿Deseas abrir Gmail ahora mismo con el correo ya redactado (con su usuario, contraseña y link) listo para darle clic en "Enviar"?`)) {
-                        abrirCorreoDirectoGmail(data.datos_cuenta);
+                    if (data.datos_cuenta) {
+                        abrirCorreoDirectoGmail(data.datos_cuenta, data.error);
                     } else {
                         alert(data.error || "No se pudo enviar el correo.");
                     }
                 }
             } catch (err) {
                 const u = usuariosAdminCache.find(item => Number(item.id) === Number(id));
-                if (u && confirm(`${err.message}\n\n¿Deseas abrir Gmail ahora mismo con el correo ya redactado para ${nombre} (${correo}) listo para darle clic en "Enviar"?`)) {
+                if (u) {
                     abrirCorreoDirectoGmail({
                         nombre: u.nombre,
                         matricula: u.matricula,
@@ -3186,7 +3285,7 @@ Sistema de Evaluación de Carteles UVM`
                         carrera: u.carrera,
                         nivel_asignado: u.nivel_asignado,
                         enlace_acceso: obtenerUrlExclusivaJueces(u.matricula)
-                    });
+                    }, err.message);
                 } else {
                     alert("Aviso al enviar correo: " + err.message);
                 }
@@ -3319,17 +3418,15 @@ Sistema de Evaluación de Carteles UVM`
                     cargarAdminUsuarios();
                     cargarAdminDashboard();
                     if (email && !data.correo_enviado) {
-                        if (confirm(`${data.mensaje}\n\n¿Deseas abrir Gmail ahora mismo con el correo ya redactado (usuario, contraseña y link) listo para darle clic en "Enviar"?`)) {
-                            abrirCorreoDirectoGmail({
-                                nombre,
-                                matricula: data.usuario?.matricula || matricula,
-                                password,
-                                email,
-                                carrera,
-                                nivel_asignado,
-                                enlace_acceso: data.enlace_acceso || obtenerUrlExclusivaJueces(data.usuario?.matricula || matricula)
-                            });
-                        }
+                        abrirCorreoDirectoGmail({
+                            nombre,
+                            matricula: data.usuario?.matricula || matricula,
+                            password,
+                            email,
+                            carrera,
+                            nivel_asignado,
+                            enlace_acceso: data.enlace_acceso || obtenerUrlExclusivaJueces(data.usuario?.matricula || matricula)
+                        }, data.mensaje);
                     } else {
                         alert(data.mensaje);
                     }

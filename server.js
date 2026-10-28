@@ -235,10 +235,12 @@ let smtpConfigCache = null;
 let smtpConfigCacheTime = 0;
 let smtpTransporterPool = null;
 let smtpTransporterKey = '';
+let smtpTcpBloqueadoEnServidor = false;
 
 function invalidarCacheSmtp() {
     smtpConfigCache = null;
     smtpConfigCacheTime = 0;
+    smtpTcpBloqueadoEnServidor = false;
     if (smtpTransporterPool && typeof smtpTransporterPool.close === 'function') {
         try { smtpTransporterPool.close(); } catch (e) {}
     }
@@ -314,9 +316,9 @@ function obtenerTransporterSmtp(cfg, puertoOverride = null) {
         secure,
         requireTLS: port === 587,
         family: 4, // Forzar IPv4 para evitar retrasos de 30s+ por IPv6 en contenedores cloud
-        connectionTimeout: 3500,
-        greetingTimeout: 3500,
-        socketTimeout: 5000,
+        connectionTimeout: 2200,
+        greetingTimeout: 2200,
+        socketTimeout: 4000,
         auth: {
             user: cfg.smtpUser,
             pass: cfg.smtpPass
@@ -448,6 +450,14 @@ async function enviarCorreoDatosCuenta({ email, nombre, matricula, password, rol
     }
 
     // 2. Envío directo por SMTP (espera confirmación real, sin dar falsos positivos)
+    if (smtpTcpBloqueadoEnServidor) {
+        return {
+            enviado: false,
+            motivo: 'Tu servidor en la nube (Render/Railway) bloquea los puertos SMTP (465 y 587). Elige abajo cómo enviar las credenciales en 1 clic.',
+            enlace_acceso: enlaceAcceso
+        };
+    }
+
     try {
         const transporter = obtenerTransporterSmtp(cfg);
         await transporter.sendMail(mailOptions);
@@ -456,6 +466,10 @@ async function enviarCorreoDatosCuenta({ email, nombre, matricula, password, rol
     } catch (err1) {
         const msg1 = (err1 && err1.message) ? err1.message : String(err1);
         const esTimeout = /timeout|ETIMEDOUT|ECONNREFUSED|ESOCKET/i.test(msg1) || (err1 && (err1.code === 'ETIMEDOUT' || err1.code === 'ESOCKET'));
+
+        if (esTimeout) {
+            smtpTcpBloqueadoEnServidor = true;
+        }
 
         // Si el error NO fue bloqueo de red/timeout (ej. falló TLS en 587 pero hay red), probar el puerto alterno
         if (!esTimeout) {
@@ -476,7 +490,7 @@ async function enviarCorreoDatosCuenta({ email, nombre, matricula, password, rol
         }
 
         const motivoClaro = esTimeout
-            ? 'Tu servidor en la nube (Render/Railway) bloquea los puertos SMTP (465 y 587). Configura el Puente HTTPS gratuito en "Configurar Correo SMTP" o envíalo con 1 clic por Gmail Web.'
+            ? 'Tu servidor en la nube (Render/Railway) bloquea los puertos SMTP (465 y 587). Elige abajo cómo enviar las credenciales en 1 clic.'
             : msg1;
         console.warn(`[CORREO] No se pudo enviar por SMTP a ${email}: ${motivoClaro}`);
         return { enviado: false, motivo: motivoClaro, enlace_acceso: enlaceAcceso };
