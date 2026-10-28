@@ -1210,7 +1210,7 @@ async function manejarEnvioSmsUsuario(req, res) {
         });
 
         res.json({
-            mensaje: `SMS directo listo para enviar al número ${telDestino} con el usuario (${u.matricula}), contraseña y enlace directo.`,
+            mensaje: `Mensaje de WhatsApp listo para enviar al número ${telDestino} con el usuario (${u.matricula}), contraseña y enlace directo.`,
             listo_sms: true,
             enlace_acceso: infoSms.enlace_acceso,
             sms_url: infoSms.sms_url,

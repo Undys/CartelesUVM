@@ -599,7 +599,7 @@
                 </div>
                 <div class="flex flex-wrap items-center gap-2 self-start sm:self-auto">
                     <span class="text-xs bg-emerald-600 text-white px-3 py-2 rounded-xl font-bold flex items-center gap-1.5 shadow-sm select-none">
-                        <span>SMS Directo Activo</span>
+                        <span>WhatsApp Directo Activo</span>
                         <span class="bg-white/20 text-[10px] px-1.5 py-0.5 rounded font-black">Instantáneo</span>
                     </span>
                     <button onclick="abrirModalEditarPerfilAdmin()" class="text-xs bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded-xl font-bold transition flex items-center gap-1.5 shadow-sm">
@@ -660,11 +660,11 @@
                 <div class="bg-gradient-to-r from-rose-900 to-red-800 text-white p-5 rounded-2xl shadow-md flex flex-col md:flex-row justify-between md:items-center gap-4 border border-rose-700">
                     <div class="space-y-1">
                         <div class="inline-flex items-center gap-1.5 bg-amber-400 text-slate-900 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full">
-                            Alta de Profesores y Envío Instantáneo por SMS Directo
+                            Alta de Profesores y Envío Instantáneo por WhatsApp
                         </div>
                         <h3 class="text-base sm:text-lg font-black">Portal Exclusivo para Maestros y Jueces Evaluadores</h3>
                         <p class="text-xs text-rose-100 leading-relaxed max-w-2xl">
-                            Al dar de alta a un profesor con su número de celular, el sistema prepara al instante un <strong>SMS directo</strong> (y opción de WhatsApp) con su <strong>usuario</strong>, <strong>contraseña</strong> y el <strong>enlace directo a su dashboard</strong> (<code id="admin-label-url-jueces" class="bg-rose-950/80 px-2 py-0.5 rounded text-amber-300 font-mono">/jueces</code>).
+                            Al dar de alta a un profesor con su número de celular, el sistema prepara al instante un mensaje de <strong>WhatsApp directo</strong> con su <strong>usuario</strong>, <strong>contraseña</strong> y el <strong>enlace directo a su dashboard</strong> (<code id="admin-label-url-jueces" class="bg-rose-950/80 px-2 py-0.5 rounded text-amber-300 font-mono">/jueces</code>).
                         </p>
                     </div>
                     <div class="flex flex-wrap items-center gap-2 shrink-0">
@@ -672,7 +672,7 @@
                             Copiar Link de Jueces (/jueces)
                         </button>
                         <button type="button" onclick="abrirModalCrearUsuario('profesor')" class="bg-amber-400 hover:bg-amber-300 text-slate-900 px-4 py-2.5 rounded-xl text-xs font-black shadow-md transition">
-                            + Dar de Alta Profesor (Enviar SMS)
+                            + Dar de Alta Profesor (Enviar WhatsApp)
                         </button>
                     </div>
                 </div>
@@ -682,12 +682,12 @@
                         <div>
                             <h3 class="text-lg font-black text-slate-800">Directorio de Usuarios Registrados</h3>
                             <p class="text-xs text-gray-500 mt-0.5">
-                                Da de alta profesores (con envío instantáneo por SMS directo y link), promueve usuarios o gestiona administradores y alumnos.
+                                Da de alta profesores (con envío instantáneo por WhatsApp y link), promueve usuarios o gestiona administradores y alumnos.
                             </p>
                         </div>
                         <div class="flex flex-wrap items-center gap-2">
                             <button onclick="abrirModalCrearUsuario('profesor')" class="bg-rose-700 hover:bg-rose-800 text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow transition flex items-center gap-1.5">
-                                <span>+ Alta Profesor (Enviar SMS)</span>
+                                <span>+ Alta Profesor (Enviar WhatsApp)</span>
                             </button>
                             <button onclick="abrirModalCrearUsuario('estudiante')" class="bg-red-600 hover:bg-red-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow transition flex items-center gap-1.5">
                                 <span>+ Dar de Alta Usuario</span>
@@ -1082,16 +1082,16 @@
                 <div>
                     <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Rol a Asignar:</label>
                     <select id="admin_nuevo_rol" onchange="toggleCamposCrearUsuarioModal(this.value)" class="w-full border p-2.5 rounded-xl text-xs font-bold bg-white text-slate-800 focus:ring-2 focus:ring-red-500">
-                        <option value="profesor">Profesor / Juez Evaluador (Envía SMS Directo + link)</option>
+                        <option value="profesor">Profesor / Juez Evaluador (Envía WhatsApp + link)</option>
                         <option value="estudiante">Estudiante (Alumno)</option>
                         <option value="admin">Administrador del Sistema</option>
                     </select>
                 </div>
 
                 <div id="admin_nuevo_profe_info" class="bg-rose-50 text-rose-950 p-3 rounded-xl border border-rose-200 text-xs">
-                    <p class="font-bold text-rose-900">Envío Instantáneo por SMS Directo</p>
+                    <p class="font-bold text-rose-900">Envío Instantáneo por WhatsApp</p>
                     <p class="text-[11px] text-rose-800 mt-0.5">
-                        Al guardar, se abrirá al instante el mensaje <strong>SMS Directo</strong> (y opción WhatsApp) para enviarle al profesor su <strong>Usuario</strong>, <strong>Contraseña</strong> y el <strong>enlace directo a su dashboard (`/jueces`)</strong>.
+                        Al guardar, se abrirá al instante la opción de <strong>WhatsApp Directo</strong> para enviarle al profesor su <strong>Usuario</strong>, <strong>Contraseña</strong> y el <strong>enlace directo a su dashboard (`/jueces`)</strong>.
                     </p>
                 </div>
 
@@ -1117,7 +1117,7 @@
                 </div>
 
                 <div>
-                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Número de Celular (10 dígitos - Recibirá SMS con usuario, clave y link):</label>
+                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Número de Celular (10 dígitos - Recibirá WhatsApp con usuario, clave y link):</label>
                     <input type="tel" id="admin_nuevo_telefono" name="nuevo_telefono_uvm" autocomplete="off" placeholder="Ej. 5512345678" oninput="this.value = this.value.replace(/[^\d+\s-]/g, '')" class="w-full border p-2.5 rounded-xl font-semibold text-xs text-slate-800 focus:ring-2 focus:ring-red-500">
                 </div>
 
@@ -1157,7 +1157,7 @@
                         Cancelar
                     </button>
                     <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-xl text-xs font-bold shadow">
-                        Guardar y Preparar SMS
+                        Guardar y Preparar WhatsApp
                     </button>
                 </div>
             </form>
@@ -1165,16 +1165,16 @@
     </div>
 
     <!-- ============================================================== -->
-    <!-- MODAL 2.A2: ENVÍO RÁPIDO POR SMS DIRECTO / WHATSAPP (1 CLIC)    -->
+    <!-- MODAL 2.A2: ENVÍO RÁPIDO POR WHATSAPP (1 CLIC)                 -->
     <!-- ============================================================== -->
     <div id="modal-envio-rapido-correo" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
         <div class="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl border space-y-4 my-8">
             <div class="flex justify-between items-start border-b pb-3">
                 <div>
-                    <span class="inline-block bg-emerald-100 text-emerald-800 font-black text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-wider mb-1">SMS Directo Listo al Instante</span>
-                    <h3 class="font-black text-lg text-slate-800" id="modal-envio-rapido-titulo">Enviar Credenciales por SMS Directo</h3>
+                    <span class="inline-block bg-emerald-100 text-emerald-800 font-black text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-wider mb-1">WhatsApp Directo Listo al Instante</span>
+                    <h3 class="font-black text-lg text-slate-800" id="modal-envio-rapido-titulo">Enviar Credenciales por WhatsApp</h3>
                     <p id="modal-envio-rapido-aviso" class="text-[11px] text-emerald-900 bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-1.5 font-semibold mt-1.5">
-                        Elige abajo cómo enviar al instante el mensaje con el usuario, contraseña y link directo:
+                        Haz clic abajo para enviar al instante el mensaje por WhatsApp con el usuario, contraseña y link directo:
                     </p>
                 </div>
                 <button onclick="cerrarModalEnvioRapidoCorreo()" class="text-gray-400 hover:text-gray-600 text-lg font-bold">✕</button>
@@ -1190,23 +1190,19 @@
                     <a id="envio-rapido-link" href="#" target="_blank" class="text-red-700 underline font-mono text-[11px] break-all"></a>
                 </div>
                 <div class="pt-1.5 border-t border-slate-200">
-                    <span class="text-slate-500 font-bold block mb-1">Vista previa del SMS:</span>
+                    <span class="text-slate-500 font-bold block mb-1">Vista previa del mensaje:</span>
                     <pre id="envio-rapido-preview-sms" class="bg-white border border-slate-200 rounded-lg p-2.5 text-[11px] font-mono text-slate-700 whitespace-pre-wrap break-words leading-relaxed"></pre>
                 </div>
             </div>
 
             <div class="space-y-2.5">
-                <a id="btn-link-sms-directo" href="#" onclick="cerrarModalEnvioRapidoCorreo()" class="flex items-center justify-center gap-2 w-full bg-red-600 hover:bg-red-700 text-white font-black text-xs py-3.5 px-4 rounded-xl shadow-md transition text-center">
-                    <span>Enviar SMS Directo (Abrir App de Mensajes SMS)</span>
-                </a>
-
-                <a id="btn-link-whatsapp-directo" href="#" target="_blank" rel="noopener noreferrer" onclick="cerrarModalEnvioRapidoCorreo()" class="flex items-center justify-center gap-2 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs py-3 px-4 rounded-xl shadow-md transition text-center">
+                <a id="btn-link-whatsapp-directo" href="#" target="_blank" rel="noopener noreferrer" onclick="cerrarModalEnvioRapidoCorreo()" class="flex items-center justify-center gap-2 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs py-3.5 px-4 rounded-xl shadow-md transition text-center">
                     <span>Enviar por WhatsApp Directo (1 Clic)</span>
                 </a>
 
                 <div class="grid grid-cols-2 gap-2">
                     <button type="button" onclick="copiarTextoMensajeRapido()" class="bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs py-2.5 px-3 rounded-xl shadow transition">
-                        Copiar Mensaje SMS
+                        Copiar Mensaje Completo
                     </button>
                     <button type="button" onclick="copiarSoloLinkMensajeRapido()" class="bg-amber-100 hover:bg-amber-200 text-amber-950 border border-amber-300 font-bold text-xs py-2.5 px-3 rounded-xl shadow-sm transition">
                         Copiar Solo el Link
@@ -2747,8 +2743,8 @@
                     `;
                 } else if (u.rol === 'profesor') {
                     botonesAccion = `
-                        <button onclick="enviarSmsUsuario(${u.id}, '${telMostrar.replace(/'/g, "\\'")}', '${u.nombre.replace(/'/g, "\\'")}')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded-lg font-bold text-[11px] shadow-sm transition" title="Enviar por SMS directo o WhatsApp usuario, contraseña y link a su dashboard">
-                            Enviar SMS
+                        <button onclick="enviarSmsUsuario(${u.id}, '${telMostrar.replace(/'/g, "\\'")}', '${u.nombre.replace(/'/g, "\\'")}')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded-lg font-bold text-[11px] shadow-sm transition" title="Enviar por WhatsApp usuario, contraseña y link a su dashboard">
+                            Enviar WhatsApp
                         </button>
                         <button onclick="copiarEnlaceJuez('${u.matricula.replace(/'/g, "\\'")}')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 px-2 py-1 rounded-lg font-bold text-[11px] transition" title="Copiar link directo de acceso para este profesor">
                             Link Juez
@@ -2963,9 +2959,9 @@
         function copiarTextoMensajeRapido() {
             if (!ultimoTextoMensajeRapido) return;
             navigator.clipboard.writeText(ultimoTextoMensajeRapido).then(() => {
-                alert('¡Texto completo del SMS (con usuario, contraseña y link) copiado al portapapeles!');
+                alert('¡Mensaje completo (con usuario, contraseña y link) copiado al portapapeles!');
             }).catch(() => {
-                prompt('Copia el mensaje SMS completo:', ultimoTextoMensajeRapido);
+                prompt('Copia el mensaje completo:', ultimoTextoMensajeRapido);
             });
         }
 
@@ -2987,10 +2983,6 @@
 
             ultimoTextoMensajeRapido = textoSms;
             ultimoLinkAccesoRapido = enlace;
-
-            const smsUrl = datos.sms_url || (soloDigitos
-                ? `sms:${soloDigitos}?body=${encodeURIComponent(textoSms)}`
-                : `sms:?body=${encodeURIComponent(textoSms)}`);
 
             const telWa = soloDigitos.length === 10 ? `52${soloDigitos}` : soloDigitos;
             const whatsappUrl = datos.whatsapp_url || (telWa
@@ -3019,11 +3011,8 @@
 
             const avisoEl = document.getElementById('modal-envio-rapido-aviso');
             if (avisoEl) {
-                avisoEl.innerText = avisoTexto || '¡Credenciales listas al instante! Haz clic abajo para enviar el SMS directo o por WhatsApp con el mensaje ya escrito:';
+                avisoEl.innerText = avisoTexto || '¡Credenciales listas al instante! Haz clic abajo para enviar por WhatsApp con el mensaje ya escrito:';
             }
-
-            const btnSms = document.getElementById('btn-link-sms-directo');
-            if (btnSms) btnSms.href = smsUrl;
 
             const btnWa = document.getElementById('btn-link-whatsapp-directo');
             if (btnWa) btnWa.href = whatsappUrl;
@@ -3166,7 +3155,7 @@
             }
             if (tituloModal) {
                 tituloModal.innerText = rol === 'profesor'
-                    ? 'Dar de Alta Profesor / Juez Evaluador (SMS Directo)'
+                    ? 'Dar de Alta Profesor / Juez Evaluador (WhatsApp Directo)'
                     : (rol === 'admin' ? 'Dar de Alta Administrador' : 'Dar de Alta Estudiante');
             }
             if (adminInfo) {
