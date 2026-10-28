@@ -335,166 +335,63 @@ function obtenerTransporterSmtp(cfg, puertoOverride = null) {
     return nuevoTransporter;
 }
 
-// Helper para enviar correo automático con los datos de la cuenta y enlace al dashboard (Profesores / Usuarios)
-async function enviarCorreoDatosCuenta({ email, nombre, matricula, password, rol, carrera, nivel_asignado, baseUrl }) {
+// Helper para normalizar números de teléfono celular (México +52 por defecto para WhatsApp si son 10 dígitos)
+function normalizarTelefono(raw) {
+    if (!raw) return '';
+    const limpio = String(raw).replace(/[^\d+]/g, '');
+    return limpio;
+}
+
+function obtenerTelefonoParaWhatsApp(telefonoLimpio) {
+    const soloDigitos = String(telefonoLimpio || '').replace(/\D/g, '');
+    if (!soloDigitos) return '';
+    if (soloDigitos.length === 10) {
+        return `52${soloDigitos}`;
+    }
+    return soloDigitos;
+}
+
+// Helper para generar los datos y enlaces de SMS directo / WhatsApp en 1 clic (instantáneo, sin demoras de red)
+function generarDatosSmsCuenta({ telefono, email, nombre, matricula, password, rol, carrera, nivel_asignado, baseUrl }) {
     const urlServidor = (baseUrl || process.env.PUBLIC_URL || `http://localhost:${process.env.PORT || 3000}`).replace(/\/+$/, '');
     const enlaceAcceso = rol === 'profesor'
         ? `${urlServidor}/jueces?usuario=${encodeURIComponent(matricula)}`
         : (rol === 'admin' ? `${urlServidor}/admin` : `${urlServidor}/`);
 
-    if (!email || !email.trim()) {
-        return { enviado: false, motivo: 'Sin correo electrónico proporcionado', enlace_acceso: enlaceAcceso };
-    }
+    const telLimpio = normalizarTelefono(telefono || email || '');
+    const telWa = obtenerTelefonoParaWhatsApp(telLimpio);
 
-    const cfg = await obtenerConfiguracionSmtp();
-    const { smtpFrom, configurado } = cfg;
+    const textoSms = rol === 'profesor'
+        ? `UVM Carteles - Hola ${nombre}, tus datos de Juez Evaluador (Nivel ${nivel_asignado || 1} - ${carrera || 'General'}):\nUsuario: ${matricula}\nClave: ${password}\nIngresa aqui: ${enlaceAcceso}`
+        : `UVM Carteles - Hola ${nombre}, tus datos de acceso:\nUsuario: ${matricula}\nClave: ${password}\nIngresa aqui: ${enlaceAcceso}`;
 
-    if (!configurado) {
-        console.warn(`[CORREO] No se pudo enviar correo a ${email}: Configura el correo SMTP desde el Panel de Administrador.`);
-        return { enviado: false, motivo: 'SMTP no configurado (configúralo desde el botón "Configurar Correo SMTP" en el Panel de Administrador)', enlace_acceso: enlaceAcceso };
-    }
+    const bodyEncoded = encodeURIComponent(textoSms);
+    const smsUrl = telLimpio ? `sms:${telLimpio}?body=${bodyEncoded}` : `sms:?body=${bodyEncoded}`;
+    const whatsappUrl = telWa ? `https://wa.me/${telWa}?text=${bodyEncoded}` : `https://wa.me/?text=${bodyEncoded}`;
 
-    const rolEtiqueta = rol === 'profesor'
-        ? 'Profesor / Juez Evaluador'
-        : (rol === 'admin' ? 'Administrador' : 'Estudiante (Alumno)');
-
-    const textoBoton = rol === 'profesor'
-        ? 'Ingresar a Mi Dashboard de Juez Evaluador'
-        : 'Ingresar al Sistema de Carteles UVM';
-
-    const htmlBody = `
-        <div style="font-family: Arial, sans-serif; max-width: 580px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
-            <div style="background-color: #b91c1c; color: #ffffff; padding: 20px 24px;">
-                <h2 style="margin: 0; font-size: 20px;">Sistema de Evaluación de Carteles - UVM</h2>
-                <p style="margin: 4px 0 0; font-size: 13px; color: #fecaca;">
-                    ${rol === 'profesor' ? 'Invitación y Acceso Exclusivo para Maestros / Jueces' : 'Datos de acceso a tu cuenta'}
-                </p>
-            </div>
-            <div style="padding: 24px; color: #1e293b; background-color: #ffffff;">
-                <p style="margin-top: 0; font-size: 15px;">Hola, <strong>${nombre}</strong>:</p>
-                <p style="font-size: 14px; line-height: 1.5; color: #475569;">
-                    ${rol === 'profesor'
-                        ? 'El Administrador te ha dado de alta como <strong>Profesor / Juez Evaluador</strong> en el Sistema de Evaluación de Carteles UVM. A continuación, te compartimos tu usuario, contraseña y el enlace directo a tu dashboard:'
-                        : 'Tu cuenta ha sido dada de alta en el Sistema de Evaluación de Carteles UVM. A continuación, te compartimos tus datos de ingreso:'}
-                </p>
-                <div style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 16px; margin: 20px 0;">
-                    <p style="margin: 6px 0; font-size: 14px;"><strong>Nombre:</strong> ${nombre}</p>
-                    <p style="margin: 6px 0; font-size: 14px;"><strong>Usuario / ID de Acceso:</strong> <code style="background: #fff; padding: 3px 8px; border-radius: 4px; font-weight: bold; color: #991b1b; border: 1px solid #fecaca;">${matricula}</code></p>
-                    <p style="margin: 6px 0; font-size: 14px;"><strong>Correo registrado:</strong> ${email}</p>
-                    <p style="margin: 6px 0; font-size: 14px;"><strong>Contraseña:</strong> <code style="background: #fff; padding: 3px 8px; border-radius: 4px; font-weight: bold; color: #991b1b; border: 1px solid #fecaca;">${password}</code></p>
-                    <p style="margin: 6px 0; font-size: 14px;"><strong>Rol en el sistema:</strong> ${rolEtiqueta}</p>
-                    <p style="margin: 6px 0; font-size: 14px;"><strong>Área / Carrera:</strong> ${carrera || 'General'}</p>
-                    ${rol === 'profesor' ? `<p style="margin: 6px 0; font-size: 14px;"><strong>Nivel Asignado para Evaluar:</strong> Nivel ${nivel_asignado || 1}</p>` : ''}
-                </div>
-                <div style="text-align: center; margin: 26px 0;">
-                    <a href="${enlaceAcceso}" style="display: inline-block; background-color: #b91c1c; color: #ffffff; text-decoration: none; font-weight: bold; font-size: 14px; padding: 13px 26px; border-radius: 8px;">
-                        ${textoBoton}
-                    </a>
-                </div>
-                <p style="font-size: 12px; color: #64748b; background-color: #f8fafc; padding: 10px 12px; border-radius: 6px; border: 1px solid #e2e8f0; word-break: break-all;">
-                    <strong>Enlace directo de acceso:</strong><br>
-                    <a href="${enlaceAcceso}" style="color: #b91c1c;">${enlaceAcceso}</a>
-                </p>
-                <p style="font-size: 13px; color: #64748b; margin-bottom: 0;">
-                    Puedes iniciar sesión utilizando tu <strong>Usuario (${matricula})</strong> o tu <strong>Correo Electrónico (${email})</strong> junto con tu contraseña.
-                </p>
-            </div>
-            <div style="background-color: #f8fafc; padding: 12px 24px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0;">
-                UVM - Encuentro Académico • Sistema de Evaluación de Carteles
-            </div>
-        </div>
-    `;
-
-    const mailOptions = {
-        from: smtpFrom,
-        to: email.trim(),
-        subject: rol === 'profesor'
-            ? 'Acceso Exclusivo de Juez Evaluador - Carteles UVM'
-            : 'Datos de Ingreso - Sistema de Evaluación de Carteles UVM',
-        html: htmlBody
+    return {
+        enviado: false,
+        listo_sms: Boolean(telLimpio),
+        telefono: telLimpio,
+        enlace_acceso: enlaceAcceso,
+        mensaje_sms: textoSms,
+        sms_url: smsUrl,
+        whatsapp_url: whatsappUrl,
+        datos_cuenta: {
+            nombre,
+            matricula,
+            password,
+            telefono: telLimpio,
+            email: telLimpio,
+            rol: rol || 'profesor',
+            carrera: carrera || 'General',
+            nivel_asignado: nivel_asignado || 1,
+            enlace_acceso: enlaceAcceso,
+            mensaje_sms: textoSms,
+            sms_url: smsUrl,
+            whatsapp_url: whatsappUrl
+        }
     };
-
-    // 1. Si hay un Puente HTTPS configurado (ej. Google Apps Script Web App en puerto 443), usarlo primero (nunca es bloqueado por Render/Railway)
-    if (cfg.webhookUrl) {
-        try {
-            const controller = new AbortController();
-            const timer = setTimeout(() => controller.abort(), 8000);
-            const resp = await fetch(cfg.webhookUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    to: email.trim(),
-                    subject: mailOptions.subject,
-                    html: htmlBody,
-                    name: 'Sistema de Carteles UVM'
-                }),
-                redirect: 'follow',
-                signal: controller.signal
-            });
-            clearTimeout(timer);
-            if (resp.ok) {
-                console.log(`[CORREO HTTPS] Enviado exitosamente a ${email} vía Puente HTTPS (puerto 443)`);
-                return { enviado: true, enlace_acceso: enlaceAcceso };
-            }
-            const errTxt = await resp.text().catch(() => '');
-            console.warn(`[CORREO HTTPS] Puente HTTPS respondió ${resp.status}: ${errTxt.slice(0, 140)}`);
-            if (!cfg.smtpUser || !cfg.smtpPass) {
-                return { enviado: false, motivo: `Error en Puente HTTPS (${resp.status})`, enlace_acceso: enlaceAcceso };
-            }
-        } catch (errWebhook) {
-            console.warn(`[CORREO HTTPS] Error al conectar con Puente HTTPS:`, errWebhook.message);
-            if (!cfg.smtpUser || !cfg.smtpPass) {
-                return { enviado: false, motivo: `Error en Puente HTTPS: ${errWebhook.message}`, enlace_acceso: enlaceAcceso };
-            }
-        }
-    }
-
-    // 2. Envío directo por SMTP (espera confirmación real, sin dar falsos positivos)
-    if (smtpTcpBloqueadoEnServidor) {
-        return {
-            enviado: false,
-            motivo: 'Tu servidor en la nube (Render/Railway) bloquea los puertos SMTP (465 y 587). Elige abajo cómo enviar las credenciales en 1 clic.',
-            enlace_acceso: enlaceAcceso
-        };
-    }
-
-    try {
-        const transporter = obtenerTransporterSmtp(cfg);
-        await transporter.sendMail(mailOptions);
-        console.log(`[CORREO] Credenciales y enlace (${enlaceAcceso}) enviados exitosamente a ${email}`);
-        return { enviado: true, enlace_acceso: enlaceAcceso };
-    } catch (err1) {
-        const msg1 = (err1 && err1.message) ? err1.message : String(err1);
-        const esTimeout = /timeout|ETIMEDOUT|ECONNREFUSED|ESOCKET/i.test(msg1) || (err1 && (err1.code === 'ETIMEDOUT' || err1.code === 'ESOCKET'));
-
-        if (esTimeout) {
-            smtpTcpBloqueadoEnServidor = true;
-        }
-
-        // Si el error NO fue bloqueo de red/timeout (ej. falló TLS en 587 pero hay red), probar el puerto alterno
-        if (!esTimeout) {
-            const puertoAlterno = (cfg.smtpPort === 465) ? 587 : 465;
-            try {
-                console.warn(`[CORREO] Puerto ${cfg.smtpPort} falló (${msg1}). Reintentando por puerto ${puertoAlterno}...`);
-                const altTransporter = obtenerTransporterSmtp(cfg, puertoAlterno);
-                await altTransporter.sendMail(mailOptions);
-                cfg.smtpPort = puertoAlterno;
-                cfg.smtpSecure = (puertoAlterno === 465);
-                smtpTransporterPool = altTransporter;
-                smtpTransporterKey = `${cfg.smtpHost}:${puertoAlterno}:${cfg.smtpUser}:${cfg.smtpPass}`;
-                console.log(`[CORREO] Enviado exitosamente a ${email} usando puerto ${puertoAlterno}`);
-                return { enviado: true, enlace_acceso: enlaceAcceso };
-            } catch (err2) {
-                console.warn(`[CORREO] Error al enviar correo a ${email}:`, err2.message || msg1);
-            }
-        }
-
-        const motivoClaro = esTimeout
-            ? 'Tu servidor en la nube (Render/Railway) bloquea los puertos SMTP (465 y 587). Elige abajo cómo enviar las credenciales en 1 clic.'
-            : msg1;
-        console.warn(`[CORREO] No se pudo enviar por SMTP a ${email}: ${motivoClaro}`);
-        return { enviado: false, motivo: motivoClaro, enlace_acceso: enlaceAcceso };
-    }
 }
 
 let pool;
@@ -691,31 +588,44 @@ async function asegurarEsquemaYColumnas() {
         }
     } catch (e) {}
 
-    // 1. Asegurar columna email en usuarios (ejecución directa e independiente para evitar error "Unknown column 'email'")
+    // 1. Asegurar columnas email y telefono en usuarios
     try {
         const [uEmailCols] = await pool.query("SHOW COLUMNS FROM usuarios LIKE 'email'");
         if (uEmailCols.length === 0) {
             await pool.query("ALTER TABLE usuarios ADD COLUMN email VARCHAR(150) NULL");
-            console.log('[OK] Columna email agregada a usuarios');
         }
     } catch (e) {
-        try {
-            await pool.query("ALTER TABLE usuarios ADD COLUMN email VARCHAR(150) NULL");
-            console.log('[OK] Columna email agregada a usuarios (fallback)');
-        } catch (e2) {}
+        try { await pool.query("ALTER TABLE usuarios ADD COLUMN email VARCHAR(150) NULL"); } catch (e2) {}
     }
 
-    // 2. Asegurar columna email y carrera en profesores
+    try {
+        const [uTelCols] = await pool.query("SHOW COLUMNS FROM usuarios LIKE 'telefono'");
+        if (uTelCols.length === 0) {
+            await pool.query("ALTER TABLE usuarios ADD COLUMN telefono VARCHAR(30) NULL");
+            console.log('[OK] Columna telefono agregada a usuarios');
+        }
+    } catch (e) {
+        try { await pool.query("ALTER TABLE usuarios ADD COLUMN telefono VARCHAR(30) NULL"); } catch (e2) {}
+    }
+
+    // 2. Asegurar columnas email, telefono y carrera en profesores
     try {
         const [pEmailCols] = await pool.query("SHOW COLUMNS FROM profesores LIKE 'email'");
         if (pEmailCols.length === 0) {
             await pool.query("ALTER TABLE profesores ADD COLUMN email VARCHAR(150) NULL");
-            console.log('[OK] Columna email agregada a profesores');
         }
     } catch (e) {
-        try {
-            await pool.query("ALTER TABLE profesores ADD COLUMN email VARCHAR(150) NULL");
-        } catch (e2) {}
+        try { await pool.query("ALTER TABLE profesores ADD COLUMN email VARCHAR(150) NULL"); } catch (e2) {}
+    }
+
+    try {
+        const [pTelCols] = await pool.query("SHOW COLUMNS FROM profesores LIKE 'telefono'");
+        if (pTelCols.length === 0) {
+            await pool.query("ALTER TABLE profesores ADD COLUMN telefono VARCHAR(30) NULL");
+            console.log('[OK] Columna telefono agregada a profesores');
+        }
+    } catch (e) {
+        try { await pool.query("ALTER TABLE profesores ADD COLUMN telefono VARCHAR(30) NULL"); } catch (e2) {}
     }
 
     try {
@@ -797,11 +707,12 @@ async function asegurarEsquemaYColumnas() {
         const [todosProfes] = await pool.query("SELECT * FROM profesores");
         for (const p of todosProfes) {
             const mat = 'prof_' + p.id;
+            const telVal = p.telefono || p.email || null;
             const [uExist] = await pool.query("SELECT id FROM usuarios WHERE profesor_id = ? OR matricula = ?", [p.id, mat]);
             if (uExist.length === 0) {
                 await pool.query(
-                    "INSERT INTO usuarios (nombre, matricula, email, password, rol, carrera, nivel_asignado, profesor_id) VALUES (?, ?, ?, ?, 'profesor', ?, ?, ?)",
-                    [p.nombre.toUpperCase(), mat, p.email || null, p.password || '123456', p.carrera || 'Ingeniería', p.nivel_asignado || 1, p.id]
+                    "INSERT INTO usuarios (nombre, matricula, telefono, email, password, rol, carrera, nivel_asignado, profesor_id) VALUES (?, ?, ?, ?, ?, 'profesor', ?, ?, ?)",
+                    [p.nombre.toUpperCase(), mat, telVal, p.email || null, p.password || '123456', p.carrera || 'Ingeniería', p.nivel_asignado || 1, p.id]
                 );
             }
         }
@@ -815,7 +726,7 @@ async function asegurarEsquemaYColumnas() {
         const [admExist] = await pool.query("SELECT id FROM usuarios WHERE LOWER(TRIM(matricula)) = LOWER(?)", [adminUserDefault]);
         if (admExist.length === 0) {
             await pool.query(
-                "INSERT INTO usuarios (nombre, matricula, email, password, rol, carrera, nivel_asignado) VALUES ('ADMINISTRADOR PREDETERMINADO', ?, 'admin@uvmnet.edu', ?, 'admin', 'General', 1)",
+                "INSERT INTO usuarios (nombre, matricula, telefono, email, password, rol, carrera, nivel_asignado) VALUES ('ADMINISTRADOR PREDETERMINADO', ?, NULL, 'admin@uvmnet.edu', ?, 'admin', 'General', 1)",
                 [adminUserDefault, adminPassDefault]
             );
             console.log(`[OK] Administrador predeterminado creado -> Usuario: ${adminUserDefault} | Contraseña: ${adminPassDefault}`);
@@ -831,12 +742,12 @@ async function asegurarEsquemaYColumnas() {
     }
 
     esquemaVerificado = true;
-    console.log('[OK] Esquema, columna email y administrador predeterminado verificados correctamente.');
+    console.log('[OK] Esquema, columna telefono (SMS directo) y administrador predeterminado verificados correctamente.');
 }
 
 conectarBD();
 
-// Middleware que garantiza que las columnas (como email) estén creadas antes de procesar peticiones API
+// Middleware que garantiza que las columnas estén creadas antes de procesar peticiones API
 app.use('/api', async (req, res, next) => {
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.set('Pragma', 'no-cache');
@@ -852,10 +763,10 @@ app.use('/api', async (req, res, next) => {
 
 // --- ENDPOINTS AUTENTICACIÓN Y GESTIÓN DE USUARIOS ---
 
-// Registro general de usuarios (Envía correo automático con los datos de ingreso)
+// Registro general de usuarios (Alumnos con número de celular / teléfono, registro instantáneo)
 app.post('/api/registro', async (req, res) => {
     try {
-        const { nombre, matricula, email, password, carrera, semestre } = req.body;
+        const { nombre, matricula, telefono, celular, email, password, carrera, semestre } = req.body;
         
         if (!nombre || !matricula || !password) {
             return res.status(400).json({ error: "Nombre completo, matrícula/usuario y contraseña son obligatorios." });
@@ -864,7 +775,7 @@ app.post('/api/registro', async (req, res) => {
         // Requerimiento: todas las letras se hacen mayúsculas (ej. gabriel guerrero -> GABRIEL GUERRERO)
         const nombreMayus = convertirMayusculas(nombre);
         const mat = matricula.trim();
-        const emailVal = email ? email.trim().toLowerCase() : null;
+        const telVal = normalizarTelefono(telefono || celular || email || '') || null;
         const pass = password.trim();
         const carreraVal = (carrera && carrera.trim()) ? carrera.trim() : 'Ingeniería';
         const semVal = parseInt(semestre) || 1;
@@ -876,36 +787,30 @@ app.post('/api/registro', async (req, res) => {
         }
 
         const [result] = await pool.query(
-            'INSERT INTO usuarios (nombre, matricula, email, password, rol, carrera, semestre) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            [nombreMayus, mat, emailVal, pass, 'estudiante', carreraVal, semVal]
+            'INSERT INTO usuarios (nombre, matricula, telefono, email, password, rol, carrera, semestre) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            [nombreMayus, mat, telVal, telVal, pass, 'estudiante', carreraVal, semVal]
         );
 
-        let infoCorreo = { enviado: false };
-        if (emailVal) {
-            infoCorreo = await enviarCorreoDatosCuenta({
-                email: emailVal,
-                nombre: nombreMayus,
-                matricula: mat,
-                password: pass,
-                rol: 'estudiante',
-                carrera: carreraVal,
-                nivel_asignado: 1,
-                baseUrl: obtenerUrlBase(req)
-            });
-        }
-
-        const msgExtraCorreo = infoCorreo.enviado
-            ? ` Se han enviado tus datos de ingreso al correo ${emailVal}.`
-            : '';
+        const infoSms = generarDatosSmsCuenta({
+            telefono: telVal,
+            nombre: nombreMayus,
+            matricula: mat,
+            password: pass,
+            rol: 'estudiante',
+            carrera: carreraVal,
+            nivel_asignado: 1,
+            baseUrl: obtenerUrlBase(req)
+        });
 
         res.json({
-            mensaje: `¡${nombreMayus} registrado con éxito!${msgExtraCorreo}`,
-            correo_enviado: infoCorreo.enviado,
+            mensaje: `¡${nombreMayus} registrado con éxito!`,
+            datos_sms: infoSms.datos_cuenta,
             usuario: {
                 id: result.insertId,
                 nombre: nombreMayus,
                 matricula: mat,
-                email: emailVal,
+                telefono: telVal,
+                email: telVal,
                 rol: 'estudiante',
                 carrera: carreraVal,
                 semestre: semVal
@@ -930,7 +835,7 @@ app.post('/api/login', async (req, res) => {
         const adminPassEnv = (process.env.ADMIN_PASSWORD || '').trim();
         if (idf.toLowerCase() === 'admin' && (pass === 'admin123' || pass === 'admin' || (adminPassEnv && pass === adminPassEnv))) {
             try {
-                const [admRows] = await pool.query('SELECT id, nombre, matricula, email, rol, carrera, semestre, nivel_asignado FROM usuarios WHERE LOWER(TRIM(matricula)) = "admin"');
+                const [admRows] = await pool.query('SELECT id, nombre, matricula, telefono, email, rol, carrera, semestre, nivel_asignado FROM usuarios WHERE LOWER(TRIM(matricula)) = "admin"');
                 if (admRows.length > 0) {
                     return res.json({ mensaje: "Acceso correcto", usuario: { ...admRows[0], rol: 'admin' } });
                 }
@@ -942,6 +847,7 @@ app.post('/api/login', async (req, res) => {
                     id: 1,
                     nombre: 'ADMINISTRADOR PREDETERMINADO',
                     matricula: 'admin',
+                    telefono: null,
                     email: 'admin@uvmnet.edu',
                     rol: 'admin',
                     carrera: 'General',
@@ -950,10 +856,11 @@ app.post('/api/login', async (req, res) => {
             });
         }
 
-        // 1. Buscar en tabla usuarios (por matrícula, nombre o correo)
+        // 1. Buscar en tabla usuarios (por matrícula, nombre, teléfono o correo)
+        const idfTel = normalizarTelefono(idf) || idf;
         const [rows] = await pool.query(
-            'SELECT id, nombre, matricula, email, password, rol, carrera, semestre, nivel_asignado, profesor_id FROM usuarios WHERE (LOWER(TRIM(matricula)) = LOWER(?) OR LOWER(TRIM(nombre)) = LOWER(?) OR LOWER(TRIM(email)) = LOWER(?))',
-            [idf, idf, idf]
+            'SELECT id, nombre, matricula, telefono, email, password, rol, carrera, semestre, nivel_asignado, profesor_id FROM usuarios WHERE (LOWER(TRIM(matricula)) = LOWER(?) OR LOWER(TRIM(nombre)) = LOWER(?) OR TRIM(telefono) = ? OR LOWER(TRIM(email)) = LOWER(?))',
+            [idf, idf, idfTel, idf]
         );
 
         if (rows.length > 0 && rows[0].password === pass) {
@@ -989,8 +896,8 @@ app.post('/api/login', async (req, res) => {
 
         // 3. Si es un profesor intentando entrar por el login general, indicarle que use el enlace exclusivo /jueces
         const [profes] = await pool.query(
-            'SELECT id FROM profesores WHERE (LOWER(TRIM(nombre)) = LOWER(?) OR LOWER(TRIM(email)) = LOWER(?) OR id = ?) AND password = ?',
-            [idf, idf, isNaN(idf) ? -1 : parseInt(idf), pass]
+            'SELECT id FROM profesores WHERE (LOWER(TRIM(nombre)) = LOWER(?) OR TRIM(telefono) = ? OR LOWER(TRIM(email)) = LOWER(?) OR id = ?) AND password = ?',
+            [idf, idfTel, idf, isNaN(idf) ? -1 : parseInt(idf), pass]
         );
 
         if (profes.length > 0) {
@@ -1037,17 +944,18 @@ app.get('/api/estudiantes/:id/carteles', async (req, res) => {
 app.get('/api/admin/usuarios', async (req, res) => {
     try {
         // Asegurar que cualquier usuario con rol 'profesor' tenga su registro sincronizado en la tabla profesores
-        const [usuariosProfeSinId] = await pool.query("SELECT id, nombre, email, carrera, nivel_asignado, password FROM usuarios WHERE rol = 'profesor' AND profesor_id IS NULL");
+        const [usuariosProfeSinId] = await pool.query("SELECT id, nombre, telefono, email, carrera, nivel_asignado, password FROM usuarios WHERE rol = 'profesor' AND profesor_id IS NULL");
         for (const u of usuariosProfeSinId) {
+            const telU = u.telefono || u.email || null;
             const [pIns] = await pool.query(
-                'INSERT INTO profesores (nombre, email, carrera, nivel_asignado, password) VALUES (?, ?, ?, ?, ?)',
-                [u.nombre, u.email || null, u.carrera || 'Ingeniería', u.nivel_asignado || 1, u.password || '123456']
+                'INSERT INTO profesores (nombre, telefono, email, carrera, nivel_asignado, password) VALUES (?, ?, ?, ?, ?, ?)',
+                [u.nombre, telU, telU, u.carrera || 'Ingeniería', u.nivel_asignado || 1, u.password || '123456']
             );
             await pool.query('UPDATE usuarios SET profesor_id = ? WHERE id = ?', [pIns.insertId, u.id]);
         }
 
         const [rows] = await pool.query(`
-            SELECT id, nombre, matricula, email, rol, carrera, semestre, nivel_asignado, profesor_id, created_at
+            SELECT id, nombre, matricula, COALESCE(NULLIF(telefono, ''), email) as telefono, email, rol, carrera, semestre, nivel_asignado, profesor_id, created_at
             FROM usuarios
             ORDER BY 
                 CASE rol WHEN 'admin' THEN 1 WHEN 'profesor' THEN 2 ELSE 3 END,
@@ -1084,6 +992,7 @@ app.get('/api/admin/usuarios', async (req, res) => {
 
         const resultado = rows.map(u => ({
             ...u,
+            telefono: u.telefono || '',
             carteles_asignados: u.profesor_id ? (mapaPorProfesor[u.profesor_id] || []) : []
         }));
 
@@ -1128,16 +1037,16 @@ async function generarMatriculaUnica(nombre, rol = 'profesor', matriculaBase = '
     return `${base}_${Date.now().toString().slice(-4)}`;
 }
 
-// Admin da de alta a un usuario manualmente (eligiendo si es estudiante o profesor)
+// Admin da de alta a un usuario manualmente (eligiendo si es estudiante o profesor) y genera su SMS directo al instante
 app.post('/api/admin/usuarios', async (req, res) => {
     try {
-        const { nombre, matricula, email, password, rol, carrera, semestre, nivel_asignado } = req.body;
+        const { nombre, matricula, telefono, celular, email, password, rol, carrera, semestre, nivel_asignado } = req.body;
         if (!nombre || !password) {
             return res.status(400).json({ error: "Nombre y contraseña son obligatorios." });
         }
 
         const nombreMayus = convertirMayusculas(nombre);
-        const emailVal = email ? email.trim().toLowerCase() : null;
+        const telVal = normalizarTelefono(telefono || celular || email || '') || null;
         const rolVal = (rol === 'profesor' || rol === 'admin') ? rol : 'estudiante';
         const carreraVal = (carrera && carrera.trim()) ? carrera.trim() : 'Ingeniería';
         const semVal = parseInt(semestre) || 1;
@@ -1149,23 +1058,22 @@ app.post('/api/admin/usuarios', async (req, res) => {
             mat = await generarMatriculaUnica(nombreMayus, rolVal, '');
         }
 
-        // Buscar si ya existe por matrícula, o si es profesor y ya existe con el mismo nombre o correo
+        // Buscar si ya existe por matrícula, o si es profesor y ya existe con el mismo nombre o teléfono
         let [existente] = await pool.query('SELECT * FROM usuarios WHERE LOWER(TRIM(matricula)) = LOWER(?)', [mat]);
 
-        if (existente.length === 0 && rolVal === 'profesor') {
-            if (emailVal) {
-                const [porCorreo] = await pool.query(
-                    'SELECT * FROM usuarios WHERE LOWER(TRIM(email)) = LOWER(?) AND LOWER(TRIM(nombre)) = LOWER(?)',
-                    [emailVal, nombreMayus]
-                );
-                if (porCorreo.length > 0) existente = porCorreo;
-            }
+        if (existente.length === 0 && rolVal === 'profesor' && telVal) {
+            const [porTel] = await pool.query(
+                'SELECT * FROM usuarios WHERE (TRIM(telefono) = ? OR TRIM(email) = ?) AND LOWER(TRIM(nombre)) = LOWER(?)',
+                [telVal, telVal, nombreMayus]
+            );
+            if (porTel.length > 0) existente = porTel;
         }
 
         if (existente.length > 0) {
             const uPrevio = existente[0];
             const mismoNombre = (uPrevio.nombre || '').trim().toUpperCase() === nombreMayus;
-            const mismoCorreo = Boolean(emailVal && (uPrevio.email || '').trim().toLowerCase() === emailVal);
+            const prevTel = normalizarTelefono(uPrevio.telefono || uPrevio.email || '');
+            const mismoTel = Boolean(telVal && prevTel === telVal);
 
             // Verificar si era un registro huérfano (se eliminó de profesores pero quedó en usuarios)
             let esHuerfano = false;
@@ -1174,19 +1082,18 @@ app.post('/api/admin/usuarios', async (req, res) => {
                 if (pCheck.length === 0) esHuerfano = true;
             }
 
-            // Si es la misma persona (ej. reintento tras configurar SMTP) o un registro huérfano, lo reactivamos/actualizamos
-            if (mismoNombre || mismoCorreo || esHuerfano) {
+            if (mismoNombre || mismoTel || esHuerfano) {
                 let profId = uPrevio.profesor_id;
                 if (rolVal === 'profesor') {
                     if (profId && !esHuerfano) {
                         await pool.query(
-                            'UPDATE profesores SET nombre = ?, email = ?, carrera = ?, nivel_asignado = ?, password = ? WHERE id = ?',
-                            [nombreMayus, emailVal, carreraVal, nivelVal, password, profId]
+                            'UPDATE profesores SET nombre = ?, telefono = ?, email = ?, carrera = ?, nivel_asignado = ?, password = ? WHERE id = ?',
+                            [nombreMayus, telVal, telVal, carreraVal, nivelVal, password, profId]
                         );
                     } else {
                         const [pIns] = await pool.query(
-                            'INSERT INTO profesores (nombre, email, carrera, nivel_asignado, password) VALUES (?, ?, ?, ?, ?)',
-                            [nombreMayus, emailVal, carreraVal, nivelVal, password]
+                            'INSERT INTO profesores (nombre, telefono, email, carrera, nivel_asignado, password) VALUES (?, ?, ?, ?, ?, ?)',
+                            [nombreMayus, telVal, telVal, carreraVal, nivelVal, password]
                         );
                         profId = pIns.insertId;
                     }
@@ -1197,33 +1104,27 @@ app.post('/api/admin/usuarios', async (req, res) => {
                     : uPrevio.matricula;
 
                 await pool.query(
-                    'UPDATE usuarios SET nombre = ?, matricula = ?, email = ?, password = ?, rol = ?, carrera = ?, semestre = ?, nivel_asignado = ?, profesor_id = ? WHERE id = ?',
-                    [nombreMayus, matFinal, emailVal, password, rolVal, carreraVal, semVal, nivelVal, profId, uPrevio.id]
+                    'UPDATE usuarios SET nombre = ?, matricula = ?, telefono = ?, email = ?, password = ?, rol = ?, carrera = ?, semestre = ?, nivel_asignado = ?, profesor_id = ? WHERE id = ?',
+                    [nombreMayus, matFinal, telVal, telVal, password, rolVal, carreraVal, semVal, nivelVal, profId, uPrevio.id]
                 );
 
-                let infoCorreo = { enviado: false };
-                if (emailVal) {
-                    infoCorreo = await enviarCorreoDatosCuenta({
-                        email: emailVal,
-                        nombre: nombreMayus,
-                        matricula: matFinal,
-                        password,
-                        rol: rolVal,
-                        carrera: carreraVal,
-                        nivel_asignado: nivelVal,
-                        baseUrl: obtenerUrlBase(req)
-                    });
-                }
-
-                const msgExtraCorreo = infoCorreo.enviado
-                    ? ` Se enviaron automáticamente el usuario (${matFinal}), contraseña y enlace de acceso a ${emailVal}.`
-                    : (emailVal ? ` (Aviso de correo: ${infoCorreo.motivo || 'revisa tu configuración SMTP en el Panel de Administrador'})` : '');
+                const infoSms = generarDatosSmsCuenta({
+                    telefono: telVal,
+                    nombre: nombreMayus,
+                    matricula: matFinal,
+                    password,
+                    rol: rolVal,
+                    carrera: carreraVal,
+                    nivel_asignado: nivelVal,
+                    baseUrl: obtenerUrlBase(req)
+                });
 
                 return res.json({
-                    mensaje: `Usuario ${nombreMayus} registrado/actualizado como ${rolVal} exitosamente con usuario "${matFinal}".${msgExtraCorreo}`,
-                    correo_enviado: infoCorreo.enviado,
-                    enlace_acceso: infoCorreo.enlace_acceso,
-                    usuario: { id: uPrevio.id, nombre: nombreMayus, matricula: matFinal, email: emailVal, rol: rolVal, carrera: carreraVal, nivel_asignado: nivelVal, profesor_id: profId }
+                    mensaje: `Usuario ${nombreMayus} registrado/actualizado como ${rolVal} exitosamente con usuario "${matFinal}".`,
+                    listo_sms: infoSms.listo_sms,
+                    enlace_acceso: infoSms.enlace_acceso,
+                    datos_cuenta: infoSms.datos_cuenta,
+                    usuario: { id: uPrevio.id, nombre: nombreMayus, matricula: matFinal, telefono: telVal, email: telVal, rol: rolVal, carrera: carreraVal, nivel_asignado: nivelVal, profesor_id: profId }
                 });
             }
 
@@ -1238,48 +1139,42 @@ app.post('/api/admin/usuarios', async (req, res) => {
         let profId = null;
         if (rolVal === 'profesor') {
             const [pIns] = await pool.query(
-                'INSERT INTO profesores (nombre, email, carrera, nivel_asignado, password) VALUES (?, ?, ?, ?, ?)',
-                [nombreMayus, emailVal, carreraVal, nivelVal, password]
+                'INSERT INTO profesores (nombre, telefono, email, carrera, nivel_asignado, password) VALUES (?, ?, ?, ?, ?, ?)',
+                [nombreMayus, telVal, telVal, carreraVal, nivelVal, password]
             );
             profId = pIns.insertId;
         }
 
         const [uIns] = await pool.query(
-            'INSERT INTO usuarios (nombre, matricula, email, password, rol, carrera, semestre, nivel_asignado, profesor_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [nombreMayus, mat, emailVal, password, rolVal, carreraVal, semVal, nivelVal, profId]
+            'INSERT INTO usuarios (nombre, matricula, telefono, email, password, rol, carrera, semestre, nivel_asignado, profesor_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [nombreMayus, mat, telVal, telVal, password, rolVal, carreraVal, semVal, nivelVal, profId]
         );
 
-        let infoCorreo = { enviado: false };
-        if (emailVal) {
-            infoCorreo = await enviarCorreoDatosCuenta({
-                email: emailVal,
-                nombre: nombreMayus,
-                matricula: mat,
-                password,
-                rol: rolVal,
-                carrera: carreraVal,
-                nivel_asignado: nivelVal,
-                baseUrl: obtenerUrlBase(req)
-            });
-        }
-
-        const msgExtraCorreo = infoCorreo.enviado
-            ? ` Se enviaron automáticamente el usuario (${mat}), contraseña y enlace de acceso a ${emailVal}.`
-            : (emailVal ? ` (Aviso de correo: ${infoCorreo.motivo || 'revisa tu configuración SMTP en el Panel de Administrador'})` : '');
+        const infoSms = generarDatosSmsCuenta({
+            telefono: telVal,
+            nombre: nombreMayus,
+            matricula: mat,
+            password,
+            rol: rolVal,
+            carrera: carreraVal,
+            nivel_asignado: nivelVal,
+            baseUrl: obtenerUrlBase(req)
+        });
 
         res.json({
-            mensaje: `Usuario ${nombreMayus} registrado como ${rolVal} exitosamente con usuario "${mat}".${msgExtraCorreo}`,
-            correo_enviado: infoCorreo.enviado,
-            enlace_acceso: infoCorreo.enlace_acceso,
-            usuario: { id: uIns.insertId, nombre: nombreMayus, matricula: mat, email: emailVal, rol: rolVal, carrera: carreraVal, nivel_asignado: nivelVal, profesor_id: profId }
+            mensaje: `Usuario ${nombreMayus} registrado como ${rolVal} exitosamente con usuario "${mat}".`,
+            listo_sms: infoSms.listo_sms,
+            enlace_acceso: infoSms.enlace_acceso,
+            datos_cuenta: infoSms.datos_cuenta,
+            usuario: { id: uIns.insertId, nombre: nombreMayus, matricula: mat, telefono: telVal, email: telVal, rol: rolVal, carrera: carreraVal, nivel_asignado: nivelVal, profesor_id: profId }
         });
     } catch (err) {
         res.status(400).json({ error: err.message });
     }
 });
 
-// Admin reenvía por correo el usuario, contraseña y enlace directo al dashboard de un profesor o usuario
-app.post('/api/admin/usuarios/:id/reenviar-correo', async (req, res) => {
+// Admin genera / envía por SMS directo el usuario, contraseña y enlace directo al dashboard de un profesor o usuario
+async function manejarEnvioSmsUsuario(req, res) {
     try {
         const { id } = req.params;
         const [rows] = await pool.query('SELECT * FROM usuarios WHERE id = ?', [id]);
@@ -1287,20 +1182,24 @@ app.post('/api/admin/usuarios/:id/reenviar-correo', async (req, res) => {
             return res.status(404).json({ error: "Usuario no encontrado." });
         }
         const u = rows[0];
-        const emailDestino = (req.body && req.body.email ? req.body.email.trim().toLowerCase() : (u.email || '')).trim();
-        if (!emailDestino) {
-            return res.status(400).json({ error: "Este usuario aún no tiene un correo electrónico registrado. Edita su perfil para agregar su correo." });
+        const rawInput = (req.body && (req.body.telefono || req.body.celular || req.body.email))
+            ? (req.body.telefono || req.body.celular || req.body.email)
+            : (u.telefono || u.email || '');
+        const telDestino = normalizarTelefono(rawInput);
+
+        if (!telDestino) {
+            return res.status(400).json({ error: "Este usuario aún no tiene un número de celular registrado. Ingresa su número para enviarle el SMS directo." });
         }
 
-        if (emailDestino !== u.email) {
-            await pool.query('UPDATE usuarios SET email = ? WHERE id = ?', [emailDestino, u.id]);
+        if (telDestino !== u.telefono) {
+            await pool.query('UPDATE usuarios SET telefono = ?, email = ? WHERE id = ?', [telDestino, telDestino, u.id]);
             if (u.profesor_id) {
-                await pool.query('UPDATE profesores SET email = ? WHERE id = ?', [emailDestino, u.profesor_id]);
+                await pool.query('UPDATE profesores SET telefono = ?, email = ? WHERE id = ?', [telDestino, telDestino, u.profesor_id]);
             }
         }
 
-        const infoCorreo = await enviarCorreoDatosCuenta({
-            email: emailDestino,
+        const infoSms = generarDatosSmsCuenta({
+            telefono: telDestino,
             nombre: u.nombre,
             matricula: u.matricula,
             password: u.password,
@@ -1310,145 +1209,27 @@ app.post('/api/admin/usuarios/:id/reenviar-correo', async (req, res) => {
             baseUrl: obtenerUrlBase(req)
         });
 
-        if (!infoCorreo.enviado) {
-            return res.status(400).json({
-                error: `No se pudo enviar automáticamente por SMTP a ${emailDestino}: ${infoCorreo.motivo || 'Revisa la configuración SMTP o el bloqueo de puertos de tu servidor cloud'}`,
-                enlace_acceso: infoCorreo.enlace_acceso,
-                datos_cuenta: {
-                    nombre: u.nombre,
-                    matricula: u.matricula,
-                    password: u.password,
-                    email: emailDestino,
-                    carrera: u.carrera || 'General',
-                    nivel_asignado: u.nivel_asignado || 1,
-                    enlace_acceso: infoCorreo.enlace_acceso
-                }
-            });
-        }
-
         res.json({
-            mensaje: `¡Correo enviado exitosamente a ${emailDestino} con su usuario (${u.matricula}), contraseña y enlace directo a su dashboard!`,
-            correo_enviado: true,
-            enlace_acceso: infoCorreo.enlace_acceso
+            mensaje: `SMS directo listo para enviar al número ${telDestino} con el usuario (${u.matricula}), contraseña y enlace directo.`,
+            listo_sms: true,
+            enlace_acceso: infoSms.enlace_acceso,
+            sms_url: infoSms.sms_url,
+            whatsapp_url: infoSms.whatsapp_url,
+            datos_cuenta: infoSms.datos_cuenta
         });
     } catch (err) {
         res.status(400).json({ error: err.message });
     }
-});
+}
 
-// Obtener configuración actual de correo SMTP para el Panel de Administrador
-app.get('/api/admin/smtp', async (req, res) => {
-    try {
-        const cfg = await obtenerConfiguracionSmtp();
-        res.json({
-            configurado: cfg.configurado,
-            smtp_host: cfg.smtpHost,
-            smtp_port: cfg.smtpPort,
-            smtp_user: cfg.smtpUser,
-            smtp_from: cfg.smtpFrom,
-            webhook_url: cfg.webhookUrl || '',
-            tiene_password: Boolean(cfg.smtpPass),
-            origen: cfg.origen
-        });
-    } catch (err) {
-        res.status(400).json({ error: err.message });
-    }
-});
-
-// Guardar configuración de correo SMTP desde el Panel de Administrador (se almacena en la BD para funcionar en el servidor sin .env)
-app.post('/api/admin/smtp', async (req, res) => {
-    try {
-        const { smtp_host, smtp_port, smtp_user, smtp_pass, smtp_from, webhook_url } = req.body;
-        const userLimpio = (smtp_user || '').trim();
-        const webhookLimpio = (webhook_url || '').trim();
-
-        if (!userLimpio && !webhookLimpio) {
-            return res.status(400).json({ error: "Ingresa el correo remitente (SMTP User) o el enlace del Puente HTTPS (Google Apps Script)." });
-        }
-
-        let passLimpia = (smtp_pass || '').trim().replace(/\s+/g, '');
-        if (!passLimpia) {
-            const actual = await obtenerConfiguracionSmtp();
-            if (actual.smtpPass) {
-                passLimpia = actual.smtpPass;
-            } else if (!webhookLimpio) {
-                return res.status(400).json({ error: "Ingresa la contraseña o contraseña de aplicación de 16 letras (o pega el enlace del Puente HTTPS)." });
-            }
-        }
-
-        let hostLimpio = (smtp_host || 'smtp.gmail.com').trim();
-        if (userLimpio.toLowerCase().endsWith('@gmail.com')) {
-            hostLimpio = 'smtp.gmail.com';
-        }
-        const portLimpio = parseInt(smtp_port) || 587;
-        const fromLimpio = (smtp_from || '').trim() || `"Sistema de Carteles UVM" <${userLimpio || 'notificaciones@uvm.edu.mx'}>`;
-
-        await pool.query(
-            `INSERT INTO configuracion_smtp (id, smtp_host, smtp_port, smtp_user, smtp_pass, smtp_from, webhook_url)
-             VALUES (1, ?, ?, ?, ?, ?, ?)
-             ON DUPLICATE KEY UPDATE
-                smtp_host = VALUES(smtp_host),
-                smtp_port = VALUES(smtp_port),
-                smtp_user = VALUES(smtp_user),
-                smtp_pass = VALUES(smtp_pass),
-                smtp_from = VALUES(smtp_from),
-                webhook_url = VALUES(webhook_url)`,
-            [hostLimpio, portLimpio, userLimpio, passLimpia, fromLimpio, webhookLimpio || null]
-        );
-
-        invalidarCacheSmtp();
-        await obtenerConfiguracionSmtp(true);
-
-        res.json({
-            mensaje: "¡Configuración de correo guardada en la base de datos!",
-            configurado: true,
-            smtp_host: hostLimpio,
-            smtp_port: portLimpio,
-            smtp_user: userLimpio,
-            smtp_from: fromLimpio,
-            webhook_url: webhookLimpio
-        });
-    } catch (err) {
-        res.status(400).json({ error: err.message });
-    }
-});
-
-// Probar envío de correo SMTP desde el Panel de Administrador
-app.post('/api/admin/smtp/probar', async (req, res) => {
-    try {
-        const cfg = await obtenerConfiguracionSmtp(true);
-        if (!cfg.configurado) {
-            return res.status(400).json({ error: "Primero guarda el correo remitente y la contraseña de aplicación." });
-        }
-
-        const destino = ((req.body && req.body.email_destino) ? req.body.email_destino.trim() : cfg.smtpUser);
-        const info = await enviarCorreoDatosCuenta({
-            email: destino,
-            nombre: 'PRUEBA DE CORREO ADMIN',
-            matricula: 'admin',
-            password: '(Tu contraseña actual)',
-            rol: 'profesor',
-            carrera: 'Ingeniería',
-            nivel_asignado: 1,
-            baseUrl: obtenerUrlBase(req),
-            esperarConfirmacion: true
-        });
-
-        if (!info.enviado) {
-            return res.status(400).json({ error: `Falló la prueba de envío: ${info.motivo}` });
-        }
-
-        res.json({ mensaje: `¡Correo de prueba enviado con éxito a ${destino}!` });
-    } catch (err) {
-        res.status(400).json({ error: err.message });
-    }
-});
+app.post('/api/admin/usuarios/:id/enviar-sms', manejarEnvioSmsUsuario);
+app.post('/api/admin/usuarios/:id/reenviar-correo', manejarEnvioSmsUsuario);
 
 // Admin cambia el rol de un usuario (Promover a Profesor / Asignar como Estudiante / Promover a Administrador)
 app.put('/api/admin/usuarios/:id/rol', async (req, res) => {
     try {
         const { id } = req.params;
-        const { rol, carrera, nivel_asignado, password, email } = req.body;
+        const { rol, carrera, nivel_asignado, password, telefono, celular, email } = req.body;
 
         const [userRows] = await pool.query('SELECT * FROM usuarios WHERE id = ?', [id]);
         if (userRows.length === 0) return res.status(404).json({ error: "Usuario no encontrado." });
@@ -1459,7 +1240,8 @@ app.put('/api/admin/usuarios/:id/rol', async (req, res) => {
         const nuevaCarrera = (carrera && carrera.trim()) ? carrera.trim() : (nuevoRol === 'admin' ? 'General' : (user.carrera || 'Ingeniería'));
         const nuevoNivel = parseInt(nivel_asignado) || user.nivel_asignado || 1;
         const passActualizada = (password && password.trim()) ? password.trim() : user.password;
-        const emailActualizado = email !== undefined ? (email.trim() ? email.trim().toLowerCase() : null) : user.email;
+        const rawTel = telefono !== undefined ? telefono : (celular !== undefined ? celular : email);
+        const telActualizado = rawTel !== undefined ? (normalizarTelefono(rawTel) || null) : (user.telefono || user.email || null);
 
         // Protección: Evitar degradar al único administrador del sistema
         if (user.rol === 'admin' && nuevoRol !== 'admin') {
@@ -1472,54 +1254,46 @@ app.put('/api/admin/usuarios/:id/rol', async (req, res) => {
         let profId = user.profesor_id;
 
         if (nuevoRol === 'profesor') {
-            // Si no estaba en la tabla profesores, registrarlo
             if (!profId) {
                 const [pIns] = await pool.query(
-                    'INSERT INTO profesores (nombre, email, carrera, nivel_asignado, password) VALUES (?, ?, ?, ?, ?)',
-                    [user.nombre, emailActualizado, nuevaCarrera, nuevoNivel, passActualizada || '123456']
+                    'INSERT INTO profesores (nombre, telefono, email, carrera, nivel_asignado, password) VALUES (?, ?, ?, ?, ?, ?)',
+                    [user.nombre, telActualizado, telActualizado, nuevaCarrera, nuevoNivel, passActualizada || '123456']
                 );
                 profId = pIns.insertId;
             } else {
-                // Actualizar sus datos en profesores
                 await pool.query(
-                    'UPDATE profesores SET email = ?, carrera = ?, nivel_asignado = ?, password = ? WHERE id = ?',
-                    [emailActualizado, nuevaCarrera, nuevoNivel, passActualizada, profId]
+                    'UPDATE profesores SET telefono = ?, email = ?, carrera = ?, nivel_asignado = ?, password = ? WHERE id = ?',
+                    [telActualizado, telActualizado, nuevaCarrera, nuevoNivel, passActualizada, profId]
                 );
             }
         } else if (profId && passActualizada !== user.password) {
-            // Si se cambió la contraseña y tiene cuenta de profesor asociada
             await pool.query('UPDATE profesores SET password = ? WHERE id = ?', [passActualizada, profId]);
         }
 
         await pool.query(
-            'UPDATE usuarios SET rol = ?, email = ?, carrera = ?, nivel_asignado = ?, profesor_id = ?, password = ? WHERE id = ?',
-            [nuevoRol, emailActualizado, nuevaCarrera, nuevoNivel, profId, passActualizada, id]
+            'UPDATE usuarios SET rol = ?, telefono = ?, email = ?, carrera = ?, nivel_asignado = ?, profesor_id = ?, password = ? WHERE id = ?',
+            [nuevoRol, telActualizado, telActualizado, nuevaCarrera, nuevoNivel, profId, passActualizada, id]
         );
 
-        let infoCorreo = { enviado: false };
-        if (nuevoRol === 'profesor' && emailActualizado) {
-            infoCorreo = await enviarCorreoDatosCuenta({
-                email: emailActualizado,
-                nombre: user.nombre,
-                matricula: user.matricula,
-                password: passActualizada,
-                rol: 'profesor',
-                carrera: nuevaCarrera,
-                nivel_asignado: nuevoNivel,
-                baseUrl: obtenerUrlBase(req)
-            });
-        }
+        const infoSms = generarDatosSmsCuenta({
+            telefono: telActualizado,
+            nombre: user.nombre,
+            matricula: user.matricula,
+            password: passActualizada,
+            rol: nuevoRol,
+            carrera: nuevaCarrera,
+            nivel_asignado: nuevoNivel,
+            baseUrl: obtenerUrlBase(req)
+        });
 
         const rolTexto = nuevoRol === 'admin' ? 'ADMINISTRADOR' : (nuevoRol === 'profesor' ? 'PROFESOR JUEZ' : 'ESTUDIANTE');
-        const msgCorreo = infoCorreo.enviado
-            ? ` Se enviaron los datos de ingreso y el enlace exclusivo a ${emailActualizado}.`
-            : '';
 
         res.json({
-            mensaje: `¡Usuario ${user.nombre} ahora tiene el rol de ${rolTexto}!${msgCorreo}`,
-            correo_enviado: infoCorreo.enviado,
-            enlace_acceso: infoCorreo.enlace_acceso,
-            usuario: { ...user, email: emailActualizado, rol: nuevoRol, carrera: nuevaCarrera, nivel_asignado: nuevoNivel, profesor_id: profId }
+            mensaje: `¡Usuario ${user.nombre} ahora tiene el rol de ${rolTexto}!`,
+            listo_sms: infoSms.listo_sms,
+            enlace_acceso: infoSms.enlace_acceso,
+            datos_cuenta: infoSms.datos_cuenta,
+            usuario: { ...user, telefono: telActualizado, email: telActualizado, rol: nuevoRol, carrera: nuevaCarrera, nivel_asignado: nuevoNivel, profesor_id: profId }
         });
     } catch (err) {
         res.status(400).json({ error: err.message });
@@ -1530,7 +1304,7 @@ app.put('/api/admin/usuarios/:id/rol', async (req, res) => {
 app.put('/api/admin/usuarios/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const { nombre, matricula, email, carrera, semestre, nivel_asignado, password, rol } = req.body;
+        const { nombre, matricula, telefono, celular, email, carrera, semestre, nivel_asignado, password, rol } = req.body;
 
         const [userRows] = await pool.query('SELECT * FROM usuarios WHERE id = ?', [id]);
         if (userRows.length === 0) return res.status(404).json({ error: "Usuario no encontrado." });
@@ -1548,21 +1322,22 @@ app.put('/api/admin/usuarios/:id', async (req, res) => {
 
         const nombreMayus = nombre ? convertirMayusculas(nombre) : user.nombre;
         const mat = matricula ? matricula.trim() : user.matricula;
-        const emailVal = email !== undefined ? (email.trim() ? email.trim().toLowerCase() : null) : user.email;
+        const rawTel = telefono !== undefined ? telefono : (celular !== undefined ? celular : email);
+        const telVal = rawTel !== undefined ? (normalizarTelefono(rawTel) || null) : (user.telefono || user.email || null);
         const car = carrera || user.carrera;
         const sem = semestre !== undefined ? parseInt(semestre) : user.semestre;
         const niv = nivel_asignado !== undefined ? parseInt(nivel_asignado) : user.nivel_asignado;
         const pass = (password && password.trim()) ? password.trim() : user.password;
 
         await pool.query(
-            'UPDATE usuarios SET nombre = ?, matricula = ?, email = ?, carrera = ?, semestre = ?, nivel_asignado = ?, password = ?, rol = ? WHERE id = ?',
-            [nombreMayus, mat, emailVal, car, sem, niv, pass, rolFinal, id]
+            'UPDATE usuarios SET nombre = ?, matricula = ?, telefono = ?, email = ?, carrera = ?, semestre = ?, nivel_asignado = ?, password = ?, rol = ? WHERE id = ?',
+            [nombreMayus, mat, telVal, telVal, car, sem, niv, pass, rolFinal, id]
         );
 
         if (user.profesor_id) {
             await pool.query(
-                'UPDATE profesores SET nombre = ?, email = ?, carrera = ?, nivel_asignado = ?, password = ? WHERE id = ?',
-                [nombreMayus, emailVal, car, niv, pass, user.profesor_id]
+                'UPDATE profesores SET nombre = ?, telefono = ?, email = ?, carrera = ?, nivel_asignado = ?, password = ? WHERE id = ?',
+                [nombreMayus, telVal, telVal, car, niv, pass, user.profesor_id]
             );
         }
 
@@ -1720,11 +1495,12 @@ app.get('/api/admin/metricas', async (req, res) => {
 app.get('/api/profesores', async (req, res) => {
     try {
         // Sincronizar cualquier usuario con rol 'profesor' que aún no tenga registro en la tabla profesores
-        const [usuariosProfeSinId] = await pool.query("SELECT id, nombre, email, carrera, nivel_asignado, password FROM usuarios WHERE rol = 'profesor' AND profesor_id IS NULL");
+        const [usuariosProfeSinId] = await pool.query("SELECT id, nombre, telefono, email, carrera, nivel_asignado, password FROM usuarios WHERE rol = 'profesor' AND profesor_id IS NULL");
         for (const u of usuariosProfeSinId) {
+            const telU = u.telefono || u.email || null;
             const [pIns] = await pool.query(
-                'INSERT INTO profesores (nombre, email, carrera, nivel_asignado, password) VALUES (?, ?, ?, ?, ?)',
-                [u.nombre, u.email || null, u.carrera || 'Ingeniería', u.nivel_asignado || 1, u.password || '123456']
+                'INSERT INTO profesores (nombre, telefono, email, carrera, nivel_asignado, password) VALUES (?, ?, ?, ?, ?, ?)',
+                [u.nombre, telU, telU, u.carrera || 'Ingeniería', u.nivel_asignado || 1, u.password || '123456']
             );
             await pool.query('UPDATE usuarios SET profesor_id = ? WHERE id = ?', [pIns.insertId, u.id]);
         }
@@ -1738,53 +1514,47 @@ app.get('/api/profesores', async (req, res) => {
 
 app.post('/api/profesores', async (req, res) => {
     try {
-        const { nombre, matricula, email, carrera, nivel_asignado, password } = req.body;
+        const { nombre, matricula, telefono, celular, email, carrera, nivel_asignado, password } = req.body;
         if (!nombre || !password) {
             return res.status(400).json({ error: "El nombre y la contraseña son obligatorios" });
         }
         const nombreMayus = convertirMayusculas(nombre.trim());
-        const emailVal = email ? email.trim().toLowerCase() : null;
+        const telVal = normalizarTelefono(telefono || celular || email || '') || null;
         const areaCarrera = (carrera && carrera.trim()) ? carrera.trim() : 'Ingeniería';
         const nivelAleatorio = Math.floor(Math.random() * 3) + 1;
         const nivel = (nivel_asignado !== undefined && nivel_asignado !== null && nivel_asignado !== '') 
             ? parseInt(nivel_asignado) 
             : nivelAleatorio;
 
-        const query = 'INSERT INTO profesores (nombre, email, carrera, nivel_asignado, password) VALUES (?, ?, ?, ?, ?)';
-        const [result] = await pool.query(query, [nombreMayus, emailVal, areaCarrera, nivel, password]);
+        const query = 'INSERT INTO profesores (nombre, telefono, email, carrera, nivel_asignado, password) VALUES (?, ?, ?, ?, ?, ?)';
+        const [result] = await pool.query(query, [nombreMayus, telVal, telVal, areaCarrera, nivel, password]);
         const profId = result.insertId;
 
         const matFinal = (matricula && matricula.trim()) ? matricula.trim() : `prof_${profId}`;
         const [uIns] = await pool.query(
-            "INSERT INTO usuarios (nombre, matricula, email, password, rol, carrera, nivel_asignado, profesor_id) VALUES (?, ?, ?, ?, 'profesor', ?, ?, ?)",
-            [nombreMayus, matFinal, emailVal, password, areaCarrera, nivel, profId]
+            "INSERT INTO usuarios (nombre, matricula, telefono, email, password, rol, carrera, nivel_asignado, profesor_id) VALUES (?, ?, ?, ?, ?, 'profesor', ?, ?, ?)",
+            [nombreMayus, matFinal, telVal, telVal, password, areaCarrera, nivel, profId]
         );
 
-        let infoCorreo = { enviado: false };
-        if (emailVal) {
-            infoCorreo = await enviarCorreoDatosCuenta({
-                email: emailVal,
-                nombre: nombreMayus,
-                matricula: matFinal,
-                password,
-                rol: 'profesor',
-                carrera: areaCarrera,
-                nivel_asignado: nivel,
-                baseUrl: obtenerUrlBase(req)
-            });
-        }
-
-        const msgExtraCorreo = infoCorreo.enviado
-            ? ` Se enviaron su usuario (${matFinal}), contraseña y enlace de acceso a ${emailVal}.`
-            : '';
+        const infoSms = generarDatosSmsCuenta({
+            telefono: telVal,
+            nombre: nombreMayus,
+            matricula: matFinal,
+            password,
+            rol: 'profesor',
+            carrera: areaCarrera,
+            nivel_asignado: nivel,
+            baseUrl: obtenerUrlBase(req)
+        });
 
         res.json({
             id: profId,
             usuario_id: uIns.insertId,
             matricula: matFinal,
-            correo_enviado: infoCorreo.enviado,
-            enlace_acceso: infoCorreo.enlace_acceso,
-            mensaje: `Profesor ${nombreMayus} registrado con éxito en ${areaCarrera} (Nivel ${nivel}).${msgExtraCorreo}`
+            listo_sms: infoSms.listo_sms,
+            enlace_acceso: infoSms.enlace_acceso,
+            datos_cuenta: infoSms.datos_cuenta,
+            mensaje: `Profesor ${nombreMayus} registrado con éxito en ${areaCarrera} (Nivel ${nivel}).`
         });
     } catch (err) {
         res.status(400).json({ error: err.message });
@@ -1840,13 +1610,15 @@ app.post('/api/login/profesor', async (req, res) => {
         const pass = (req.body.password || '').toString().trim();
 
         if (!idf || !pass) {
-            return res.status(400).json({ error: "Por favor ingresa tu usuario/correo y contraseña de profesor." });
+            return res.status(400).json({ error: "Por favor ingresa tu usuario/celular y contraseña de profesor." });
         }
 
-        // 1. Buscar en tabla usuarios (por matrícula, correo o nombre)
+        const idfTel = normalizarTelefono(idf) || idf;
+
+        // 1. Buscar en tabla usuarios (por matrícula, teléfono, correo o nombre)
         const [uRows] = await pool.query(
-            'SELECT id, nombre, matricula, email, password, rol, carrera, semestre, nivel_asignado, profesor_id FROM usuarios WHERE (LOWER(TRIM(matricula)) = LOWER(?) OR LOWER(TRIM(email)) = LOWER(?) OR LOWER(TRIM(nombre)) = LOWER(?))',
-            [idf, idf, idf]
+            'SELECT id, nombre, matricula, telefono, email, password, rol, carrera, semestre, nivel_asignado, profesor_id FROM usuarios WHERE (LOWER(TRIM(matricula)) = LOWER(?) OR TRIM(telefono) = ? OR LOWER(TRIM(email)) = LOWER(?) OR LOWER(TRIM(nombre)) = LOWER(?))',
+            [idf, idfTel, idf, idf]
         );
 
         if (uRows.length > 0 && uRows[0].password === pass) {
@@ -1858,9 +1630,10 @@ app.post('/api/login/profesor', async (req, res) => {
             }
 
             if (!u.profesor_id) {
+                const telU = u.telefono || u.email || null;
                 const [pIns] = await pool.query(
-                    'INSERT INTO profesores (nombre, email, carrera, nivel_asignado, password) VALUES (?, ?, ?, ?, ?)',
-                    [u.nombre, u.email || null, u.carrera || 'Ingeniería', u.nivel_asignado || 1, u.password || '123456']
+                    'INSERT INTO profesores (nombre, telefono, email, carrera, nivel_asignado, password) VALUES (?, ?, ?, ?, ?, ?)',
+                    [u.nombre, telU, telU, u.carrera || 'Ingeniería', u.nivel_asignado || 1, u.password || '123456']
                 );
                 u.profesor_id = pIns.insertId;
                 await pool.query('UPDATE usuarios SET profesor_id = ? WHERE id = ?', [u.profesor_id, u.id]);
@@ -1874,22 +1647,23 @@ app.post('/api/login/profesor', async (req, res) => {
             });
         }
 
-        // 2. Buscar en tabla profesores directamente (por nombre, correo o ID)
+        // 2. Buscar en tabla profesores directamente (por nombre, teléfono, correo o ID)
         const idParam = isNaN(idf) ? -1 : parseInt(idf);
         const [profes] = await pool.query(
-            'SELECT id, nombre, email, carrera, nivel_asignado, password FROM profesores WHERE (LOWER(TRIM(nombre)) = LOWER(?) OR LOWER(TRIM(email)) = LOWER(?) OR id = ?) AND password = ?',
-            [idf, idf, idParam, pass]
+            'SELECT id, nombre, telefono, email, carrera, nivel_asignado, password FROM profesores WHERE (LOWER(TRIM(nombre)) = LOWER(?) OR TRIM(telefono) = ? OR LOWER(TRIM(email)) = LOWER(?) OR id = ?) AND password = ?',
+            [idf, idfTel, idf, idParam, pass]
         );
 
         if (profes.length > 0) {
             const p = profes[0];
-            const [uCheck] = await pool.query('SELECT id, matricula, email, rol FROM usuarios WHERE profesor_id = ?', [p.id]);
+            const telP = p.telefono || p.email || null;
+            const [uCheck] = await pool.query('SELECT id, matricula, telefono, email, rol FROM usuarios WHERE profesor_id = ?', [p.id]);
             let uId = uCheck.length > 0 ? uCheck[0].id : null;
             let mat = uCheck.length > 0 ? uCheck[0].matricula : `prof_${p.id}`;
             if (!uId) {
                 const [ins] = await pool.query(
-                    "INSERT INTO usuarios (nombre, matricula, email, password, rol, carrera, nivel_asignado, profesor_id) VALUES (?, ?, ?, ?, 'profesor', ?, ?, ?)",
-                    [p.nombre.toUpperCase(), mat, p.email || null, pass, p.carrera, p.nivel_asignado, p.id]
+                    "INSERT INTO usuarios (nombre, matricula, telefono, email, password, rol, carrera, nivel_asignado, profesor_id) VALUES (?, ?, ?, ?, ?, 'profesor', ?, ?, ?)",
+                    [p.nombre.toUpperCase(), mat, telP, telP, pass, p.carrera, p.nivel_asignado, p.id]
                 );
                 uId = ins.insertId;
             }
@@ -1897,7 +1671,8 @@ app.post('/api/login/profesor', async (req, res) => {
                 id: uId,
                 nombre: p.nombre.toUpperCase(),
                 matricula: mat,
-                email: p.email || null,
+                telefono: telP,
+                email: telP,
                 rol: 'profesor',
                 carrera: p.carrera,
                 nivel_asignado: p.nivel_asignado,
@@ -1910,7 +1685,7 @@ app.post('/api/login/profesor', async (req, res) => {
             });
         }
 
-        return res.status(401).json({ error: "Usuario/Correo o contraseña de profesor incorrectos." });
+        return res.status(401).json({ error: "Usuario/Celular o contraseña de profesor incorrectos." });
     } catch (err) {
         res.status(400).json({ error: err.message });
     }

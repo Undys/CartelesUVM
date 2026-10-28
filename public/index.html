@@ -118,7 +118,7 @@
                 <div class="bg-red-50 border border-red-200 rounded-xl p-3.5 text-xs text-red-900 leading-relaxed">
                     <p class="font-bold flex items-center gap-1">Registro de Estudiante:</p>
                     <p class="mt-0.5 text-red-700">
-                        Tu nombre se registrará en <strong>MAYÚSCULAS</strong> y recibirás en tu correo tus datos de ingreso. <em>Nota: Los profesores/jueces son dados de alta directamente por los Administradores desde su Dashboard.</em>
+                        Tu nombre se registrará en <strong>MAYÚSCULAS</strong> junto con tu número de celular. <em>Nota: Los profesores/jueces son dados de alta directamente por los Administradores desde su Dashboard y reciben sus credenciales por SMS directo.</em>
                     </p>
                 </div>
 
@@ -139,11 +139,11 @@
                         <input type="text" id="reg_matricula" required placeholder="Ej. 840012345 o tu usuario UVM" class="w-full border border-slate-300 p-3 rounded-xl focus:ring-2 focus:ring-red-500 focus:outline-none text-sm font-semibold">
                     </div>
 
-                    <!-- Correo Electrónico -->
+                    <!-- Número de Celular / Teléfono -->
                     <div>
-                        <label class="block font-bold text-xs uppercase tracking-wider text-slate-700 mb-1">Correo Electrónico:</label>
-                        <input type="email" id="reg_email" required placeholder="Ej. alumno@my.uvm.edu.mx" class="w-full border border-slate-300 p-3 rounded-xl focus:ring-2 focus:ring-red-500 focus:outline-none text-sm font-semibold">
-                        <p class="text-[11px] text-gray-500 mt-1">Recibirás automáticamente tus datos de ingreso en este correo.</p>
+                        <label class="block font-bold text-xs uppercase tracking-wider text-slate-700 mb-1">Número de Celular / Teléfono (10 dígitos):</label>
+                        <input type="tel" id="reg_telefono" required placeholder="Ej. 5512345678" oninput="this.value = this.value.replace(/[^\d+\s-]/g, '')" class="w-full border border-slate-300 p-3 rounded-xl focus:ring-2 focus:ring-red-500 focus:outline-none text-sm font-semibold">
+                        <p class="text-[11px] text-gray-500 mt-1">Tu número de celular queda vinculado a tu cuenta para contacto o envío de datos por SMS.</p>
                     </div>
 
                     <!-- Carrera y Semestre -->
@@ -186,7 +186,7 @@
 
         <!-- ============================================================== -->
         <!-- 1.C PÁGINA DE INICIO DE SESIÓN EXCLUSIVO PARA MAESTROS/JUECES   -->
-        <!-- (Accesible mediante el link exclusivo /jueces enviado al correo)-->
+        <!-- (Accesible mediante el link exclusivo /jueces enviado por SMS)  -->
         <!-- ============================================================== -->
         <div id="vista-login-jueces" class="hidden max-w-xl mx-auto space-y-6">
             <div class="text-center pt-2">
@@ -196,7 +196,7 @@
                 </div>
                 <h2 class="text-2xl sm:text-3xl font-black text-slate-800">Acceso para Profesores / Jueces</h2>
                 <p class="text-xs sm:text-sm text-gray-500 mt-1 max-w-md mx-auto">
-                    Ingresa con el usuario y la contraseña que recibiste en tu correo electrónico para acceder a tu dashboard de evaluación.
+                    Ingresa con el usuario y la contraseña que recibiste por SMS en tu celular para acceder a tu dashboard de evaluación.
                 </p>
             </div>
 
@@ -204,14 +204,14 @@
                 <div class="bg-amber-50 border border-amber-200 rounded-xl p-3.5 text-xs text-amber-950 leading-relaxed">
                     <p class="font-bold">Bienvenido(a), Profesor Evaluador:</p>
                     <p class="mt-0.5 text-amber-900">
-                        Usa las credenciales enviadas por el Administrador a tu correo institucional o personal para visualizar y calificar tus carteles asignados.
+                        Usa las credenciales enviadas por el Administrador vía SMS directo a tu celular para visualizar y calificar tus carteles asignados.
                     </p>
                 </div>
 
                 <form id="form-login-jueces" class="space-y-4">
                     <div>
-                        <label class="block font-bold text-xs uppercase tracking-wider text-slate-700 mb-1">Usuario / ID o Correo Electrónico:</label>
-                        <input type="text" id="login_juez_usuario" required placeholder="Ej. prof_1, tu usuario o tu correo" class="w-full border border-slate-300 p-3 rounded-xl focus:ring-2 focus:ring-rose-700 focus:outline-none text-sm font-semibold">
+                        <label class="block font-bold text-xs uppercase tracking-wider text-slate-700 mb-1">Usuario / ID o Número de Celular:</label>
+                        <input type="text" id="login_juez_usuario" required placeholder="Ej. prof_1, tu usuario o tu número de celular" class="w-full border border-slate-300 p-3 rounded-xl focus:ring-2 focus:ring-rose-700 focus:outline-none text-sm font-semibold">
                     </div>
                     <div>
                         <label class="block font-bold text-xs uppercase tracking-wider text-slate-700 mb-1">Contraseña:</label>
@@ -556,7 +556,7 @@
             <div class="text-center mb-2">
                 <span class="inline-block bg-slate-900 text-amber-300 text-[10px] font-black uppercase px-3 py-1 rounded-full tracking-wider mb-2">Dashboard Administración</span>
                 <h2 class="text-2xl font-black text-slate-800 mt-1">Login de Administradores</h2>
-                <p class="text-xs text-gray-500 mt-1">Ingresa al dashboard administrativo para dar de alta a profesores/jueces, enviarles su correo de acceso y gestionar carteles.</p>
+                <p class="text-xs text-gray-500 mt-1">Ingresa al dashboard administrativo para dar de alta a profesores/jueces, enviarles su SMS directo de acceso y gestionar carteles.</p>
             </div>
             <form id="form-admin-login" class="space-y-4">
                 <div>
@@ -598,10 +598,10 @@
                     </p>
                 </div>
                 <div class="flex flex-wrap items-center gap-2 self-start sm:self-auto">
-                    <button onclick="abrirModalConfigurarSmtp()" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-xl font-bold transition flex items-center gap-1.5 shadow-sm">
-                        <span>Configurar Correo (SMTP)</span>
-                        <span id="badge-estado-smtp" class="bg-white/20 text-[10px] px-1.5 py-0.5 rounded font-black">Verificar</span>
-                    </button>
+                    <span class="text-xs bg-emerald-600 text-white px-3 py-2 rounded-xl font-bold flex items-center gap-1.5 shadow-sm select-none">
+                        <span>SMS Directo Activo</span>
+                        <span class="bg-white/20 text-[10px] px-1.5 py-0.5 rounded font-black">Instantáneo</span>
+                    </span>
                     <button onclick="abrirModalEditarPerfilAdmin()" class="text-xs bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded-xl font-bold transition flex items-center gap-1.5 shadow-sm">
                         <span>Mi Perfil / Contraseña</span>
                     </button>
@@ -653,29 +653,26 @@
 
             <!-- ============================================================== -->
             <!-- ADMIN SUB-PESTAÑA 1: GESTIÓN DE USUARIOS (ALUMNOS Y PROFESORES)-->
-            <!-- (Requerimiento: admin da de alta a los profes con envío correo)-->
+            <!-- (Requerimiento: admin da de alta a los profes con envío SMS)   -->
             <!-- ============================================================== -->
             <div id="admin-sec-usuarios" class="space-y-4">
                 <!-- Banner de Alta de Profesores y Link Exclusivo de Jueces -->
                 <div class="bg-gradient-to-r from-rose-900 to-red-800 text-white p-5 rounded-2xl shadow-md flex flex-col md:flex-row justify-between md:items-center gap-4 border border-rose-700">
                     <div class="space-y-1">
                         <div class="inline-flex items-center gap-1.5 bg-amber-400 text-slate-900 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full">
-                            Alta de Profesores y Envío Automático por Correo
+                            Alta de Profesores y Envío Instantáneo por SMS Directo
                         </div>
                         <h3 class="text-base sm:text-lg font-black">Portal Exclusivo para Maestros y Jueces Evaluadores</h3>
                         <p class="text-xs text-rose-100 leading-relaxed max-w-2xl">
-                            Al dar de alta a un profesor con su correo, el sistema le envía automáticamente su <strong>usuario</strong>, <strong>contraseña</strong> y el <strong>enlace directo a su dashboard</strong> (<code id="admin-label-url-jueces" class="bg-rose-950/80 px-2 py-0.5 rounded text-amber-300 font-mono">/jueces</code>).
+                            Al dar de alta a un profesor con su número de celular, el sistema prepara al instante un <strong>SMS directo</strong> (y opción de WhatsApp) con su <strong>usuario</strong>, <strong>contraseña</strong> y el <strong>enlace directo a su dashboard</strong> (<code id="admin-label-url-jueces" class="bg-rose-950/80 px-2 py-0.5 rounded text-amber-300 font-mono">/jueces</code>).
                         </p>
                     </div>
                     <div class="flex flex-wrap items-center gap-2 shrink-0">
-                        <button type="button" onclick="abrirModalConfigurarSmtp()" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-3.5 py-2.5 rounded-xl text-xs font-black shadow-md transition">
-                            Configurar Correo SMTP
-                        </button>
                         <button type="button" onclick="copiarEnlaceJuezGeneral()" class="bg-white/15 hover:bg-white/25 text-white border border-white/30 px-3.5 py-2.5 rounded-xl text-xs font-bold transition">
                             Copiar Link de Jueces (/jueces)
                         </button>
                         <button type="button" onclick="abrirModalCrearUsuario('profesor')" class="bg-amber-400 hover:bg-amber-300 text-slate-900 px-4 py-2.5 rounded-xl text-xs font-black shadow-md transition">
-                            + Dar de Alta Profesor / Juez
+                            + Dar de Alta Profesor (Enviar SMS)
                         </button>
                     </div>
                 </div>
@@ -685,12 +682,12 @@
                         <div>
                             <h3 class="text-lg font-black text-slate-800">Directorio de Usuarios Registrados</h3>
                             <p class="text-xs text-gray-500 mt-0.5">
-                                Da de alta profesores (con envío automático de correo y link), promueve usuarios o gestiona administradores y alumnos.
+                                Da de alta profesores (con envío instantáneo por SMS directo y link), promueve usuarios o gestiona administradores y alumnos.
                             </p>
                         </div>
                         <div class="flex flex-wrap items-center gap-2">
                             <button onclick="abrirModalCrearUsuario('profesor')" class="bg-rose-700 hover:bg-rose-800 text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow transition flex items-center gap-1.5">
-                                <span>+ Alta Profesor (Enviar Correo)</span>
+                                <span>+ Alta Profesor (Enviar SMS)</span>
                             </button>
                             <button onclick="abrirModalCrearUsuario('estudiante')" class="bg-red-600 hover:bg-red-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow transition flex items-center gap-1.5">
                                 <span>+ Dar de Alta Usuario</span>
@@ -1045,9 +1042,9 @@
                 </div>
 
                 <div>
-                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Correo Electrónico (Para envío de datos):</label>
-                    <input type="email" id="modal-promover-email" placeholder="Ej. profesor.apellido@uvmnet.edu" class="w-full border p-2.5 rounded-xl text-xs font-medium focus:ring-2 focus:ring-red-500">
-                    <p class="text-[10px] text-gray-500 mt-0.5">Al asignar rol de Profesor, se enviarán sus datos de ingreso automáticamente a este correo.</p>
+                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Número de Celular / Teléfono (Para envío de SMS):</label>
+                    <input type="tel" id="modal-promover-telefono" placeholder="Ej. 5512345678" oninput="this.value = this.value.replace(/[^\d+\s-]/g, '')" class="w-full border p-2.5 rounded-xl text-xs font-medium focus:ring-2 focus:ring-red-500">
+                    <p class="text-[10px] text-gray-500 mt-0.5">Al asignar rol de Profesor, se preparará su SMS directo con usuario, contraseña y link.</p>
                 </div>
 
                 <div>
@@ -1085,16 +1082,16 @@
                 <div>
                     <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Rol a Asignar:</label>
                     <select id="admin_nuevo_rol" onchange="toggleCamposCrearUsuarioModal(this.value)" class="w-full border p-2.5 rounded-xl text-xs font-bold bg-white text-slate-800 focus:ring-2 focus:ring-red-500">
-                        <option value="profesor">Profesor / Juez Evaluador (Envía correo + link)</option>
+                        <option value="profesor">Profesor / Juez Evaluador (Envía SMS Directo + link)</option>
                         <option value="estudiante">Estudiante (Alumno)</option>
                         <option value="admin">Administrador del Sistema</option>
                     </select>
                 </div>
 
                 <div id="admin_nuevo_profe_info" class="bg-rose-50 text-rose-950 p-3 rounded-xl border border-rose-200 text-xs">
-                    <p class="font-bold text-rose-900">Envío Automático de Credenciales y Link Exclusivo</p>
+                    <p class="font-bold text-rose-900">Envío Instantáneo por SMS Directo</p>
                     <p class="text-[11px] text-rose-800 mt-0.5">
-                        Al guardar, se enviará un correo automático al profesor con su <strong>Usuario</strong>, <strong>Contraseña</strong> y un <strong>botón con el enlace directo a su dashboard (`/jueces`)</strong>.
+                        Al guardar, se abrirá al instante el mensaje <strong>SMS Directo</strong> (y opción WhatsApp) para enviarle al profesor su <strong>Usuario</strong>, <strong>Contraseña</strong> y el <strong>enlace directo a su dashboard (`/jueces`)</strong>.
                     </p>
                 </div>
 
@@ -1120,8 +1117,8 @@
                 </div>
 
                 <div>
-                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Correo Electrónico (Recibirá su usuario, clave y link):</label>
-                    <input type="email" id="admin_nuevo_email" name="nuevo_correo_uvm" autocomplete="off" placeholder="Ej. profesor.apellido@uvmnet.edu" class="w-full border p-2.5 rounded-xl font-medium text-xs text-slate-800 focus:ring-2 focus:ring-red-500">
+                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Número de Celular (10 dígitos - Recibirá SMS con usuario, clave y link):</label>
+                    <input type="tel" id="admin_nuevo_telefono" name="nuevo_telefono_uvm" autocomplete="off" placeholder="Ej. 5512345678" oninput="this.value = this.value.replace(/[^\d+\s-]/g, '')" class="w-full border p-2.5 rounded-xl font-semibold text-xs text-slate-800 focus:ring-2 focus:ring-red-500">
                 </div>
 
                 <div class="grid grid-cols-2 gap-2">
@@ -1160,7 +1157,7 @@
                         Cancelar
                     </button>
                     <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-xl text-xs font-bold shadow">
-                        Guardar y Enviar Correo
+                        Guardar y Preparar SMS
                     </button>
                 </div>
             </form>
@@ -1168,108 +1165,23 @@
     </div>
 
     <!-- ============================================================== -->
-    <!-- MODAL 2.A: CONFIGURAR CORREO SMTP DESDE EL PANEL ADMIN          -->
-    <!-- ============================================================== -->
-    <div id="modal-configurar-smtp" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-        <div class="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl border space-y-4 my-8">
-            <div class="flex justify-between items-start border-b pb-3">
-                <div>
-                    <span class="inline-block bg-emerald-100 text-emerald-800 font-black text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-wider mb-1">Envío de Correos en el Servidor</span>
-                    <h3 class="font-black text-lg text-slate-800">Configurar Correo SMTP</h3>
-                    <p class="text-xs text-gray-500 mt-0.5">Se guarda directamente en la base de datos para que el servidor en la nube pueda enviar correos sin depender del archivo <code>.env</code>.</p>
-                </div>
-                <button onclick="cerrarModalConfigurarSmtp()" class="text-gray-400 hover:text-gray-600 text-lg font-bold">✕</button>
-            </div>
-
-            <div id="smtp-banner-estado" class="p-3 rounded-xl border text-xs font-semibold bg-slate-50 text-slate-700 border-slate-200">
-                Verificando configuración actual...
-            </div>
-
-            <form id="form-configurar-smtp" class="space-y-3">
-                <div>
-                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Proveedor Rápido:</label>
-                    <div class="grid grid-cols-2 gap-2">
-                        <button type="button" onclick="seleccionarProveedorSmtp('gmail')" class="border border-red-200 bg-red-50 hover:bg-red-100 text-red-900 py-2 px-3 rounded-xl text-xs font-bold transition">
-                            Gmail (smtp.gmail.com)
-                        </button>
-                        <button type="button" onclick="seleccionarProveedorSmtp('outlook')" class="border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-900 py-2 px-3 rounded-xl text-xs font-bold transition">
-                            Outlook / UVM (Office 365)
-                        </button>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-3 gap-2">
-                    <div class="col-span-2">
-                        <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Servidor SMTP (Host):</label>
-                        <input type="text" id="smtp_cfg_host" required value="smtp.gmail.com" placeholder="smtp.gmail.com" class="w-full border p-2.5 rounded-xl text-xs font-mono font-bold text-slate-800 focus:ring-2 focus:ring-emerald-500">
-                    </div>
-                    <div>
-                        <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Puerto:</label>
-                        <input type="number" id="smtp_cfg_port" required value="587" placeholder="587" class="w-full border p-2.5 rounded-xl text-xs font-mono font-bold text-slate-800 focus:ring-2 focus:ring-emerald-500">
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Correo Electrónico Remitente (SMTP_USER):</label>
-                    <input type="email" id="smtp_cfg_user" placeholder="Ej. pocoluc@gmail.com" class="w-full border p-2.5 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-emerald-500">
-                </div>
-
-                <div>
-                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Contraseña de Aplicación (SMTP_PASS):</label>
-                    <input type="password" id="smtp_cfg_pass" placeholder="Ej. ajfn hwbw ligy kgaa" class="w-full border p-2.5 rounded-xl text-xs font-mono font-bold text-slate-800 focus:ring-2 focus:ring-emerald-500">
-                    <p id="smtp_cfg_pass_ayuda" class="text-[11px] text-gray-500 mt-1">
-                        Para Gmail, usa tu Contraseña de Aplicación de 16 letras (se quitan los espacios automáticamente).
-                    </p>
-                </div>
-
-                <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 space-y-2">
-                    <div class="flex justify-between items-center gap-2">
-                        <label class="block font-black text-[11px] uppercase text-blue-900">Puente HTTPS Puerto 443 (Opcional - Si tu hosting bloquea puertos 465/587):</label>
-                        <button type="button" onclick="copiarCodigoAppsScript()" class="bg-blue-700 hover:bg-blue-800 text-white px-2.5 py-1 rounded-lg text-[10px] font-bold whitespace-nowrap shadow-sm transition">
-                            Copiar Código Google Script
-                        </button>
-                    </div>
-                    <input type="url" id="smtp_cfg_webhook" placeholder="https://script.google.com/macros/s/.../exec" class="w-full border border-blue-300 bg-white p-2 rounded-lg text-xs font-mono text-slate-800 focus:ring-2 focus:ring-blue-500">
-                    <p class="text-[10px] text-blue-800 leading-relaxed">
-                        Servidores gratuitos como <strong>Render</strong> o <strong>Railway</strong> bloquean los puertos SMTP 465 y 587. Si pegas aquí la URL de un Google Apps Script (puerto HTTPS 443), los correos saldrán en 0.4 segundos sin ningún bloqueo.
-                    </p>
-                </div>
-
-                <div class="pt-2 border-t flex flex-wrap justify-between items-center gap-2">
-                    <button type="button" onclick="probarEnvioSmtpAdmin()" class="bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 px-3.5 py-2 rounded-xl text-xs font-bold transition">
-                        Enviar Correo de Prueba
-                    </button>
-                    <div class="flex gap-2">
-                        <button type="button" onclick="cerrarModalConfigurarSmtp()" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100">
-                            Cerrar
-                        </button>
-                        <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-xl text-xs font-black shadow transition">
-                            Guardar Correo SMTP
-                        </button>
-                    </div>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- ============================================================== -->
-    <!-- MODAL 2.A2: ENVÍO RÁPIDO EN 1 CLIC (SIN BLOQUEO DE POPUPS)      -->
+    <!-- MODAL 2.A2: ENVÍO RÁPIDO POR SMS DIRECTO / WHATSAPP (1 CLIC)    -->
     <!-- ============================================================== -->
     <div id="modal-envio-rapido-correo" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
         <div class="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl border space-y-4 my-8">
             <div class="flex justify-between items-start border-b pb-3">
                 <div>
-                    <span class="inline-block bg-emerald-100 text-emerald-800 font-black text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-wider mb-1">Correo Redactado Listo para Enviar</span>
-                    <h3 class="font-black text-lg text-slate-800" id="modal-envio-rapido-titulo">Enviar Credenciales al Profesor</h3>
-                    <p id="modal-envio-rapido-aviso" class="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 font-semibold mt-1.5">
-                        Tu servidor gratuito bloquea los puertos SMTP (465/587). Haz clic en cualquiera de las opciones de abajo para abrir el correo ya redactado:
+                    <span class="inline-block bg-emerald-100 text-emerald-800 font-black text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-wider mb-1">SMS Directo Listo al Instante</span>
+                    <h3 class="font-black text-lg text-slate-800" id="modal-envio-rapido-titulo">Enviar Credenciales por SMS Directo</h3>
+                    <p id="modal-envio-rapido-aviso" class="text-[11px] text-emerald-900 bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-1.5 font-semibold mt-1.5">
+                        Elige abajo cómo enviar al instante el mensaje con el usuario, contraseña y link directo:
                     </p>
                 </div>
                 <button onclick="cerrarModalEnvioRapidoCorreo()" class="text-gray-400 hover:text-gray-600 text-lg font-bold">✕</button>
             </div>
 
             <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-xs space-y-1.5">
-                <div class="flex justify-between gap-2"><span class="text-slate-500 font-bold">Destinatario:</span> <span id="envio-rapido-email" class="font-black text-slate-800 break-all"></span></div>
+                <div class="flex justify-between gap-2"><span class="text-slate-500 font-bold">Número Celular:</span> <span id="envio-rapido-telefono" class="font-black text-slate-800 break-all"></span></div>
                 <div class="flex justify-between gap-2"><span class="text-slate-500 font-bold">Nombre:</span> <span id="envio-rapido-nombre" class="font-bold text-slate-800"></span></div>
                 <div class="flex justify-between gap-2"><span class="text-slate-500 font-bold">Usuario / ID:</span> <code id="envio-rapido-usuario" class="bg-red-50 text-red-800 border border-red-200 px-2 py-0.5 rounded font-mono font-black"></code></div>
                 <div class="flex justify-between gap-2"><span class="text-slate-500 font-bold">Contraseña:</span> <code id="envio-rapido-pass" class="bg-red-50 text-red-800 border border-red-200 px-2 py-0.5 rounded font-mono font-black"></code></div>
@@ -1277,23 +1189,27 @@
                     <span class="text-slate-500 font-bold block mb-0.5">Enlace Directo de Juez:</span>
                     <a id="envio-rapido-link" href="#" target="_blank" class="text-red-700 underline font-mono text-[11px] break-all"></a>
                 </div>
+                <div class="pt-1.5 border-t border-slate-200">
+                    <span class="text-slate-500 font-bold block mb-1">Vista previa del SMS:</span>
+                    <pre id="envio-rapido-preview-sms" class="bg-white border border-slate-200 rounded-lg p-2.5 text-[11px] font-mono text-slate-700 whitespace-pre-wrap break-words leading-relaxed"></pre>
+                </div>
             </div>
 
             <div class="space-y-2.5">
-                <a id="btn-link-gmail-directo" href="#" target="_blank" rel="noopener noreferrer" onclick="cerrarModalEnvioRapidoCorreo()" class="flex items-center justify-center gap-2 w-full bg-red-600 hover:bg-red-700 text-white font-black text-xs py-3 px-4 rounded-xl shadow-md transition text-center">
-                    <span>Abrir en Gmail Web (Correo ya redactado)</span>
+                <a id="btn-link-sms-directo" href="#" onclick="cerrarModalEnvioRapidoCorreo()" class="flex items-center justify-center gap-2 w-full bg-red-600 hover:bg-red-700 text-white font-black text-xs py-3.5 px-4 rounded-xl shadow-md transition text-center">
+                    <span>Enviar SMS Directo (Abrir App de Mensajes SMS)</span>
                 </a>
 
-                <a id="btn-link-outlook-directo" href="#" target="_blank" rel="noopener noreferrer" onclick="cerrarModalEnvioRapidoCorreo()" class="flex items-center justify-center gap-2 w-full bg-blue-600 hover:bg-blue-700 text-white font-black text-xs py-3 px-4 rounded-xl shadow-md transition text-center">
-                    <span>Abrir en Outlook Web / Correo UVM (Correo ya redactado)</span>
+                <a id="btn-link-whatsapp-directo" href="#" target="_blank" rel="noopener noreferrer" onclick="cerrarModalEnvioRapidoCorreo()" class="flex items-center justify-center gap-2 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs py-3 px-4 rounded-xl shadow-md transition text-center">
+                    <span>Enviar por WhatsApp Directo (1 Clic)</span>
                 </a>
 
                 <div class="grid grid-cols-2 gap-2">
-                    <a id="btn-link-mailto-directo" href="#" class="flex items-center justify-center bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs py-2.5 px-3 rounded-xl shadow transition text-center">
-                        App de Correo (PC/Cel)
-                    </a>
-                    <button type="button" onclick="copiarTextoMensajeRapido()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-2.5 px-3 rounded-xl shadow transition">
-                        Copiar Todo el Mensaje
+                    <button type="button" onclick="copiarTextoMensajeRapido()" class="bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs py-2.5 px-3 rounded-xl shadow transition">
+                        Copiar Mensaje SMS
+                    </button>
+                    <button type="button" onclick="copiarSoloLinkMensajeRapido()" class="bg-amber-100 hover:bg-amber-200 text-amber-950 border border-amber-300 font-bold text-xs py-2.5 px-3 rounded-xl shadow-sm transition">
+                        Copiar Solo el Link
                     </button>
                 </div>
             </div>
@@ -2081,7 +1997,7 @@
                         id: data.id,
                         nombre: data.nombre,
                         matricula: data.matricula || `prof_${data.id}`,
-                        email: data.email || null,
+                        telefono: data.telefono || null,
                         rol: 'profesor',
                         carrera: data.carrera,
                         nivel_asignado: data.nivel_asignado,
@@ -2099,12 +2015,12 @@
             }
         };
 
-        // Registro: nombre en mayúsculas automático y envío de correo con datos de ingreso
+        // Registro: nombre en mayúsculas automático y teléfono opcional
         document.getElementById('form-registro-alumno').onsubmit = async (e) => {
             e.preventDefault();
             const nombre = document.getElementById('reg_nombre').value.trim().toUpperCase();
             const matricula = document.getElementById('reg_matricula').value.trim();
-            const email = document.getElementById('reg_email')?.value.trim() || '';
+            const telefono = document.getElementById('reg_telefono')?.value.trim() || '';
             const carrera = document.getElementById('reg_carrera').value;
             const semestre = document.getElementById('reg_semestre').value;
             const password = document.getElementById('reg_pass').value;
@@ -2113,7 +2029,7 @@
                 const res = await fetch('/api/registro', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ nombre, matricula, email, carrera, semestre, password })
+                    body: JSON.stringify({ nombre, matricula, telefono, carrera, semestre, password })
                 });
                 const bootHeader = res.headers.get('X-Server-Boot-Id');
                 if (bootHeader) servidorBootIdActual = bootHeader;
@@ -2704,154 +2620,8 @@
                 cargarAdminUsuarios();
                 cargarAdminCarteles();
                 cargarDatosAsignacionManual();
-                cargarEstadoSmtpAdmin();
             } catch (err) {
                 console.error("Error al cargar dashboard admin:", err);
-            }
-        }
-
-        async function cargarEstadoSmtpAdmin() {
-            try {
-                const res = await fetch('/api/admin/smtp');
-                if (!res.ok) return;
-                const data = await res.json();
-                const badge = document.getElementById('badge-estado-smtp');
-                const banner = document.getElementById('smtp-banner-estado');
-
-                if (data.configurado) {
-                    if (badge) {
-                        badge.innerText = data.webhook_url ? 'HTTPS Activo' : 'Activo';
-                        badge.className = 'bg-emerald-900/60 text-emerald-100 text-[10px] px-1.5 py-0.5 rounded font-black';
-                    }
-                    if (banner) {
-                        banner.innerHTML = data.webhook_url
-                            ? `Puente HTTPS (Puerto 443) activo ${data.smtp_user ? `• Remitente: <strong>${data.smtp_user}</strong>` : ''}`
-                            : `Correo activo: <strong>${data.smtp_user}</strong> (${data.smtp_host}:${data.smtp_port})`;
-                        banner.className = 'p-3 rounded-xl border text-xs font-semibold bg-emerald-50 text-emerald-900 border-emerald-200';
-                    }
-                } else {
-                    if (badge) {
-                        badge.innerText = 'Sin configurar';
-                        badge.className = 'bg-amber-400 text-slate-900 text-[10px] px-1.5 py-0.5 rounded font-black';
-                    }
-                    if (banner) {
-                        banner.innerHTML = `<strong>Correo SMTP aún no configurado en este servidor.</strong> Ingresa tu correo y contraseña de aplicación abajo (o tu Puente HTTPS) y haz clic en Guardar.`;
-                        banner.className = 'p-3 rounded-xl border text-xs font-semibold bg-amber-50 text-amber-900 border-amber-300';
-                    }
-                }
-
-                if (data.smtp_host) document.getElementById('smtp_cfg_host').value = data.smtp_host;
-                if (data.smtp_port) document.getElementById('smtp_cfg_port').value = data.smtp_port;
-                if (data.smtp_user) document.getElementById('smtp_cfg_user').value = data.smtp_user;
-                const webhookInput = document.getElementById('smtp_cfg_webhook');
-                if (webhookInput) webhookInput.value = data.webhook_url || '';
-
-                const passInput = document.getElementById('smtp_cfg_pass');
-                if (passInput) {
-                    passInput.value = '';
-                    passInput.placeholder = data.tiene_password
-                        ? '•••••••• (Ya guardada - deja vacío para mantenerla o escribe una nueva)'
-                        : 'Ej. ajfn hwbw ligy kgaa';
-                }
-            } catch (e) {}
-        }
-
-        function copiarCodigoAppsScript() {
-            const codigo = `function doPost(e) {\n  var d = JSON.parse(e.postData.contents);\n  MailApp.sendEmail({ to: d.to, subject: d.subject, htmlBody: d.html, name: d.name || "Sistema de Carteles UVM" });\n  return ContentService.createTextOutput(JSON.stringify({ ok: true })).setMimeType(ContentService.MimeType.JSON);\n}`;
-            navigator.clipboard.writeText(codigo).then(() => {
-                alert("¡Código de 5 líneas copiado al portapapeles!\n\nPASOS RÁPIDOS (1 minuto):\n1. Entra a https://script.google.com y crea un 'Nuevo proyecto'.\n2. Borra lo que tenga, pega este código y dale en 'Implementar' -> 'Nueva implementación'.\n3. En tipo elige 'Aplicación web', en Acceso elige 'Cualquier persona' y copia la URL que termina en /exec.\n4. Pega esa URL en el campo Puente HTTPS y guarda.");
-            }).catch(() => {
-                prompt("Copia este código y pégalo en https://script.google.com (Implementar -> Aplicación web -> Acceso: Cualquier persona):", codigo);
-            });
-        }
-
-        function abrirModalConfigurarSmtp() {
-            cargarEstadoSmtpAdmin();
-            document.getElementById('modal-configurar-smtp').classList.remove('hidden');
-        }
-
-        function cerrarModalConfigurarSmtp() {
-            document.getElementById('modal-configurar-smtp').classList.add('hidden');
-        }
-
-        function seleccionarProveedorSmtp(tipo) {
-            if (tipo === 'gmail') {
-                document.getElementById('smtp_cfg_host').value = 'smtp.gmail.com';
-                document.getElementById('smtp_cfg_port').value = '587';
-            } else {
-                document.getElementById('smtp_cfg_host').value = 'smtp.office365.com';
-                document.getElementById('smtp_cfg_port').value = '587';
-            }
-        }
-
-        document.getElementById('form-configurar-smtp').onsubmit = async (e) => {
-            e.preventDefault();
-            const smtp_host = document.getElementById('smtp_cfg_host').value.trim();
-            const smtp_port = document.getElementById('smtp_cfg_port').value.trim();
-            const smtp_user = document.getElementById('smtp_cfg_user').value.trim();
-            const smtp_pass = document.getElementById('smtp_cfg_pass').value.trim();
-            const webhook_url = document.getElementById('smtp_cfg_webhook')?.value.trim() || '';
-
-            try {
-                const res = await fetch('/api/admin/smtp', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ smtp_host, smtp_port, smtp_user, smtp_pass, webhook_url })
-                });
-                const data = await leerRespuestaJsonSegura(res);
-                if (res.ok) {
-                    alert(data.mensaje);
-                    await cargarEstadoSmtpAdmin();
-                    cerrarModalConfigurarSmtp();
-                } else {
-                    alert(data.error || "No se pudo guardar la configuración SMTP.");
-                }
-            } catch (err) {
-                alert("Error de conexión: " + err.message);
-            }
-        };
-
-        async function probarEnvioSmtpAdmin() {
-            const smtp_host = document.getElementById('smtp_cfg_host').value.trim();
-            const smtp_port = document.getElementById('smtp_cfg_port').value.trim();
-            const smtp_user = document.getElementById('smtp_cfg_user').value.trim();
-            const smtp_pass = document.getElementById('smtp_cfg_pass').value.trim();
-            const webhook_url = document.getElementById('smtp_cfg_webhook')?.value.trim() || '';
-
-            if (!smtp_user && !webhook_url) {
-                return alert("Primero ingresa el correo remitente (SMTP_USER) o la URL del Puente HTTPS.");
-            }
-
-            try {
-                // Guardar primero por si el admin acaba de escribir los datos sin haber presionado Guardar
-                const resSave = await fetch('/api/admin/smtp', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ smtp_host, smtp_port, smtp_user, smtp_pass, webhook_url })
-                });
-                const dataSave = await leerRespuestaJsonSegura(resSave);
-                if (!resSave.ok) {
-                    return alert(dataSave.error || "No se pudo guardar la configuración SMTP antes de probar.");
-                }
-
-                await cargarEstadoSmtpAdmin();
-
-                const destino = prompt("¿A qué correo deseas enviar el correo de prueba?", smtp_user || '');
-                if (!destino || !destino.trim()) return;
-
-                const resTest = await fetch('/api/admin/smtp/probar', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email_destino: destino.trim() })
-                });
-                const dataTest = await leerRespuestaJsonSegura(resTest);
-                if (resTest.ok) {
-                    alert(dataTest.mensaje);
-                } else {
-                    alert(dataTest.error || "No se pudo enviar el correo de prueba.");
-                }
-            } catch (err) {
-                alert("Error al probar correo: " + err.message);
             }
         }
 
@@ -2895,8 +2665,8 @@
                 const coincideRol = (filtroRolActual === 'todos') || (u.rol === filtroRolActual);
                 const nombre = (u.nombre || '').toLowerCase();
                 const mat = (u.matricula || '').toLowerCase();
-                const email = (u.email || '').toLowerCase();
-                const coincideTermino = !termino || nombre.includes(termino) || mat.includes(termino) || email.includes(termino);
+                const tel = (u.telefono || u.email || '').toLowerCase();
+                const coincideTermino = !termino || nombre.includes(termino) || mat.includes(termino) || tel.includes(termino);
                 return coincideRol && coincideTermino;
             });
 
@@ -2959,6 +2729,7 @@
 
                 const uJson = JSON.stringify(u).replace(/"/g, '&quot;');
                 const esSesionActual = usuarioActual && (usuarioActual.id === u.id || usuarioActual.matricula === u.matricula);
+                const telMostrar = u.telefono || u.email || '';
 
                 // Acciones de administración
                 let botonesAccion = '';
@@ -2976,8 +2747,8 @@
                     `;
                 } else if (u.rol === 'profesor') {
                     botonesAccion = `
-                        <button onclick="reenviarCorreoUsuario(${u.id}, '${(u.email || '').replace(/'/g, "\\'")}', '${u.nombre.replace(/'/g, "\\'")}')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded-lg font-bold text-[11px] shadow-sm transition" title="Enviar por correo usuario, contraseña y link directo a su dashboard">
-                            Enviar Correo
+                        <button onclick="enviarSmsUsuario(${u.id}, '${telMostrar.replace(/'/g, "\\'")}', '${u.nombre.replace(/'/g, "\\'")}')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded-lg font-bold text-[11px] shadow-sm transition" title="Enviar por SMS directo o WhatsApp usuario, contraseña y link a su dashboard">
+                            Enviar SMS
                         </button>
                         <button onclick="copiarEnlaceJuez('${u.matricula.replace(/'/g, "\\'")}')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 px-2 py-1 rounded-lg font-bold text-[11px] transition" title="Copiar link directo de acceso para este profesor">
                             Link Juez
@@ -3029,7 +2800,7 @@
                                 <span>${u.nombre}</span>
                                 ${esSesionActual ? '<span class="text-[9px] bg-red-100 text-red-800 font-black px-1.5 py-0.5 rounded-full">Actual</span>' : ''}
                             </div>
-                            ${u.email ? `<div class="text-[11px] text-slate-500 font-medium">${u.email}</div>` : ''}
+                            ${telMostrar ? `<div class="text-[11px] text-emerald-700 font-mono font-bold">Tel: ${telMostrar}</div>` : ''}
                         </td>
                         <td class="p-3 align-top font-mono text-slate-600 font-semibold">${u.matricula}</td>
                         <td class="p-3 align-top">${badgeRol}</td>
@@ -3070,8 +2841,8 @@
             document.getElementById('modal-promover-rol').value = user.rol === 'estudiante' ? 'profesor' : user.rol;
             document.getElementById('modal-promover-carrera').value = user.carrera || 'Ingeniería';
             document.getElementById('modal-promover-nivel').value = user.nivel_asignado || 1;
-            const emailInput = document.getElementById('modal-promover-email');
-            if (emailInput) emailInput.value = user.email || '';
+            const telInput = document.getElementById('modal-promover-telefono');
+            if (telInput) telInput.value = user.telefono || user.email || '';
             const passInput = document.getElementById('modal-promover-pass');
             if (passInput) passInput.value = '';
             toggleCamposProfesorModal(document.getElementById('modal-promover-rol').value);
@@ -3101,18 +2872,17 @@
             const rol = document.getElementById('modal-promover-rol').value;
             const carrera = document.getElementById('modal-promover-carrera').value;
             const nivel_asignado = document.getElementById('modal-promover-nivel').value;
-            const email = document.getElementById('modal-promover-email')?.value.trim() || '';
+            const telefono = document.getElementById('modal-promover-telefono')?.value.trim() || '';
             const password = document.getElementById('modal-promover-pass')?.value || '';
 
             try {
                 const res = await fetch(`/api/admin/usuarios/${id}/rol`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ rol, carrera, nivel_asignado, email, password })
+                    body: JSON.stringify({ rol, carrera, nivel_asignado, telefono, password })
                 });
                 const data = await res.json();
                 if (res.ok) {
-                    alert(data.mensaje);
                     // Si el administrador actual modificó su propio perfil o contraseña
                     if (usuarioActual && (usuarioActual.id == id || usuarioActual.matricula == data.usuario?.matricula)) {
                         usuarioActual = { ...usuarioActual, ...data.usuario };
@@ -3121,6 +2891,11 @@
                     cerrarModalPromover();
                     cargarAdminUsuarios();
                     cargarAdminDashboard();
+                    if (rol === 'profesor' && data.datos_cuenta && telefono) {
+                        abrirModalSmsDirecto(data.datos_cuenta, data.mensaje);
+                    } else {
+                        alert(data.mensaje);
+                    }
                 } else {
                     alert(data.error);
                 }
@@ -3173,11 +2948,12 @@
             try {
                 return JSON.parse(texto);
             } catch (e) {
-                throw new Error("El servidor tardó demasiado en conectar al servicio de correo o se estaba actualizando. Si tu servidor gratuito bloquea los puertos SMTP (465/587), puedes enviar el correo directo con 1 clic.");
+                throw new Error("No se pudo leer la respuesta del servidor.");
             }
         }
 
         let ultimoTextoMensajeRapido = '';
+        let ultimoLinkAccesoRapido = '';
 
         function cerrarModalEnvioRapidoCorreo() {
             const modal = document.getElementById('modal-envio-rapido-correo');
@@ -3187,107 +2963,110 @@
         function copiarTextoMensajeRapido() {
             if (!ultimoTextoMensajeRapido) return;
             navigator.clipboard.writeText(ultimoTextoMensajeRapido).then(() => {
-                alert('¡Mensaje completo con usuario, contraseña y link copiado al portapapeles!');
+                alert('¡Texto completo del SMS (con usuario, contraseña y link) copiado al portapapeles!');
             }).catch(() => {
-                prompt('Copia el mensaje completo:', ultimoTextoMensajeRapido);
+                prompt('Copia el mensaje SMS completo:', ultimoTextoMensajeRapido);
             });
         }
 
-        function abrirCorreoDirectoGmail(datos, avisoTexto = '') {
-            const textoPlano = `Hola, ${datos.nombre}:
+        function copiarSoloLinkMensajeRapido() {
+            if (!ultimoLinkAccesoRapido) return;
+            navigator.clipboard.writeText(ultimoLinkAccesoRapido).then(() => {
+                alert('¡Link directo al panel de juez copiado al portapapeles!');
+            }).catch(() => {
+                prompt('Copia el link directo:', ultimoLinkAccesoRapido);
+            });
+        }
 
-El Administrador te ha dado de alta como Profesor / Juez Evaluador en el Sistema de Evaluación de Carteles UVM.
+        function abrirModalSmsDirecto(datos, avisoTexto = '') {
+            const telRaw = String(datos.telefono || datos.email || '').trim();
+            const soloDigitos = telRaw.replace(/\D/g, '');
+            const enlace = datos.enlace_acceso || obtenerUrlExclusivaJueces(datos.matricula);
 
-TUS DATOS DE INGRESO:
-• Usuario / ID: ${datos.matricula}
-• Contraseña: ${datos.password}
-• Área / Carrera: ${datos.carrera || 'General'}
-• Nivel Asignado: Nivel ${datos.nivel_asignado || 1}
+            const textoSms = datos.mensaje_sms || `Carteles UVM - Juez Evaluador\nHola ${datos.nombre}:\nUsuario: ${datos.matricula}\nClave: ${datos.password}\nNivel: ${datos.nivel_asignado || 1}\nAcceso directo: ${enlace}`;
 
-Enlace directo a tu Dashboard de Juez Evaluador:
-${datos.enlace_acceso}
+            ultimoTextoMensajeRapido = textoSms;
+            ultimoLinkAccesoRapido = enlace;
 
-Atentamente,
-Sistema de Evaluación de Carteles UVM`;
+            const smsUrl = datos.sms_url || (soloDigitos
+                ? `sms:${soloDigitos}?body=${encodeURIComponent(textoSms)}`
+                : `sms:?body=${encodeURIComponent(textoSms)}`);
 
-            ultimoTextoMensajeRapido = textoPlano;
+            const telWa = soloDigitos.length === 10 ? `52${soloDigitos}` : soloDigitos;
+            const whatsappUrl = datos.whatsapp_url || (telWa
+                ? `https://wa.me/${telWa}?text=${encodeURIComponent(textoSms)}`
+                : `https://wa.me/?text=${encodeURIComponent(textoSms)}`);
 
-            const asuntoRaw = 'Acceso Exclusivo de Juez Evaluador - Carteles UVM';
-            const asunto = encodeURIComponent(asuntoRaw);
-            const cuerpo = encodeURIComponent(textoPlano);
-            const emailDest = encodeURIComponent(datos.email || '');
+            const telEl = document.getElementById('envio-rapido-telefono');
+            if (telEl) telEl.innerText = telRaw || 'Sin número (se abrirá para elegir contacto)';
+            const nomEl = document.getElementById('envio-rapido-nombre');
+            if (nomEl) nomEl.innerText = datos.nombre || '';
+            const usrEl = document.getElementById('envio-rapido-usuario');
+            if (usrEl) usrEl.innerText = datos.matricula || '';
+            const passEl = document.getElementById('envio-rapido-pass');
+            if (passEl) passEl.innerText = datos.password || '';
 
-            const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${emailDest}&su=${asunto}&body=${cuerpo}`;
-            const outlookUrl = `https://outlook.office.com/mail/deeplink/compose?to=${emailDest}&subject=${asunto}&body=${cuerpo}`;
-            const mailtoUrl = `mailto:${datos.email || ''}?subject=${asunto}&body=${cuerpo}`;
-
-            document.getElementById('envio-rapido-email').innerText = datos.email || '';
-            document.getElementById('envio-rapido-nombre').innerText = datos.nombre || '';
-            document.getElementById('envio-rapido-usuario').innerText = datos.matricula || '';
-            document.getElementById('envio-rapido-pass').innerText = datos.password || '';
             const linkEl = document.getElementById('envio-rapido-link');
             if (linkEl) {
-                linkEl.href = datos.enlace_acceso || '#';
-                linkEl.innerText = datos.enlace_acceso || '';
+                linkEl.href = enlace || '#';
+                linkEl.innerText = enlace || '';
+            }
+
+            const previewEl = document.getElementById('envio-rapido-preview-sms');
+            if (previewEl) {
+                previewEl.innerText = textoSms;
             }
 
             const avisoEl = document.getElementById('modal-envio-rapido-aviso');
             if (avisoEl) {
-                avisoEl.innerText = avisoTexto || 'Tu servidor en la nube bloquea los puertos SMTP (465/587). Haz clic en uno de los botones de abajo para abrir el correo ya redactado (sin bloqueo de ventanas emergentes):';
+                avisoEl.innerText = avisoTexto || '¡Credenciales listas al instante! Haz clic abajo para enviar el SMS directo o por WhatsApp con el mensaje ya escrito:';
             }
 
-            const btnGmail = document.getElementById('btn-link-gmail-directo');
-            if (btnGmail) btnGmail.href = gmailUrl;
+            const btnSms = document.getElementById('btn-link-sms-directo');
+            if (btnSms) btnSms.href = smsUrl;
 
-            const btnOutlook = document.getElementById('btn-link-outlook-directo');
-            if (btnOutlook) btnOutlook.href = outlookUrl;
-
-            const btnMailto = document.getElementById('btn-link-mailto-directo');
-            if (btnMailto) btnMailto.href = mailtoUrl;
+            const btnWa = document.getElementById('btn-link-whatsapp-directo');
+            if (btnWa) btnWa.href = whatsappUrl;
 
             const modal = document.getElementById('modal-envio-rapido-correo');
             if (modal) modal.classList.remove('hidden');
         }
 
-        async function reenviarCorreoUsuario(id, emailActual, nombre) {
-            let correo = (emailActual || '').trim();
-            if (!correo) {
-                const ingresado = prompt(`El profesor ${nombre} aún no tiene correo registrado.\nIngresa su correo electrónico para enviarle su usuario, contraseña y link directo a su dashboard:`);
-                if (!ingresado || !ingresado.trim()) return;
-                correo = ingresado.trim();
+        async function enviarSmsUsuario(id, telefonoActual, nombre) {
+            let telefono = (telefonoActual || '').trim();
+            if (!telefono) {
+                const ingresado = prompt(`Ingresa el número de celular (10 dígitos) del profesor ${nombre} para generar su SMS directo con usuario, contraseña y link:`);
+                if (ingresado === null) return;
+                telefono = ingresado.trim();
             }
 
             try {
-                const res = await fetch(`/api/admin/usuarios/${id}/reenviar-correo`, {
+                const res = await fetch(`/api/admin/usuarios/${id}/enviar-sms`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: correo })
+                    body: JSON.stringify({ telefono })
                 });
                 const data = await leerRespuestaJsonSegura(res);
-                if (res.ok) {
-                    alert(data.mensaje);
+                if (res.ok && data.datos_cuenta) {
                     cargarAdminUsuarios();
+                    abrirModalSmsDirecto(data.datos_cuenta, data.mensaje);
                 } else {
-                    if (data.datos_cuenta) {
-                        abrirCorreoDirectoGmail(data.datos_cuenta, data.error);
-                    } else {
-                        alert(data.error || "No se pudo enviar el correo.");
-                    }
+                    alert(data.error || "No se pudo preparar el SMS.");
                 }
             } catch (err) {
                 const u = usuariosAdminCache.find(item => Number(item.id) === Number(id));
                 if (u) {
-                    abrirCorreoDirectoGmail({
+                    abrirModalSmsDirecto({
                         nombre: u.nombre,
                         matricula: u.matricula,
                         password: u.password || '(Tu contraseña asignada)',
-                        email: correo,
+                        telefono,
                         carrera: u.carrera,
                         nivel_asignado: u.nivel_asignado,
                         enlace_acceso: obtenerUrlExclusivaJueces(u.matricula)
-                    }, err.message);
+                    });
                 } else {
-                    alert("Aviso al enviar correo: " + err.message);
+                    alert("Error al preparar SMS: " + err.message);
                 }
             }
         }
@@ -3371,7 +3150,7 @@ Sistema de Evaluación de Carteles UVM`;
             const nivelCont = document.getElementById('admin_nuevo_nivel_contenedor');
             const adminInfo = document.getElementById('admin_nuevo_admin_info');
             const profeInfo = document.getElementById('admin_nuevo_profe_info');
-            const inputEmail = document.getElementById('admin_nuevo_email');
+            const inputTelefono = document.getElementById('admin_nuevo_telefono');
             const tituloModal = document.getElementById('modal-crear-usuario-titulo');
 
             if (nivelCont) {
@@ -3382,12 +3161,12 @@ Sistema de Evaluación de Carteles UVM`;
                 if (rol === 'profesor') profeInfo.classList.remove('hidden');
                 else profeInfo.classList.add('hidden');
             }
-            if (inputEmail) {
-                inputEmail.required = (rol === 'profesor');
+            if (inputTelefono) {
+                inputTelefono.required = (rol === 'profesor');
             }
             if (tituloModal) {
                 tituloModal.innerText = rol === 'profesor'
-                    ? 'Dar de Alta Profesor / Juez Evaluador'
+                    ? 'Dar de Alta Profesor / Juez Evaluador (SMS Directo)'
                     : (rol === 'admin' ? 'Dar de Alta Administrador' : 'Dar de Alta Estudiante');
             }
             if (adminInfo) {
@@ -3400,7 +3179,7 @@ Sistema de Evaluación de Carteles UVM`;
             e.preventDefault();
             const nombre = document.getElementById('admin_nuevo_nombre').value.trim().toUpperCase();
             const matricula = document.getElementById('admin_nuevo_matricula').value.trim();
-            const email = document.getElementById('admin_nuevo_email')?.value.trim() || '';
+            const telefono = document.getElementById('admin_nuevo_telefono')?.value.trim() || '';
             const rol = document.getElementById('admin_nuevo_rol').value;
             const carrera = document.getElementById('admin_nuevo_carrera').value;
             const nivel_asignado = document.getElementById('admin_nuevo_nivel').value;
@@ -3410,23 +3189,17 @@ Sistema de Evaluación de Carteles UVM`;
                 const res = await fetch('/api/admin/usuarios', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ nombre, matricula, email, rol, carrera, nivel_asignado, password })
+                    body: JSON.stringify({ nombre, matricula, telefono, rol, carrera, nivel_asignado, password })
                 });
                 const data = await leerRespuestaJsonSegura(res);
                 if (res.ok) {
                     cerrarModalCrearUsuario();
                     cargarAdminUsuarios();
                     cargarAdminDashboard();
-                    if (email && !data.correo_enviado) {
-                        abrirCorreoDirectoGmail({
-                            nombre,
-                            matricula: data.usuario?.matricula || matricula,
-                            password,
-                            email,
-                            carrera,
-                            nivel_asignado,
-                            enlace_acceso: data.enlace_acceso || obtenerUrlExclusivaJueces(data.usuario?.matricula || matricula)
-                        }, data.mensaje);
+                    if (rol === 'profesor' && data.datos_cuenta) {
+                        abrirModalSmsDirecto(data.datos_cuenta, data.mensaje);
+                    } else if (telefono && data.datos_cuenta) {
+                        abrirModalSmsDirecto(data.datos_cuenta, data.mensaje);
                     } else {
                         alert(data.mensaje);
                     }
