@@ -484,12 +484,14 @@ async function asegurarEsquemaYColumnas() {
                 nombre_equipo VARCHAR(250) NULL,
                 participantes TEXT NULL,
                 carrera VARCHAR(100) NOT NULL,
-                semestre INT NOT NULL,
-                nivel INT NOT NULL,
+                semestre INT NULL DEFAULT 1,
+                nivel INT NOT NULL DEFAULT 1,
                 titulo_cartel VARCHAR(255) NOT NULL,
                 clave VARCHAR(50) NULL,
                 archivo_url TEXT NULL,
                 profesor_asesor_id INT NULL,
+                profesores_asesores_ids TEXT NULL,
+                profesores_asesores_nombres TEXT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         `);
@@ -655,6 +657,45 @@ async function asegurarEsquemaYColumnas() {
         const [uCols] = await pool.query("SHOW COLUMNS FROM carteles LIKE 'usuario_id'");
         if (uCols.length === 0) {
             await pool.query("ALTER TABLE carteles ADD COLUMN usuario_id INT NULL");
+        }
+    } catch (e) {}
+
+    try {
+        await pool.query("ALTER TABLE carteles MODIFY COLUMN semestre INT NULL DEFAULT 1");
+    } catch (e) {}
+
+    try {
+        const [asIdsCols] = await pool.query("SHOW COLUMNS FROM carteles LIKE 'profesores_asesores_ids'");
+        if (asIdsCols.length === 0) {
+            await pool.query("ALTER TABLE carteles ADD COLUMN profesores_asesores_ids TEXT NULL");
+        }
+    } catch (e) {
+        try { await pool.query("ALTER TABLE carteles ADD COLUMN profesores_asesores_ids TEXT NULL"); } catch (e2) {}
+    }
+
+    try {
+        const [asNomCols] = await pool.query("SHOW COLUMNS FROM carteles LIKE 'profesores_asesores_nombres'");
+        if (asNomCols.length === 0) {
+            await pool.query("ALTER TABLE carteles ADD COLUMN profesores_asesores_nombres TEXT NULL");
+        }
+    } catch (e) {
+        try { await pool.query("ALTER TABLE carteles ADD COLUMN profesores_asesores_nombres TEXT NULL"); } catch (e2) {}
+    }
+
+    // Sincronizar nombres de asesores en carteles previos que solo tenían profesor_asesor_id
+    try {
+        const [cartelesConAsesorUnico] = await pool.query(`
+            SELECT c.id, c.profesor_asesor_id, p.nombre as asesor_nombre
+            FROM carteles c
+            JOIN profesores p ON p.id = c.profesor_asesor_id
+            WHERE c.profesor_asesor_id IS NOT NULL
+              AND (c.profesores_asesores_nombres IS NULL OR c.profesores_asesores_nombres = '')
+        `);
+        for (const c of cartelesConAsesorUnico) {
+            await pool.query(
+                "UPDATE carteles SET profesores_asesores_ids = ?, profesores_asesores_nombres = ? WHERE id = ?",
+                [String(c.profesor_asesor_id), c.asesor_nombre.toUpperCase(), c.id]
+            );
         }
     } catch (e) {}
 
@@ -923,10 +964,11 @@ app.get('/api/estudiantes/:id/carteles', async (req, res) => {
         const query = `
             SELECT 
                 c.id, c.titulo_cartel, c.clave, c.nombre_equipo, c.participantes, c.carrera, c.semestre, c.nivel, c.archivo_url,
+                c.profesor_asesor_id, c.profesores_asesores_ids, c.profesores_asesores_nombres,
                 COUNT(e.id) as num_evaluaciones,
                 ROUND(AVG(e.puntaje_total), 2) as promedio_final,
                 ROUND(AVG(COALESCE(NULLIF(e.estrellas_ponderadas, 0), e.puntaje_total / 20.0)), 2) as promedio_estrellas,
-                (SELECT nombre FROM profesores p WHERE p.id = c.profesor_asesor_id) as asesor_nombre
+                COALESCE(NULLIF(c.profesores_asesores_nombres, ''), (SELECT nombre FROM profesores p WHERE p.id = c.profesor_asesor_id)) as asesor_nombre
             FROM carteles c
             LEFT JOIN evaluaciones e ON c.id = e.cartel_id
             WHERE c.usuario_id = ? OR (c.participantes IS NOT NULL AND UPPER(c.participantes) LIKE ?)
@@ -1693,14 +1735,17 @@ app.post('/api/login/profesor', async (req, res) => {
 
 // --- CARTELES, CLAVES Y EVALUACIONES ---
 
-// Obtener lista completa de carteles para administración (incluyendo profesores asignados)
+// Obtener lista completa de carteles para administración (incluyendo profesores asignados y asesores múltiples)
 app.get('/api/admin/carteles', async (req, res) => {
     try {
         const query = `
             SELECT 
                 c.id, c.titulo_cartel, c.clave, c.nombre_equipo, c.participantes, c.carrera, c.semestre, c.nivel, c.archivo_url,
+                c.profesor_asesor_id, c.profesores_asesores_ids, c.profesores_asesores_nombres,
                 COUNT(e.id) as num_evaluaciones,
-                (SELECT nombre FROM profesores p WHERE p.id = c.profesor_asesor_id) as asesor_nombre
+                ROUND(AVG(e.puntaje_total), 2) as promedio_final,
+                ROUND(AVG(COALESCE(NULLIF(e.estrellas_ponderadas, 0), e.puntaje_total / 20.0)), 2) as promedio_estrellas,
+                COALESCE(NULLIF(c.profesores_asesores_nombres, ''), (SELECT nombre FROM profesores p WHERE p.id = c.profesor_asesor_id)) as asesor_nombre
             FROM carteles c
             LEFT JOIN evaluaciones e ON c.id = e.cartel_id
             GROUP BY c.id
@@ -1898,7 +1943,7 @@ app.get('/api/carteles/clave/:clave', async (req, res) => {
         const [carteles] = await pool.query(
             `SELECT c.*, 
                     (SELECT COUNT(*) FROM evaluaciones e WHERE e.cartel_id = c.id) as total_evaluaciones,
-                    (SELECT nombre FROM profesores p WHERE p.id = c.profesor_asesor_id) as asesor_nombre
+                    COALESCE(NULLIF(c.profesores_asesores_nombres, ''), (SELECT nombre FROM profesores p WHERE p.id = c.profesor_asesor_id)) as asesor_nombre
              FROM carteles c
              WHERE LOWER(TRIM(c.clave)) = LOWER(TRIM(?))`,
             [clave]
@@ -2041,35 +2086,186 @@ app.put('/api/admin/carteles/:id/clave', async (req, res) => {
     }
 });
 
-// Registrar nuevo cartel con asignación automática o manual de clave y participantes (Nombres de alumnos en MAYÚSCULAS)
-app.post('/api/carteles', upload.single('archivo_pdf'), async (req, res) => {
+// Control en memoria para bloquear peticiones duplicadas concurrentes al registrar carteles (evita duplicados por múltiples clics o internet lento)
+const enviosCartelesEnCurso = new Set();
+
+// Helper para procesar múltiples profesores asesores (IDs de catálogo + nombres escritos manualmente)
+async function procesarAsesoresCartel(body) {
+    const idsSet = new Set();
+    const nombresSet = new Set();
+
+    // 1. Extraer IDs de profesores enviados (como arreglo JSON, lista separada por comas o profesor_asesor_id único)
+    const rawIds = body.profesores_asesores_ids || body.asesores_ids || body.profesor_asesor_id || '';
+    let listaIds = [];
+    if (Array.isArray(rawIds)) {
+        listaIds = rawIds;
+    } else if (typeof rawIds === 'string' && rawIds.trim()) {
+        const str = rawIds.trim();
+        if (str.startsWith('[')) {
+            try { listaIds = JSON.parse(str); } catch (e) { listaIds = str.split(','); }
+        } else {
+            listaIds = str.split(',');
+        }
+    } else if (typeof rawIds === 'number') {
+        listaIds = [rawIds];
+    }
+
+    for (const item of listaIds) {
+        const idNum = parseInt(item);
+        if (!isNaN(idNum) && idNum > 0) {
+            idsSet.add(idNum);
+        }
+    }
+
+    // 2. Consultar nombres en BD de esos IDs
+    const idsArray = Array.from(idsSet);
+    if (idsArray.length > 0 && pool) {
+        try {
+            const placeholders = idsArray.map(() => '?').join(',');
+            const [rows] = await pool.query(`SELECT id, nombre FROM profesores WHERE id IN (${placeholders})`, idsArray);
+            const mapaNombres = {};
+            rows.forEach(r => { mapaNombres[r.id] = convertirMayusculas(r.nombre); });
+            idsArray.forEach(id => {
+                if (mapaNombres[id]) nombresSet.add(mapaNombres[id]);
+            });
+        } catch (e) {}
+    }
+
+    // 3. Extraer nombres manuales/adicionales enviados en profesores_asesores_nombres
+    const rawNombres = body.profesores_asesores_nombres || body.asesores_nombres || '';
+    let listaNombres = [];
+    if (Array.isArray(rawNombres)) {
+        listaNombres = rawNombres;
+    } else if (typeof rawNombres === 'string' && rawNombres.trim()) {
+        const str = rawNombres.trim();
+        if (str.startsWith('[')) {
+            try { listaNombres = JSON.parse(str); } catch (e) { listaNombres = str.split(','); }
+        } else {
+            listaNombres = str.split(',');
+        }
+    }
+
+    for (const nom of listaNombres) {
+        const limpio = convertirMayusculas(String(nom || ''));
+        if (limpio) {
+            nombresSet.add(limpio);
+        }
+    }
+
+    const nombresFinales = Array.from(nombresSet);
+    return {
+        primerId: idsArray.length > 0 ? idsArray[0] : null,
+        idsTexto: idsArray.length > 0 ? idsArray.join(',') : null,
+        nombresTexto: nombresFinales.length > 0 ? nombresFinales.join(', ') : null
+    };
+}
+
+// Actualizar profesores asesores de un cartel existente (desde Admin)
+app.put('/api/admin/carteles/:id/asesores', async (req, res) => {
     try {
-        const { nombre_equipo, participantes, carrera, semestre, titulo_cartel, profesor_asesor_id, usuario_id, clave_manual } = req.body;
+        const { id } = req.params;
+        const [cRows] = await pool.query('SELECT id, titulo_cartel FROM carteles WHERE id = ?', [id]);
+        if (cRows.length === 0) {
+            return res.status(404).json({ error: "Cartel no encontrado." });
+        }
+
+        const infoAsesores = await procesarAsesoresCartel(req.body || {});
+        await pool.query(
+            'UPDATE carteles SET profesor_asesor_id = ?, profesores_asesores_ids = ?, profesores_asesores_nombres = ? WHERE id = ?',
+            [infoAsesores.primerId, infoAsesores.idsTexto, infoAsesores.nombresTexto, id]
+        );
+
+        res.json({
+            mensaje: `Profesores asesores del cartel "${cRows[0].titulo_cartel}" actualizados correctamente.`,
+            asesor_nombre: infoAsesores.nombresTexto || 'Sin Asesor Asignado',
+            profesores_asesores_ids: infoAsesores.idsTexto,
+            profesores_asesores_nombres: infoAsesores.nombresTexto
+        });
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
+});
+
+// Registrar nuevo cartel por Nivel de Madurez (Nivel 1, 2 o 3), múltiples asesores y bloqueo anti-duplicados
+app.post('/api/carteles', upload.single('archivo_pdf'), async (req, res) => {
+    const limpiarArchivoSubido = () => {
+        if (req.file && req.file.path && fs.existsSync(req.file.path)) {
+            try { fs.unlinkSync(req.file.path); } catch (e) {}
+        }
+    };
+
+    const tituloLimpio = ((req.body && req.body.titulo_cartel) || '').trim();
+    const equipoRaw = ((req.body && req.body.nombre_equipo) || '').trim();
+    const llaveEnvio = `${tituloLimpio.toLowerCase()}||${equipoRaw.toLowerCase()}`;
+
+    if (tituloLimpio && enviosCartelesEnCurso.has(llaveEnvio)) {
+        limpiarArchivoSubido();
+        return res.status(429).json({
+            error: "El registro de este cartel ya se está procesando. Por favor espera unos segundos y no presiones enviar varias veces."
+        });
+    }
+
+    if (tituloLimpio) {
+        enviosCartelesEnCurso.add(llaveEnvio);
+    }
+
+    try {
+        const { nombre_equipo, participantes, carrera, nivel: nivelBody, semestre, usuario_id, clave_manual } = req.body;
         const archivo_url = req.file ? `/uploads/${req.file.filename}` : '';
 
-        const sem = parseInt(semestre);
-        let nivel = 1;
-        if (sem >= 4 && sem <= 6) nivel = 2;
-        if (sem >= 7) nivel = 3;
+        if (!tituloLimpio || !equipoRaw) {
+            limpiarArchivoSubido();
+            return res.status(400).json({ error: "El título del cartel y el nombre del equipo son obligatorios." });
+        }
 
-        const equipoCap = capitalizarNombre((nombre_equipo || '').trim());
+        // Determinar el Nivel por Nivel de Madurez (1: Solo texto/teórico, 2: Prototipo, 3: Producto listo para venta)
+        let nivel = parseInt(nivelBody);
+        if (isNaN(nivel) || nivel < 1 || nivel > 3) {
+            const semFallback = parseInt(semestre);
+            if (!isNaN(semFallback) && semFallback >= 4 && semFallback <= 6) nivel = 2;
+            else if (!isNaN(semFallback) && semFallback >= 7) nivel = 3;
+            else nivel = 1;
+        }
+        const sem = 1; // Semestres eliminados; se conserva valor 1 por compatibilidad de esquema
+
+        const equipoCap = capitalizarNombre(equipoRaw);
         // Requerimiento: todas las letras de los alumnos se hacen mayúsculas (ej. gabriel guerrero -> GABRIEL GUERRERO)
         const participantesMayus = convertirMayusculas((participantes || '').trim());
         const listaParticipantes = participantesMayus.split(',').map(p => p.trim()).filter(Boolean);
         if (listaParticipantes.length === 0) {
+            limpiarArchivoSubido();
             return res.status(400).json({ error: "Debes registrar al menos un integrante en el equipo." });
         }
         if (listaParticipantes.length > 5) {
+            limpiarArchivoSubido();
             return res.status(400).json({ error: "El equipo puede tener un máximo de 5 integrantes." });
         }
-        const tituloLimpio = (titulo_cartel || '').trim();
         const usrId = usuario_id ? parseInt(usuario_id) : null;
+
+        // Verificar en BD que no sea un cartel duplicado (mismo título y mismo equipo, o mismo título y mismos participantes)
+        const [duplicadosCartel] = await pool.query(
+            `SELECT id, clave, titulo_cartel FROM carteles 
+             WHERE LOWER(TRIM(titulo_cartel)) = LOWER(?) 
+               AND (LOWER(TRIM(nombre_equipo)) = LOWER(?) OR UPPER(TRIM(participantes)) = UPPER(?))
+             LIMIT 1`,
+            [tituloLimpio, equipoCap, participantesMayus]
+        );
+        if (duplicadosCartel.length > 0) {
+            limpiarArchivoSubido();
+            return res.status(400).json({
+                error: `Este cartel ("${duplicadosCartel[0].titulo_cartel}") ya se encuentra registrado con la clave ${duplicadosCartel[0].clave}. No es necesario enviarlo de nuevo.`
+            });
+        }
+
+        // Procesar uno o varios profesores asesores
+        const infoAsesores = await procesarAsesoresCartel(req.body);
 
         // Soportar código/clave manual o generar clave única automáticamente en el servidor
         let claveGenerada = (clave_manual || '').trim().toUpperCase();
         if (claveGenerada) {
             const [dup] = await pool.query('SELECT id, titulo_cartel FROM carteles WHERE LOWER(TRIM(clave)) = LOWER(?)', [claveGenerada]);
             if (dup.length > 0) {
+                limpiarArchivoSubido();
                 return res.status(400).json({ error: `El código "${claveGenerada}" ya está en uso por otro cartel ("${dup[0].titulo_cartel}"). Ingresa otro o déjalo en blanco para generarlo automáticamente.` });
             }
         } else {
@@ -2085,16 +2281,36 @@ app.post('/api/carteles', upload.single('archivo_pdf'), async (req, res) => {
             }
         }
 
-        const query = `INSERT INTO carteles (usuario_id, nombre_equipo, participantes, carrera, semestre, nivel, titulo_cartel, clave, archivo_url, profesor_asesor_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-        const [result] = await pool.query(query, [usrId, equipoCap, participantesMayus, carrera, sem, nivel, tituloLimpio, claveGenerada, archivo_url, profesor_asesor_id || null]);
+        const query = `INSERT INTO carteles (usuario_id, nombre_equipo, participantes, carrera, semestre, nivel, titulo_cartel, clave, archivo_url, profesor_asesor_id, profesores_asesores_ids, profesores_asesores_nombres) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+        const [result] = await pool.query(query, [
+            usrId,
+            equipoCap,
+            participantesMayus,
+            carrera,
+            sem,
+            nivel,
+            tituloLimpio,
+            claveGenerada,
+            archivo_url,
+            infoAsesores.primerId,
+            infoAsesores.idsTexto,
+            infoAsesores.nombresTexto
+        ]);
 
         res.json({ 
             id: result.insertId, 
             clave: claveGenerada,
+            nivel,
+            asesores: infoAsesores.nombresTexto || 'Sin Profesor Asesor',
             mensaje: `Cartel registrado con éxito en Nivel ${nivel}. Clave asignada: ${claveGenerada}` 
         });
     } catch (err) {
+        limpiarArchivoSubido();
         res.status(400).json({ error: err.message });
+    } finally {
+        if (tituloLimpio) {
+            enviosCartelesEnCurso.delete(llaveEnvio);
+        }
     }
 });
 
@@ -2105,7 +2321,7 @@ async function ejecutarRepartoCarteles(req, res) {
         await connection.beginTransaction();
         await connection.execute('DELETE FROM asignaciones');
 
-        const [carteles] = await connection.execute('SELECT id, titulo_cartel, nivel, carrera, profesor_asesor_id FROM carteles');
+        const [carteles] = await connection.execute('SELECT id, titulo_cartel, nivel, carrera, profesor_asesor_id, profesores_asesores_ids, profesores_asesores_nombres FROM carteles');
         const [profesores] = await connection.execute('SELECT id, nombre, nivel_asignado, carrera FROM profesores');
 
         if (carteles.length === 0) {
@@ -2117,16 +2333,32 @@ async function ejecutarRepartoCarteles(req, res) {
         profesores.forEach(p => cargaProfesores[p.id] = 0);
 
         for (const cartel of carteles) {
+            const idsAsesores = new Set();
+            if (cartel.profesor_asesor_id) idsAsesores.add(Number(cartel.profesor_asesor_id));
+            if (cartel.profesores_asesores_ids) {
+                String(cartel.profesores_asesores_ids).split(',').forEach(x => {
+                    const n = parseInt(x.trim());
+                    if (!isNaN(n)) idsAsesores.add(n);
+                });
+            }
+            const nombresAsesores = new Set(
+                String(cartel.profesores_asesores_nombres || '')
+                    .split(',')
+                    .map(s => s.trim().toLowerCase())
+                    .filter(Boolean)
+            );
+
             const candidatosValidos = profesores.filter(p => 
                 Number(p.nivel_asignado) === Number(cartel.nivel) &&
                 p.carrera && cartel.carrera &&
                 p.carrera.trim().toLowerCase() === cartel.carrera.trim().toLowerCase() &&
-                p.id !== cartel.profesor_asesor_id
+                !idsAsesores.has(Number(p.id)) &&
+                !nombresAsesores.has((p.nombre || '').trim().toLowerCase())
             );
 
             if (candidatosValidos.length < 2) {
                 throw new Error(
-                    `El cartel "${cartel.titulo_cartel}" (Área: ${cartel.carrera}, Nivel ${cartel.nivel}) requiere mínimo 2 profesores jueces (máximo 3) de su misma área y nivel. Disponibles actualmente: ${candidatosValidos.length}. Asigna o registra al menos 2 profesores de ${cartel.carrera} en Nivel ${cartel.nivel}.`
+                    `El cartel "${cartel.titulo_cartel}" (Área: ${cartel.carrera}, Nivel ${cartel.nivel}) requiere mínimo 2 profesores jueces (máximo 3) de su misma área y nivel (distintos a sus profesores asesores). Disponibles actualmente: ${candidatosValidos.length}. Asigna o registra al menos 2 profesores de ${cartel.carrera} en Nivel ${cartel.nivel}.`
                 );
             }
 
@@ -2158,6 +2390,7 @@ app.get('/api/profesores/:profesor_id/carteles-asignados', async (req, res) => {
         const { profesor_id } = req.params;
         const query = `
             SELECT c.*, 
+                   COALESCE(NULLIF(c.profesores_asesores_nombres, ''), (SELECT nombre FROM profesores p WHERE p.id = c.profesor_asesor_id)) as asesor_nombre,
                    (SELECT COUNT(*) FROM evaluaciones e2 WHERE e2.cartel_id = c.id) as total_evaluaciones
             FROM asignaciones a
             JOIN carteles c ON a.cartel_id = c.id
@@ -2171,14 +2404,29 @@ app.get('/api/profesores/:profesor_id/carteles-asignados', async (req, res) => {
     }
 });
 
+// Control en memoria para evitar evaluaciones duplicadas por doble clic
+const enviosEvaluacionesEnCurso = new Set();
+
 // Evaluar por profesor asignado (Rúbrica Oficial de 12 Criterios Ponderados)
 app.post('/api/evaluar', async (req, res) => {
+    const { cartel_id, profesor_id } = req.body || {};
+    const llaveEval = `${cartel_id}||${profesor_id}`;
+    if (enviosEvaluacionesEnCurso.has(llaveEval)) {
+        return res.status(429).json({ error: "Tu evaluación ya se está guardando. Por favor espera unos segundos." });
+    }
+    enviosEvaluacionesEnCurso.add(llaveEval);
+
     try {
-        const { cartel_id, profesor_id } = req.body;
         const resultadoRubrica = calcularPuntajeRubrica(req.body);
 
         if (!resultadoRubrica.valido) {
             return res.status(400).json({ error: resultadoRubrica.error });
+        }
+
+        // Verificar que este profesor no haya evaluado ya este mismo cartel
+        const [yaEvaluo] = await pool.query(`SELECT id FROM evaluaciones WHERE cartel_id = ? AND profesor_id = ?`, [cartel_id, profesor_id]);
+        if (yaEvaluo.length > 0) {
+            return res.status(400).json({ error: "Ya habías registrado una evaluación para este cartel anteriormente." });
         }
 
         const [conteo] = await pool.query(`SELECT COUNT(*) as total FROM evaluaciones WHERE cartel_id = ?`, [cartel_id]);
@@ -2209,6 +2457,8 @@ app.post('/api/evaluar', async (req, res) => {
         });
     } catch (err) {
         res.status(400).json({ error: "Error o ya habías evaluado este cartel." });
+    } finally {
+        enviosEvaluacionesEnCurso.delete(llaveEval);
     }
 });
 
@@ -2354,12 +2604,14 @@ app.post('/api/admin/escala-ranking', (req, res) => {
     });
 });
 
-// Ranking general por niveles con participantes, clave y promedio de estrellas ponderadas
+// Ranking general por niveles con participantes, clave, asesores y promedio de estrellas ponderadas
 app.get('/api/dashboard/ranking', async (req, res) => {
     try {
         const query = `
             SELECT 
                 c.id, c.titulo_cartel, c.clave, c.nombre_equipo, c.participantes, c.nivel, c.carrera, c.archivo_url,
+                c.profesor_asesor_id, c.profesores_asesores_ids, c.profesores_asesores_nombres,
+                COALESCE(NULLIF(c.profesores_asesores_nombres, ''), (SELECT nombre FROM profesores p WHERE p.id = c.profesor_asesor_id)) as asesor_nombre,
                 COUNT(e.id) as num_evaluaciones,
                 ROUND(AVG(e.puntaje_total), 2) as promedio_final,
                 ROUND(AVG(COALESCE(NULLIF(e.estrellas_ponderadas, 0), e.puntaje_total / 20.0)), 2) as promedio_estrellas
