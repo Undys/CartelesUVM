@@ -4122,6 +4122,38 @@
             `).join('');
         }
 
+        function normalizarNombreTexto(str = '') {
+            return String(str || '')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .trim()
+                .toLowerCase();
+        }
+
+        function esProfesorAsesorDeCartelFront(cartel, profesor) {
+            if (!cartel || !profesor) return false;
+            const pid = parseInt(profesor.id);
+            if (!isNaN(pid) && pid > 0) {
+                if (Number(cartel.profesor_asesor_id) === pid) return true;
+                if (cartel.profesores_asesores_ids) {
+                    const ids = String(cartel.profesores_asesores_ids)
+                        .split(',')
+                        .map(s => parseInt(s.trim()))
+                        .filter(n => !isNaN(n));
+                    if (ids.includes(pid)) return true;
+                }
+            }
+            const nombreP = normalizarNombreTexto(profesor.nombre);
+            if (nombreP) {
+                const listaNombres = String(cartel.profesores_asesores_nombres || cartel.asesor_nombre || '')
+                    .split(',')
+                    .map(s => normalizarNombreTexto(s))
+                    .filter(Boolean);
+                if (listaNombres.includes(nombreP)) return true;
+            }
+            return false;
+        }
+
         document.getElementById('form-asignacion-manual').onsubmit = async (e) => {
             e.preventDefault();
             const form = e.currentTarget;
@@ -4132,6 +4164,15 @@
 
             if (!profesor_id || (!cartel_id && !clave_cartel)) {
                 return alert("Selecciona al profesor y elige un cartel de la lista (o escribe su código manualmente).");
+            }
+
+            const profeObj = profesoresAdminCache.find(p => Number(p.id) === Number(profesor_id));
+            const cartelObj = clave_cartel
+                ? cartelesAdminCache.find(c => String(c.clave || '').trim().toUpperCase() === clave_cartel)
+                : cartelesAdminCache.find(c => Number(c.id) === Number(cartel_id));
+
+            if (profeObj && cartelObj && esProfesorAsesorDeCartelFront(cartelObj, profeObj)) {
+                return alert(`Conflicto de interés: El profesor ${profeObj.nombre} figura como asesor del cartel "${cartelObj.titulo_cartel}" [${cartelObj.clave}], por lo que no puede ser asignado como juez para calificarlo.`);
             }
 
             await ejecutarConBotonBloqueado(btnSubmit, 'Asignando...', async () => {
@@ -4206,7 +4247,10 @@
             const selCartel = document.getElementById('modal-profe-select-cartel');
             if (selCartel) {
                 selCartel.innerHTML = '<option value="">-- Selecciona un Cartel para Asignar --</option>' +
-                    cartelesAdminCache.map(c => `<option value="${c.id}">[${c.clave || 'SIN-CLAVE'}] ${c.titulo_cartel} (${c.carrera || 'General'} - Nivel ${c.nivel})</option>`).join('');
+                    cartelesAdminCache.map(c => {
+                        const esAsesor = esProfesorAsesorDeCartelFront(c, profe);
+                        return `<option value="${c.id}" ${esAsesor ? 'disabled' : ''}>[${c.clave || 'SIN-CLAVE'}] ${c.titulo_cartel} (${c.carrera || 'General'} - Nivel ${c.nivel})${esAsesor ? ' — [ASESORADO POR ESTE PROFESOR - NO DISPONIBLE]' : ''}</option>`;
+                    }).join('');
             }
 
             renderizarListaCartelesDeProfesorModal(profe.id);
@@ -4370,7 +4414,10 @@
             const selModal = document.getElementById('modal-asig-select-profesor');
             if (selModal) {
                 selModal.innerHTML = '<option value="">-- Selecciona un Profesor --</option>' +
-                    profesoresAdminCache.map(p => `<option value="${p.id}">${p.nombre} (${p.carrera || 'General'} - Nivel ${p.nivel_asignado || 1})</option>`).join('');
+                    profesoresAdminCache.map(p => {
+                        const esAsesor = esProfesorAsesorDeCartelFront(cartel, p);
+                        return `<option value="${p.id}" ${esAsesor ? 'disabled' : ''}>${p.nombre} (${p.carrera || 'General'} - Nivel ${p.nivel_asignado || 1})${esAsesor ? ' — [ASESOR DE ESTE CARTEL - NO DISPONIBLE]' : ''}</option>`;
+                    }).join('');
             }
 
             renderizarListaAsignadosModal(cartel.id);

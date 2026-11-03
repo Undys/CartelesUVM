@@ -1861,6 +1861,41 @@ app.get('/api/admin/asignaciones', async (req, res) => {
     }
 });
 
+// Helper para verificar si un profesor (por ID o por nombre) es asesor de un cartel (soporta 1 o múltiples asesores)
+function normalizarNombreComparacion(str = '') {
+    return String(str || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim()
+        .toLowerCase();
+}
+
+function esProfesorAsesorDeCartel(cartelRow, profesorId, profesorNombre = '') {
+    if (!cartelRow) return false;
+    const pid = parseInt(profesorId);
+    if (!isNaN(pid) && pid > 0) {
+        if (Number(cartelRow.profesor_asesor_id) === pid) return true;
+        if (cartelRow.profesores_asesores_ids) {
+            const ids = String(cartelRow.profesores_asesores_ids)
+                .split(',')
+                .map(s => parseInt(s.trim()))
+                .filter(n => !isNaN(n));
+            if (ids.includes(pid)) return true;
+        }
+    }
+
+    const nombreNorm = normalizarNombreComparacion(profesorNombre);
+    if (nombreNorm) {
+        const listaNombres = String(cartelRow.profesores_asesores_nombres || cartelRow.asesor_nombre || '')
+            .split(',')
+            .map(s => normalizarNombreComparacion(s))
+            .filter(Boolean);
+        if (listaNombres.includes(nombreNorm)) return true;
+    }
+
+    return false;
+}
+
 // Asignar manualmente un cartel a un profesor juez (por ID de cartel o por código/clave manual, máximo 3 jueces por cartel)
 app.post('/api/admin/asignaciones', async (req, res) => {
     try {
@@ -1874,14 +1909,14 @@ app.post('/api/admin/asignaciones', async (req, res) => {
 
         let cartelRow = null;
         if (claveCartel) {
-            const [cPorClave] = await pool.query('SELECT id, titulo_cartel, clave, profesor_asesor_id FROM carteles WHERE LOWER(TRIM(clave)) = LOWER(?)', [claveCartel]);
+            const [cPorClave] = await pool.query('SELECT id, titulo_cartel, clave, profesor_asesor_id, profesores_asesores_ids, profesores_asesores_nombres FROM carteles WHERE LOWER(TRIM(clave)) = LOWER(?)', [claveCartel]);
             if (cPorClave.length === 0) {
                 return res.status(404).json({ error: `No se encontró ningún cartel con el código/clave "${claveCartel}".` });
             }
             cartelRow = cPorClave[0];
             cartelId = cartelRow.id;
         } else if (cartelId) {
-            const [cRows] = await pool.query('SELECT id, titulo_cartel, clave, profesor_asesor_id FROM carteles WHERE id = ?', [cartelId]);
+            const [cRows] = await pool.query('SELECT id, titulo_cartel, clave, profesor_asesor_id, profesores_asesores_ids, profesores_asesores_nombres FROM carteles WHERE id = ?', [cartelId]);
             if (cRows.length === 0) {
                 return res.status(404).json({ error: "El cartel seleccionado no existe." });
             }
@@ -1893,6 +1928,13 @@ app.post('/api/admin/asignaciones', async (req, res) => {
         const [pRows] = await pool.query('SELECT id, nombre FROM profesores WHERE id = ?', [profesorId]);
         if (pRows.length === 0) {
             return res.status(404).json({ error: "El profesor seleccionado no existe." });
+        }
+
+        // Bloquear conflicto de interés: un profesor asesor del cartel no puede ser asignado como juez del mismo
+        if (esProfesorAsesorDeCartel(cartelRow, pRows[0].id, pRows[0].nombre)) {
+            return res.status(400).json({
+                error: `Conflicto de interés: El profesor ${pRows[0].nombre} figura como asesor del cartel "${cartelRow.titulo_cartel}" [${cartelRow.clave}], por lo que no puede ser asignado como juez para calificarlo.`
+            });
         }
 
         const [existente] = await pool.query(
@@ -2222,8 +2264,33 @@ app.put('/api/admin/carteles/:id/asesores', async (req, res) => {
             [infoAsesores.primerId, infoAsesores.idsTexto, infoAsesores.nombresTexto, id]
         );
 
+        // Si alguno de los nuevos profesores asesores estaba asignado como juez de este cartel, remover esa asignación para evitar conflicto de interés
+        const cartelSimulado = {
+            profesor_asesor_id: infoAsesores.primerId,
+            profesores_asesores_ids: infoAsesores.idsTexto,
+            profesores_asesores_nombres: infoAsesores.nombresTexto
+        };
+        const [asigsActuales] = await pool.query(
+            `SELECT a.id, a.profesor_id, p.nombre
+             FROM asignaciones a
+             JOIN profesores p ON a.profesor_id = p.id
+             WHERE a.cartel_id = ?`,
+            [id]
+        );
+        let removidasPorConflicto = 0;
+        for (const asig of asigsActuales) {
+            if (esProfesorAsesorDeCartel(cartelSimulado, asig.profesor_id, asig.nombre)) {
+                await pool.query('DELETE FROM asignaciones WHERE id = ?', [asig.id]);
+                removidasPorConflicto++;
+            }
+        }
+
+        const notaRemovidas = removidasPorConflicto > 0
+            ? ` (Se removieron automáticamente ${removidasPorConflicto} asignación(es) de juez que ahora figuran como asesores de este cartel).`
+            : '';
+
         res.json({
-            mensaje: `Profesores asesores del cartel "${cRows[0].titulo_cartel}" actualizados correctamente.`,
+            mensaje: `Profesores asesores del cartel "${cRows[0].titulo_cartel}" actualizados correctamente.${notaRemovidas}`,
             asesor_nombre: infoAsesores.nombresTexto || 'Sin Asesor Asignado',
             profesores_asesores_ids: infoAsesores.idsTexto,
             profesores_asesores_nombres: infoAsesores.nombresTexto
@@ -2477,6 +2544,20 @@ app.post('/api/evaluar', async (req, res) => {
             return res.status(400).json({ error: resultadoRubrica.error });
         }
 
+        // Verificar que este profesor no sea asesor del cartel que intenta evaluar
+        const [cRowsEval] = await pool.query(
+            'SELECT id, titulo_cartel, clave, profesor_asesor_id, profesores_asesores_ids, profesores_asesores_nombres FROM carteles WHERE id = ?',
+            [cartel_id]
+        );
+        const [pRowsEval] = await pool.query('SELECT id, nombre FROM profesores WHERE id = ?', [profesor_id]);
+        if (cRowsEval.length > 0 && pRowsEval.length > 0) {
+            if (esProfesorAsesorDeCartel(cRowsEval[0], pRowsEval[0].id, pRowsEval[0].nombre)) {
+                return res.status(400).json({
+                    error: `Conflicto de interés: No puedes evaluar el cartel "${cRowsEval[0].titulo_cartel}" [${cRowsEval[0].clave}] porque figuras como profesor asesor del mismo.`
+                });
+            }
+        }
+
         // Verificar que este profesor no haya evaluado ya este mismo cartel
         const [yaEvaluo] = await pool.query(`SELECT id FROM evaluaciones WHERE cartel_id = ? AND profesor_id = ?`, [cartel_id, profesor_id]);
         if (yaEvaluo.length > 0) {
@@ -2544,7 +2625,7 @@ app.post('/api/evaluar-invitado', async (req, res) => {
 
         // Buscar cartel por clave
         const [carteles] = await connection.execute(
-            'SELECT id, nivel, carrera, titulo_cartel FROM carteles WHERE LOWER(TRIM(clave)) = LOWER(TRIM(?))',
+            'SELECT id, nivel, carrera, titulo_cartel, clave, profesor_asesor_id, profesores_asesores_ids, profesores_asesores_nombres FROM carteles WHERE LOWER(TRIM(clave)) = LOWER(TRIM(?))',
             [clave.trim()]
         );
         if (carteles.length === 0) {
@@ -2566,7 +2647,7 @@ app.post('/api/evaluar-invitado', async (req, res) => {
         // Buscar o registrar al maestro invitado en la tabla de profesores
         let profesorId;
         const [existentes] = await connection.execute(
-            'SELECT id FROM profesores WHERE LOWER(TRIM(nombre)) = LOWER(TRIM(?))',
+            'SELECT id, nombre FROM profesores WHERE LOWER(TRIM(nombre)) = LOWER(TRIM(?))',
             [nombreFormateado]
         );
         if (existentes.length > 0) {
@@ -2577,6 +2658,14 @@ app.post('/api/evaluar-invitado', async (req, res) => {
                 [nombreFormateado, cartel.carrera || 'General', cartel.nivel || 1, 'invitado123']
             );
             profesorId = nuevoProfe.insertId;
+        }
+
+        // Bloquear conflicto de interés si el profesor invitado o el profesor en sesión es asesor del cartel
+        if (esProfesorAsesorDeCartel(cartel, profesorId, nombreFormateado) || (profesor_id && esProfesorAsesorDeCartel(cartel, profesor_id, ''))) {
+            await connection.rollback();
+            return res.status(400).json({
+                error: `Conflicto de interés: El profesor ${nombreFormateado} figura como asesor del cartel "${cartel.titulo_cartel}" [${cartel.clave}], por lo que no puede evaluarlo como juez.`
+            });
         }
 
         // Verificar si este profesor ya evaluó este cartel
