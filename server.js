@@ -133,14 +133,34 @@ function convertirMayusculas(str) {
     return str.trim().toUpperCase();
 }
 
-// Helper para generar claves únicas de carteles
-function generarClaveAleatoria() {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    let codigo = '';
-    for (let i = 0; i < 4; i++) {
-        codigo += chars.charAt(Math.floor(Math.random() * chars.length));
+// Helper para generar claves numéricas únicas de carteles según su nivel (Nivel 1 -> empieza con 1, Nivel 2 -> empieza con 2, Nivel 3 -> empieza con 3)
+function generarClaveAleatoria(nivel = 1) {
+    const n = [1, 2, 3].includes(Number(nivel)) ? Number(nivel) : 1;
+    const sufijo = Math.floor(100 + Math.random() * 900); // 3 dígitos aleatorios (ej. 1042, 2385, 3910)
+    return `${n}${sufijo}`;
+}
+
+// Helper para validar y normalizar un código manual de cartel (solo números y debe empezar con 1, 2 o 3 según el nivel)
+function validarYNormalizarClaveManual(claveRaw, nivel = 1) {
+    const n = [1, 2, 3].includes(Number(nivel)) ? Number(nivel) : 1;
+    const texto = String(claveRaw || '').trim();
+    if (!texto) return { ok: true, vacia: true, clave: '' };
+
+    if (!/^\d+$/.test(texto)) {
+        return {
+            ok: false,
+            error: `El código del cartel ahora solo puede llevar números (sin letras ni guiones) y para Nivel ${n} debe empezar con el número ${n} (ejemplo: ${n}01, ${n}45).`
+        };
     }
-    return `CART-${codigo}`;
+
+    if (!texto.startsWith(String(n))) {
+        return {
+            ok: false,
+            error: `Los carteles de Nivel ${n} deben tener un código numérico que empiece con el número ${n} (ejemplo: ${n}01, ${n}25).`
+        };
+    }
+
+    return { ok: true, vacia: false, clave: texto };
 }
 
 // =========================================================================
@@ -699,13 +719,35 @@ async function asegurarEsquemaYColumnas() {
         }
     } catch (e) {}
 
-    // 4. Asegurar claves y participantes en carteles existentes (solo si les falta clave o participantes)
+    // 4. Asegurar claves numéricas por nivel (1, 2 o 3) y participantes en carteles existentes
     try {
-        const [existentes] = await pool.query("SELECT id, nombre_equipo, clave, participantes FROM carteles WHERE clave IS NULL OR clave = '' OR participantes IS NULL OR participantes = ''");
+        const [existentes] = await pool.query("SELECT id, nivel, nombre_equipo, clave, participantes FROM carteles");
         for (const c of existentes) {
-            const nuevaClave = c.clave || generarClaveAleatoria();
+            const niv = [1, 2, 3].includes(Number(c.nivel)) ? Number(c.nivel) : 1;
+            const claveActual = String(c.clave || '').trim();
+            const esClaveNumericaValida = /^\d+$/.test(claveActual) && claveActual.startsWith(String(niv));
+            let nuevaClave = claveActual;
+
+            if (!esClaveNumericaValida) {
+                // Si tenía formato antiguo (ej. CART-101), extraer dígitos si existen o generar aleatorio con prefijo de nivel
+                const digitosPrevios = claveActual.replace(/\D/g, '');
+                if (digitosPrevios) {
+                    nuevaClave = digitosPrevios.startsWith(String(niv)) ? digitosPrevios : `${niv}${digitosPrevios}`;
+                } else {
+                    nuevaClave = generarClaveAleatoria(niv);
+                }
+                let dup = true;
+                while (dup) {
+                    const [dRows] = await pool.query("SELECT id FROM carteles WHERE clave = ? AND id != ?", [nuevaClave, c.id]);
+                    if (dRows.length === 0) dup = false;
+                    else nuevaClave = generarClaveAleatoria(niv);
+                }
+            }
+
             const nuevosPart = (c.participantes || c.nombre_equipo || '').toUpperCase();
-            await pool.query("UPDATE carteles SET clave = ?, participantes = ? WHERE id = ?", [nuevaClave, nuevosPart, c.id]);
+            if (nuevaClave !== claveActual || nuevosPart !== (c.participantes || '')) {
+                await pool.query("UPDATE carteles SET clave = ?, participantes = ? WHERE id = ?", [nuevaClave, nuevosPart, c.id]);
+            }
         }
     } catch (e) {}
 
@@ -2044,31 +2086,36 @@ app.delete('/api/admin/carteles/todos', async (req, res) => {
     }
 });
 
-// Asignar o cambiar manualmente el código/clave de un cartel (o generar uno aleatorio)
+// Asignar o cambiar manualmente el código/clave de un cartel (o generar uno aleatorio numérico según el nivel)
 app.put('/api/admin/carteles/:id/clave', async (req, res) => {
     try {
         const { id } = req.params;
         const { clave, generar_automatico } = req.body || {};
 
-        const [cRows] = await pool.query('SELECT id, titulo_cartel, clave FROM carteles WHERE id = ?', [id]);
+        const [cRows] = await pool.query('SELECT id, titulo_cartel, clave, nivel FROM carteles WHERE id = ?', [id]);
         if (cRows.length === 0) {
             return res.status(404).json({ error: "Cartel no encontrado." });
         }
 
+        const nivelCartel = [1, 2, 3].includes(Number(cRows[0].nivel)) ? Number(cRows[0].nivel) : 1;
         let nuevaClave = '';
         if (generar_automatico) {
-            nuevaClave = generarClaveAleatoria();
+            nuevaClave = generarClaveAleatoria(nivelCartel);
             let existe = true;
             while (existe) {
                 const [dup] = await pool.query('SELECT id FROM carteles WHERE LOWER(TRIM(clave)) = LOWER(?) AND id != ?', [nuevaClave, id]);
                 if (dup.length === 0) existe = false;
-                else nuevaClave = generarClaveAleatoria();
+                else nuevaClave = generarClaveAleatoria(nivelCartel);
             }
         } else {
-            nuevaClave = (clave || '').trim().toUpperCase();
-            if (!nuevaClave) {
-                return res.status(400).json({ error: "Por favor escribe el código/clave que deseas asignar al cartel." });
+            const validacion = validarYNormalizarClaveManual(clave, nivelCartel);
+            if (!validacion.ok) {
+                return res.status(400).json({ error: validacion.error });
             }
+            if (validacion.vacia) {
+                return res.status(400).json({ error: `Por favor escribe el código numérico (debe empezar con ${nivelCartel} para Nivel ${nivelCartel}) o usa el botón para generarlo al azar.` });
+            }
+            nuevaClave = validacion.clave;
             const [dup] = await pool.query('SELECT id, titulo_cartel FROM carteles WHERE LOWER(TRIM(clave)) = LOWER(?) AND id != ?', [nuevaClave, id]);
             if (dup.length > 0) {
                 return res.status(400).json({ error: `El código "${nuevaClave}" ya está asignado a otro cartel ("${dup[0].titulo_cartel}").` });
@@ -2078,7 +2125,7 @@ app.put('/api/admin/carteles/:id/clave', async (req, res) => {
         await pool.query('UPDATE carteles SET clave = ? WHERE id = ?', [nuevaClave, id]);
 
         res.json({
-            mensaje: `Código del cartel "${cRows[0].titulo_cartel}" actualizado exitosamente a: ${nuevaClave}`,
+            mensaje: `Código del cartel "${cRows[0].titulo_cartel}" (Nivel ${nivelCartel}) actualizado exitosamente a: ${nuevaClave}`,
             clave: nuevaClave
         });
     } catch (err) {
@@ -2260,23 +2307,30 @@ app.post('/api/carteles', upload.single('archivo_pdf'), async (req, res) => {
         // Procesar uno o varios profesores asesores
         const infoAsesores = await procesarAsesoresCartel(req.body);
 
-        // Soportar código/clave manual o generar clave única automáticamente en el servidor
-        let claveGenerada = (clave_manual || '').trim().toUpperCase();
-        if (claveGenerada) {
+        // Soportar código/clave manual numérico o generar clave única al azar según el nivel (1, 2 o 3)
+        let claveGenerada = '';
+        const validacionClave = validarYNormalizarClaveManual(clave_manual, nivel);
+        if (!validacionClave.ok) {
+            limpiarArchivoSubido();
+            return res.status(400).json({ error: validacionClave.error });
+        }
+
+        if (!validacionClave.vacia) {
+            claveGenerada = validacionClave.clave;
             const [dup] = await pool.query('SELECT id, titulo_cartel FROM carteles WHERE LOWER(TRIM(clave)) = LOWER(?)', [claveGenerada]);
             if (dup.length > 0) {
                 limpiarArchivoSubido();
-                return res.status(400).json({ error: `El código "${claveGenerada}" ya está en uso por otro cartel ("${dup[0].titulo_cartel}"). Ingresa otro o déjalo en blanco para generarlo automáticamente.` });
+                return res.status(400).json({ error: `El código "${claveGenerada}" ya está en uso por otro cartel ("${dup[0].titulo_cartel}"). Ingresa otro código numérico que empiece con ${nivel} o déjalo en blanco para generarlo al azar.` });
             }
         } else {
-            claveGenerada = generarClaveAleatoria();
+            claveGenerada = generarClaveAleatoria(nivel);
             let existeClave = true;
             while (existeClave) {
                 const [existentes] = await pool.query('SELECT id FROM carteles WHERE clave = ?', [claveGenerada]);
                 if (existentes.length === 0) {
                     existeClave = false;
                 } else {
-                    claveGenerada = generarClaveAleatoria();
+                    claveGenerada = generarClaveAleatoria(nivel);
                 }
             }
         }

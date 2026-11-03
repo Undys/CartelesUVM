@@ -396,11 +396,11 @@
                     </div>
                     <div>
                         <label class="block font-bold text-sm text-slate-700 mb-1">Nivel del Proyecto (Por Nivel de Madurez):</label>
-                        <select id="nivel_cartel" required class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-medium focus:ring-2 focus:ring-red-500 focus:outline-none">
+                        <select id="nivel_cartel" required onchange="actualizarPrefijoCodigoRegistro()" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-medium focus:ring-2 focus:ring-red-500 focus:outline-none">
                             <option value="">-- Selecciona el Nivel de Madurez --</option>
-                            <option value="1">Nivel 1 — Solo Texto / Propuesta Documental</option>
-                            <option value="2">Nivel 2 — Prototipo Funcional / Experimental</option>
-                            <option value="3">Nivel 3 — Producto Terminado / Listo para Venta</option>
+                            <option value="1">Nivel 1 — Solo Texto / Propuesta Documental (Código inicia con 1)</option>
+                            <option value="2">Nivel 2 — Prototipo Funcional / Experimental (Código inicia con 2)</option>
+                            <option value="3">Nivel 3 — Producto Terminado / Listo para Venta (Código inicia con 3)</option>
                         </select>
                         <p class="text-xs text-gray-500 mt-1">
                             <strong>Nivel 1:</strong> Solo texto/teórico • <strong>Nivel 2:</strong> Prototipo • <strong>Nivel 3:</strong> Producto listo para vender.
@@ -435,20 +435,25 @@
                     </div>
                 </div>
 
-                <!-- Código / Clave de Acceso (Automático o Manual) -->
+                <!-- Código / Clave Numérica del Cartel (Manual o Al Azar según el Nivel 1, 2 o 3) -->
                 <div class="bg-amber-50/80 p-4 rounded-xl border border-amber-200 space-y-2.5">
                     <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
                         <div>
-                            <p class="font-bold text-xs text-amber-950">Código / Clave del Cartel (Automático o Manual)</p>
-                            <p class="text-[11px] text-amber-800 mt-0.5 leading-relaxed">
-                                Déjalo en blanco para que el sistema genere una clave automática (ej. <strong>CART-4B8X</strong>), o escribe un código manualmente si ya tienes uno asignado.
+                            <p class="font-bold text-xs text-amber-950">Código Numérico del Cartel (Manual o Al Azar por Nivel)</p>
+                            <p id="ayuda-codigo-nivel-registro" class="text-[11px] text-amber-800 mt-0.5 leading-relaxed">
+                                El código lleva <strong>únicamente números</strong> y empieza según el nivel: <strong>1</strong> para Nivel 1 (ej. <strong>101</strong>), <strong>2</strong> para Nivel 2 (ej. <strong>201</strong>) y <strong>3</strong> para Nivel 3 (ej. <strong>301</strong>). Puedes escribirlo manualmente, generarlo con el botón o dejarlo vacío para asignarlo al azar.
                             </p>
                         </div>
-                        <button type="button" onclick="document.getElementById('clave_manual_cartel').value = generarClaveAleatoria()" class="text-[11px] bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 px-3 py-1.5 rounded-lg font-extrabold shadow-sm whitespace-nowrap self-start sm:self-auto">
-                            Generar código aleatorio
-                        </button>
+                        <div class="flex items-center gap-1.5 self-start sm:self-auto shrink-0">
+                            <button type="button" onclick="generarCodigoAzarEnInput('clave_manual_cartel', document.getElementById('nivel_cartel')?.value)" class="text-[11px] bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg font-extrabold shadow-sm whitespace-nowrap transition">
+                                Generar al azar
+                            </button>
+                            <button type="button" onclick="document.getElementById('clave_manual_cartel').value = ''" class="text-[11px] bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 px-2.5 py-1.5 rounded-lg font-bold shadow-sm whitespace-nowrap transition">
+                                Limpiar
+                            </button>
+                        </div>
                     </div>
-                    <input type="text" id="clave_manual_cartel" placeholder="Opcional: escribe un código manual (ej. CART-101) o déjalo vacío para automático" oninput="this.value = this.value.toUpperCase()" class="w-full border border-amber-300 p-2.5 rounded-lg bg-white font-mono font-black text-xs text-amber-950 uppercase tracking-wider focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                    <input type="text" inputmode="numeric" id="clave_manual_cartel" placeholder="Escribe el código numérico manualmente (ej. 101, 205, 310) o presiona 'Generar al azar'" oninput="formatearInputCodigoNivel(this, document.getElementById('nivel_cartel')?.value)" class="w-full border border-amber-300 p-2.5 rounded-lg bg-white font-mono font-black text-xs text-amber-950 tracking-wider focus:ring-2 focus:ring-amber-500 focus:outline-none">
                 </div>
 
                 <!-- Archivo PDF -->
@@ -857,8 +862,8 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block font-bold text-xs uppercase text-slate-700 mb-1">2B. O escribe el Código del Cartel:</label>
-                            <input type="text" id="manual-asig-clave-cartel" placeholder="Ej. CART-4B8X" oninput="this.value = this.value.toUpperCase(); if(this.value.trim()) document.getElementById('manual-asig-cartel').value = ''" class="w-full border border-amber-300 p-2.5 rounded-xl text-xs font-mono font-black uppercase bg-white text-amber-950 focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                            <label class="block font-bold text-xs uppercase text-slate-700 mb-1">2B. O escribe el Código Numérico del Cartel:</label>
+                            <input type="text" inputmode="numeric" id="manual-asig-clave-cartel" placeholder="Ej. 101, 205, 310" oninput="this.value = this.value.replace(/\D/g, ''); if(this.value.trim()) document.getElementById('manual-asig-cartel').value = ''" class="w-full border border-amber-300 p-2.5 rounded-xl text-xs font-mono font-black bg-white text-amber-950 focus:ring-2 focus:ring-amber-500 focus:outline-none">
                         </div>
                         <div>
                             <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 px-4 rounded-xl font-black text-xs shadow transition transform active:scale-98">
@@ -1024,7 +1029,7 @@
                         </div>
                         <div>
                             <label class="block font-bold text-slate-700 uppercase mb-1">Equipo y Clave (Opcional):</label>
-                            <input type="text" id="cert-equipo-clave" oninput="actualizarVistaPreviaCertificado()" placeholder="Ej. Equipo Los Innovadores (CART-4B8X)" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-semibold text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
+                            <input type="text" id="cert-equipo-clave" oninput="actualizarVistaPreviaCertificado()" placeholder="Ej. Equipo Los Innovadores (104)" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-semibold text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
                         </div>
 
                         <div>
@@ -1434,7 +1439,7 @@
                     <select id="modal-profe-select-cartel" onchange="if(this.value) document.getElementById('modal-profe-clave-manual').value = ''" class="sm:col-span-2 border border-slate-300 p-2.5 rounded-xl text-xs font-semibold bg-white text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
                         <option value="">-- Selecciona un Cartel de la lista --</option>
                     </select>
-                    <input type="text" id="modal-profe-clave-manual" placeholder="O escribe código (CART-XXXX)" oninput="this.value = this.value.toUpperCase(); if(this.value.trim()) document.getElementById('modal-profe-select-cartel').value = ''" class="border border-amber-300 p-2.5 rounded-xl text-xs font-mono font-black uppercase bg-white text-amber-950 focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                    <input type="text" inputmode="numeric" id="modal-profe-clave-manual" placeholder="O escribe código (ej. 101, 205)" oninput="this.value = this.value.replace(/\D/g, ''); if(this.value.trim()) document.getElementById('modal-profe-select-cartel').value = ''" class="border border-amber-300 p-2.5 rounded-xl text-xs font-mono font-black bg-white text-amber-950 focus:ring-2 focus:ring-amber-500 focus:outline-none">
                 </div>
                 <div class="flex justify-end">
                     <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-black shadow whitespace-nowrap transition">
@@ -1477,15 +1482,16 @@
 
             <form id="form-modal-editar-clave-cartel" class="space-y-3">
                 <input type="hidden" id="modal-editar-clave-cartel-id">
+                <input type="hidden" id="modal-editar-clave-cartel-nivel" value="1">
                 <div>
                     <div class="flex justify-between items-center mb-1">
-                        <label class="block font-bold text-xs uppercase text-slate-700">Nuevo Código / Clave del Cartel:</label>
-                        <button type="button" onclick="document.getElementById('modal-editar-clave-input').value = generarClaveAleatoria()" class="text-[10px] bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold px-2.5 py-0.5 rounded border border-amber-300">
-                            Generar aleatorio
+                        <label class="block font-bold text-xs uppercase text-slate-700">Código Numérico del Cartel (Manual o Al Azar):</label>
+                        <button type="button" onclick="generarCodigoAzarEnInput('modal-editar-clave-input', document.getElementById('modal-editar-clave-cartel-nivel')?.value)" class="text-[10px] bg-amber-600 hover:bg-amber-700 text-white font-bold px-2.5 py-1 rounded-lg shadow-sm transition">
+                            Generar al azar
                         </button>
                     </div>
-                    <input type="text" id="modal-editar-clave-input" required placeholder="Ej. CART-101 o MESA-05" oninput="this.value = this.value.toUpperCase()" class="w-full border border-amber-300 p-2.5 rounded-xl font-mono font-black text-sm text-amber-950 uppercase tracking-widest focus:ring-2 focus:ring-amber-500 focus:outline-none">
-                    <p class="text-[11px] text-slate-500 mt-1">Puedes escribir cualquier código personalizado o generar uno automático.</p>
+                    <input type="text" inputmode="numeric" id="modal-editar-clave-input" required placeholder="Ej. 101, 205, 310" oninput="formatearInputCodigoNivel(this, document.getElementById('modal-editar-clave-cartel-nivel')?.value)" class="w-full border border-amber-300 p-2.5 rounded-xl font-mono font-black text-sm text-amber-950 tracking-widest focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                    <p id="modal-editar-clave-ayuda" class="text-[11px] text-slate-500 mt-1">Solo números. El código empieza con 1, 2 o 3 según el nivel del cartel (puedes escribirlo manualmente o generarlo al azar).</p>
                 </div>
 
                 <div class="flex justify-end gap-2 pt-2 border-t">
@@ -1564,7 +1570,7 @@
                 <div>
                     <label class="block font-bold text-xs text-slate-700 mb-1">Clave Única del Cartel:</label>
                     <div class="flex gap-2">
-                        <input type="text" id="invitado_clave" placeholder="Ej. CART-53BQ" class="w-full border border-amber-300 p-2.5 rounded-xl font-mono font-black text-amber-900 uppercase tracking-widest text-sm focus:ring-2 focus:ring-amber-500">
+                        <input type="text" inputmode="numeric" id="invitado_clave" placeholder="Ej. 101, 205, 310" oninput="this.value = this.value.replace(/\D/g, '')" class="w-full border border-amber-300 p-2.5 rounded-xl font-mono font-black text-amber-900 tracking-widest text-sm focus:ring-2 focus:ring-amber-500">
                         <button type="button" onclick="cargarCartelPorClaveModal()" class="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 rounded-xl font-bold text-xs shadow whitespace-nowrap">
                             Buscar
                         </button>
@@ -1730,14 +1736,64 @@
             }
         }
 
-        // Generador de Claves Aleatorias para Carteles
-        function generarClaveAleatoria() {
-            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-            let codigo = '';
-            for (let i = 0; i < 4; i++) {
-                codigo += chars.charAt(Math.floor(Math.random() * chars.length));
+        // Generador de Claves Numéricas Aleatorias para Carteles según el Nivel (Nivel 1 -> 1XXX, Nivel 2 -> 2XXX, Nivel 3 -> 3XXX)
+        function generarClaveAleatoria(nivel = null) {
+            let n = parseInt(nivel);
+            if (![1, 2, 3].includes(n)) {
+                n = parseInt(document.getElementById('nivel_cartel')?.value) || 1;
             }
-            return `CART-${codigo}`;
+            const sufijo = Math.floor(100 + Math.random() * 900);
+            return `${n}${sufijo}`;
+        }
+
+        function formatearInputCodigoNivel(inputEl, nivelRaw) {
+            if (!inputEl) return;
+            let soloNumeros = (inputEl.value || '').replace(/\D/g, '');
+            if (!soloNumeros) {
+                inputEl.value = '';
+                return;
+            }
+            const n = parseInt(nivelRaw);
+            if ([1, 2, 3].includes(n)) {
+                if (!soloNumeros.startsWith(String(n))) {
+                    // Si el primer dígito era 1, 2 o 3 de otro nivel y tiene más dígitos, reemplazar el prefijo; si no, anteponer el nivel
+                    if (['1', '2', '3'].includes(soloNumeros[0]) && soloNumeros.length > 1) {
+                        soloNumeros = `${n}${soloNumeros.slice(1)}`;
+                    } else {
+                        soloNumeros = `${n}${soloNumeros}`;
+                    }
+                }
+            }
+            inputEl.value = soloNumeros;
+        }
+
+        function generarCodigoAzarEnInput(inputId, nivelRaw) {
+            const inputEl = document.getElementById(inputId);
+            if (!inputEl) return;
+            let n = parseInt(nivelRaw);
+            if (![1, 2, 3].includes(n)) {
+                n = 1;
+                const selNivel = document.getElementById('nivel_cartel');
+                if (selNivel && !selNivel.value) {
+                    selNivel.value = '1';
+                }
+            }
+            inputEl.value = generarClaveAleatoria(n);
+            inputEl.focus();
+        }
+
+        function actualizarPrefijoCodigoRegistro() {
+            const niv = parseInt(document.getElementById('nivel_cartel')?.value);
+            const inputClave = document.getElementById('clave_manual_cartel');
+            if (!inputClave) return;
+            if ([1, 2, 3].includes(niv)) {
+                inputClave.placeholder = `Nivel ${niv}: escribe un código numérico que empiece con ${niv} (ej. ${niv}01, ${niv}25) o usa 'Generar al azar'`;
+                if (inputClave.value.trim()) {
+                    formatearInputCodigoNivel(inputClave, niv);
+                }
+            } else {
+                inputClave.placeholder = "Escribe el código numérico manualmente (ej. 101, 205, 310) o presiona 'Generar al azar'";
+            }
         }
 
         // ==============================================================
@@ -2589,8 +2645,12 @@
                 if (asesoresInfo.nombres.length > 0) {
                     formData.append('profesores_asesores_nombres', asesoresInfo.nombres.join(', '));
                 }
-                const claveManualVal = (document.getElementById('clave_manual_cartel')?.value || '').trim().toUpperCase();
+                const claveManualVal = (document.getElementById('clave_manual_cartel')?.value || '').trim();
                 if (claveManualVal) {
+                    if (!/^\d+$/.test(claveManualVal) || !claveManualVal.startsWith(String(nivelCartel))) {
+                        alert(`El código manual para un cartel de Nivel ${nivelCartel} debe contener únicamente números y empezar con el número ${nivelCartel} (ejemplo: ${nivelCartel}01, ${nivelCartel}25).`);
+                        return;
+                    }
                     formData.append('clave_manual', claveManualVal);
                 }
                 formData.append('archivo_pdf', document.getElementById('archivo_pdf').files[0]);
@@ -2711,7 +2771,7 @@
             document.getElementById('cartel-eval-titulo').innerText = cartel.titulo_cartel;
             document.getElementById('cartel-eval-equipo').innerText = `Equipo: ${cartel.nombre_equipo} | Área: ${cartel.carrera || 'General'} | Asesor(es): ${cartel.asesor_nombre || 'Sin Asesor'}`;
             document.getElementById('cartel-eval-participantes').innerText = cartel.participantes || 'No especificados';
-            document.getElementById('cartel-eval-clave').innerText = `${cartel.clave || 'CART-XXXX'}`;
+            document.getElementById('cartel-eval-clave').innerText = `${cartel.clave || '100'}`;
             document.getElementById('cartel-eval-nivel').innerText = obtenerEtiquetaCortaNivel(cartel.nivel);
             document.getElementById('btn-eval-ver-pdf').href = cartel.archivo_url;
             
@@ -3793,7 +3853,8 @@
             document.getElementById('modal-editar-asesores-cartel-id').value = cartel.id;
             document.getElementById('modal-editar-asesores-subtitulo').innerText = `Cartel: "${cartel.titulo_cartel}" • Equipo: ${cartel.nombre_equipo}`;
 
-            const cont = document.getElementById('contenedor-asesores-modal');
+            const cont = document.getElementById('contenedor-modal-editar-asesores');
+            if (!cont) return;
             cont.innerHTML = '';
 
             const ids = String(cartel.profesores_asesores_ids || '')
@@ -3807,28 +3868,28 @@
 
             const usadosNombres = new Set();
             ids.forEach(id => {
-                agregarCampoAsesor(id, '', 'contenedor-asesores-modal');
-                const prof = catalogoProfesoresSelect.find(p => Number(p.id) === Number(id));
-                if (prof && prof.nombre) {
-                    usadosNombres.add(prof.nombre.trim().toUpperCase());
+                const prof = catalogoProfesoresAsesores.find(p => Number(p.id) === Number(id));
+                const nomProf = prof && prof.nombre ? prof.nombre.trim().toUpperCase() : '';
+                agregarCampoAsesorModal(id, nomProf);
+                if (nomProf) {
+                    usadosNombres.add(nomProf);
                 }
             });
 
             nombres.forEach(nom => {
                 if (!usadosNombres.has(nom.toUpperCase())) {
-                    // Verificar si coincide con algún profesor del catálogo
-                    const profCoincidente = catalogoProfesoresSelect.find(p => (p.nombre || '').trim().toUpperCase() === nom.toUpperCase());
+                    const profCoincidente = catalogoProfesoresAsesores.find(p => (p.nombre || '').trim().toUpperCase() === nom.toUpperCase());
                     if (profCoincidente && !ids.includes(Number(profCoincidente.id))) {
-                        agregarCampoAsesor(profCoincidente.id, '', 'contenedor-asesores-modal');
+                        agregarCampoAsesorModal(profCoincidente.id, profCoincidente.nombre.toUpperCase());
                     } else {
-                        agregarCampoAsesor('', nom, 'contenedor-asesores-modal');
+                        agregarCampoAsesorModal('', nom);
                     }
                     usadosNombres.add(nom.toUpperCase());
                 }
             });
 
             if (cont.children.length === 0) {
-                agregarCampoAsesor('', '', 'contenedor-asesores-modal');
+                agregarCampoAsesorModal('', '');
             }
 
             document.getElementById('modal-editar-asesores-cartel').classList.remove('hidden');
@@ -3845,14 +3906,18 @@
             const cartelId = document.getElementById('modal-editar-asesores-cartel-id').value;
             if (!cartelId) return;
 
-            const datosAsesores = recopilarAsesoresDeContenedor('contenedor-asesores-modal');
+            const infoAsesores = recopilarAsesoresDeContenedor('contenedor-modal-editar-asesores');
+            const payloadAsesores = {
+                profesores_asesores_ids: infoAsesores.ids,
+                profesores_asesores_nombres: infoAsesores.nombres
+            };
 
             await ejecutarConBotonBloqueado(btnSubmit, 'Guardando asesores...', async () => {
                 try {
                     const res = await fetch(`/api/admin/carteles/${cartelId}/asesores`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(datosAsesores)
+                        body: JSON.stringify(payloadAsesores)
                     });
                     const data = await res.json();
                     if (res.ok) {
@@ -4203,9 +4268,18 @@
         function abrirModalEditarClaveCartel(cartelId) {
             const cartel = cartelesAdminCache.find(c => Number(c.id) === Number(cartelId));
             if (!cartel) return;
+            const niv = [1, 2, 3].includes(Number(cartel.nivel)) ? Number(cartel.nivel) : 1;
             document.getElementById('modal-editar-clave-cartel-id').value = cartel.id;
-            document.getElementById('modal-editar-clave-subtitulo').innerText = `Cartel: "${cartel.titulo_cartel}" • Clave actual: ${cartel.clave || 'Sin clave'}`;
-            document.getElementById('modal-editar-clave-input').value = cartel.clave || '';
+            const inputNivel = document.getElementById('modal-editar-clave-cartel-nivel');
+            if (inputNivel) inputNivel.value = String(niv);
+            document.getElementById('modal-editar-clave-subtitulo').innerText = `Cartel: "${cartel.titulo_cartel}" • Nivel ${niv} • Código actual: ${cartel.clave || 'Sin código'}`;
+            const inputClave = document.getElementById('modal-editar-clave-input');
+            inputClave.value = cartel.clave || '';
+            inputClave.placeholder = `Ej. ${niv}01, ${niv}25 (Nivel ${niv} inicia con ${niv})`;
+            const ayudaEl = document.getElementById('modal-editar-clave-ayuda');
+            if (ayudaEl) {
+                ayudaEl.innerText = `Este cartel es de Nivel ${niv}, por lo que su código lleva solo números y empieza con ${niv} (ej. ${niv}01, ${niv}45). Puedes escribirlo manualmente o generarlo al azar.`;
+            }
             document.getElementById('modal-editar-clave-cartel').classList.remove('hidden');
         }
 
@@ -4218,8 +4292,14 @@
             const form = e.currentTarget;
             const btnSubmit = form.querySelector('button[type="submit"]');
             const cartelId = document.getElementById('modal-editar-clave-cartel-id').value;
-            const nuevaClave = (document.getElementById('modal-editar-clave-input').value || '').trim().toUpperCase();
+            const niv = parseInt(document.getElementById('modal-editar-clave-cartel-nivel')?.value) || 1;
+            const nuevaClave = (document.getElementById('modal-editar-clave-input').value || '').trim();
             if (!cartelId || !nuevaClave) return;
+
+            if (!/^\d+$/.test(nuevaClave) || !nuevaClave.startsWith(String(niv))) {
+                alert(`El código para un cartel de Nivel ${niv} debe llevar únicamente números y empezar con el número ${niv} (ejemplo: ${niv}01, ${niv}25).`);
+                return;
+            }
 
             await ejecutarConBotonBloqueado(btnSubmit, 'Guardando...', async () => {
                 try {
@@ -4791,8 +4871,10 @@
 
         function cargarDatosCartelEnCertificado() {
             const id = document.getElementById('cert-select-cartel')?.value;
+            const selInd = document.getElementById('cert-select-destinatario-individual');
             if (!id) {
                 cartelSeleccionadoCertificado = null;
+                if (selInd) selInd.innerHTML = '<option value="">-- Equipo Completo / Personalizado --</option>';
                 actualizarVistaPreviaCertificado();
                 return;
             }
@@ -4800,18 +4882,36 @@
             if (!c) return;
 
             cartelSeleccionadoCertificado = c;
-            const tipo = document.getElementById('cert-tipo')?.value || 'participacion';
+            const tipo = (document.getElementById('cert-tipo')?.value || '').toUpperCase();
 
-            if (tipo === 'asesor') {
+            // Poblar selector de destinatarios individuales (alumnos y asesores del cartel)
+            if (selInd) {
+                const integrantes = String(c.participantes || '').split(',').map(s => s.trim()).filter(Boolean);
+                const asesores = String(c.profesores_asesores_nombres || c.asesor_nombre || '').split(',').map(s => s.trim()).filter(s => s && s.toUpperCase() !== 'SIN ASESOR');
+                let opts = `<option value="${escaparHtmlCert(c.participantes || c.nombre_equipo || '')}">Equipo Completo (${integrantes.length || 1})</option>`;
+                integrantes.forEach(al => {
+                    opts += `<option value="${escaparHtmlCert(al)}">Alumno: ${escaparHtmlCert(al)}</option>`;
+                });
+                asesores.forEach(as => {
+                    opts += `<option value="${escaparHtmlCert(as)}">Asesor: ${escaparHtmlCert(as)}</option>`;
+                });
+                selInd.innerHTML = opts;
+            }
+
+            if (tipo.includes('ASESOR')) {
                 document.getElementById('cert-destinatario').value = c.asesor_nombre || 'PROFESOR ASESOR';
             } else {
                 document.getElementById('cert-destinatario').value = c.participantes || c.nombre_equipo || '';
             }
             document.getElementById('cert-titulo-proyecto').value = c.titulo_cartel || '';
-            document.getElementById('cert-area').value = c.carrera || 'Ingeniería';
-            document.getElementById('cert-nivel').value = obtenerDescripcionNivelMadurez(c.nivel);
-            document.getElementById('cert-asesores').value = c.asesor_nombre && c.asesor_nombre !== 'Sin Asesor' ? c.asesor_nombre : '';
-            document.getElementById('cert-clave').value = `${c.clave || ''} | Equipo: ${c.nombre_equipo || ''}`;
+            const elCarrera = document.getElementById('cert-carrera') || document.getElementById('cert-area');
+            if (elCarrera) elCarrera.value = c.carrera || 'Ingeniería';
+            const elNivel = document.getElementById('cert-nivel');
+            if (elNivel) elNivel.value = obtenerDescripcionNivelMadurez(c.nivel);
+            const elAsesores = document.getElementById('cert-asesores');
+            if (elAsesores) elAsesores.value = c.asesor_nombre && c.asesor_nombre !== 'Sin Asesor' ? c.asesor_nombre : '';
+            const elClave = document.getElementById('cert-equipo-clave') || document.getElementById('cert-clave');
+            if (elClave) elClave.value = `Código: ${c.clave || ''} | Equipo: ${c.nombre_equipo || ''}`;
 
             actualizarVistaPreviaCertificado();
         }
@@ -4822,13 +4922,17 @@
             const p = profesoresAdminCache.find(item => Number(item.id) === Number(id));
             if (!p) return;
 
-            document.getElementById('cert-tipo').value = 'juez';
+            document.getElementById('cert-tipo').value = 'CONSTANCIA DE EVALUADOR ACADÉMICO';
             document.getElementById('cert-destinatario').value = p.nombre || '';
             document.getElementById('cert-titulo-proyecto').value = 'Evaluación Académica de Carteles de Investigación';
-            document.getElementById('cert-area').value = p.carrera || 'Ingeniería';
-            document.getElementById('cert-nivel').value = obtenerDescripcionNivelMadurez(p.nivel_asignado || 1);
-            document.getElementById('cert-asesores').value = '';
-            document.getElementById('cert-clave').value = `Jurado Evaluador - Nivel ${p.nivel_asignado || 1}`;
+            const elCarrera = document.getElementById('cert-carrera') || document.getElementById('cert-area');
+            if (elCarrera) elCarrera.value = p.carrera || 'Ingeniería';
+            const elNivel = document.getElementById('cert-nivel');
+            if (elNivel) elNivel.value = obtenerDescripcionNivelMadurez(p.nivel_asignado || 1);
+            const elAsesores = document.getElementById('cert-asesores');
+            if (elAsesores) elAsesores.value = '';
+            const elClave = document.getElementById('cert-equipo-clave') || document.getElementById('cert-clave');
+            if (elClave) elClave.value = `Jurado Evaluador - Nivel ${p.nivel_asignado || 1}`;
 
             actualizarVistaPreviaCertificado();
         }
@@ -4844,53 +4948,56 @@
             }
             const selTipo = document.getElementById('cert-tipo');
             if (selTipo) {
-                if (lugarRanking === 1) selTipo.value = 'primer_lugar';
-                else if (lugarRanking === 2) selTipo.value = 'segundo_lugar';
-                else if (lugarRanking === 3) selTipo.value = 'tercer_lugar';
-                else selTipo.value = 'participacion';
+                if (lugarRanking === 1) selTipo.value = 'RECONOCIMIENTO — PRIMER LUGAR';
+                else if (lugarRanking === 2) selTipo.value = 'RECONOCIMIENTO — SEGUNDO LUGAR';
+                else if (lugarRanking === 3) selTipo.value = 'RECONOCIMIENTO — TERCER LUGAR';
+                else selTipo.value = 'RECONOCIMIENTO DE PARTICIPACIÓN';
             }
             cargarDatosCartelEnCertificado();
         }
 
-        function obtenerConfigTextoCertificado(tipo) {
-            switch (tipo) {
-                case 'primer_lugar':
-                    return {
-                        encabezadoDocumento: 'RECONOCIMIENTO DE PRIMER LUGAR',
-                        motivoPre: 'Por haber obtenido el PRIMER LUGAR con el proyecto de investigación y desarrollo titulado:',
-                        distincionBadge: 'DISTINCIÓN ACADÉMICA — 1° LUGAR'
-                    };
-                case 'segundo_lugar':
-                    return {
-                        encabezadoDocumento: 'RECONOCIMIENTO DE SEGUNDO LUGAR',
-                        motivoPre: 'Por haber obtenido el SEGUNDO LUGAR con el proyecto de investigación y desarrollo titulado:',
-                        distincionBadge: 'DISTINCIÓN ACADÉMICA — 2° LUGAR'
-                    };
-                case 'tercer_lugar':
-                    return {
-                        encabezadoDocumento: 'RECONOCIMIENTO DE TERCER LUGAR',
-                        motivoPre: 'Por haber obtenido el TERCER LUGAR con el proyecto de investigación y desarrollo titulado:',
-                        distincionBadge: 'DISTINCIÓN ACADÉMICA — 3° LUGAR'
-                    };
-                case 'asesor':
-                    return {
-                        encabezadoDocumento: 'CONSTANCIA DE ASESORÍA ACADÉMICA',
-                        motivoPre: 'Por su destacada labor como PROFESOR ASESOR del proyecto de investigación titulado:',
-                        distincionBadge: 'ASESORÍA DE PROYECTO DE INVESTIGACIÓN'
-                    };
-                case 'juez':
-                    return {
-                        encabezadoDocumento: 'CONSTANCIA DE JURADO EVALUADOR',
-                        motivoPre: 'Por su valiosa participación como MIEMBRO DEL COMITÉ EVALUADOR en la revisión académica de:',
-                        distincionBadge: 'COMITÉ EVALUADOR INSTITUCIONAL'
-                    };
-                default:
-                    return {
-                        encabezadoDocumento: 'CONSTANCIA DE PARTICIPACIÓN',
-                        motivoPre: 'Por su destacada participación y exposición del cartel de investigación titulado:',
-                        distincionBadge: 'PARTICIPACIÓN DESTACADA'
-                    };
+        function obtenerConfigTextoCertificado(tipoRaw) {
+            const t = String(tipoRaw || '').toUpperCase();
+            if (t.includes('PRIMER') || t === 'PRIMER_LUGAR') {
+                return {
+                    encabezadoDocumento: 'RECONOCIMIENTO DE PRIMER LUGAR',
+                    motivoPre: 'Por haber obtenido el PRIMER LUGAR con el proyecto de investigación y desarrollo titulado:',
+                    distincionBadge: 'DISTINCIÓN ACADÉMICA — 1° LUGAR'
+                };
             }
+            if (t.includes('SEGUNDO') || t === 'SEGUNDO_LUGAR') {
+                return {
+                    encabezadoDocumento: 'RECONOCIMIENTO DE SEGUNDO LUGAR',
+                    motivoPre: 'Por haber obtenido el SEGUNDO LUGAR con el proyecto de investigación y desarrollo titulado:',
+                    distincionBadge: 'DISTINCIÓN ACADÉMICA — 2° LUGAR'
+                };
+            }
+            if (t.includes('TERCER') || t === 'TERCER_LUGAR') {
+                return {
+                    encabezadoDocumento: 'RECONOCIMIENTO DE TERCER LUGAR',
+                    motivoPre: 'Por haber obtenido el TERCER LUGAR con el proyecto de investigación y desarrollo titulado:',
+                    distincionBadge: 'DISTINCIÓN ACADÉMICA — 3° LUGAR'
+                };
+            }
+            if (t.includes('ASESOR')) {
+                return {
+                    encabezadoDocumento: 'CONSTANCIA DE ASESORÍA ACADÉMICA',
+                    motivoPre: 'Por su destacada labor como PROFESOR ASESOR del proyecto de investigación titulado:',
+                    distincionBadge: 'ASESORÍA DE PROYECTO DE INVESTIGACIÓN'
+                };
+            }
+            if (t.includes('EVALUADOR') || t.includes('JUEZ')) {
+                return {
+                    encabezadoDocumento: 'CONSTANCIA DE JURADO EVALUADOR',
+                    motivoPre: 'Por su valiosa participación como MIEMBRO DEL COMITÉ EVALUADOR en la revisión académica de:',
+                    distincionBadge: 'COMITÉ EVALUADOR INSTITUCIONAL'
+                };
+            }
+            return {
+                encabezadoDocumento: 'RECONOCIMIENTO DE PARTICIPACIÓN',
+                motivoPre: 'Por su destacada participación y exposición del cartel de investigación titulado:',
+                distincionBadge: 'PARTICIPACIÓN DESTACADA'
+            };
         }
 
         function generarHtmlCertificadoFormal(datos) {
@@ -4898,7 +5005,7 @@
             const destinatario = escaparHtmlCert(datos.destinatario || 'NOMBRE DEL PARTICIPANTE O EQUIPO');
             const tituloProyecto = escaparHtmlCert(datos.tituloProyecto || 'TÍTULO DEL CARTEL DE INVESTIGACIÓN');
             const area = escaparHtmlCert(datos.area || 'Ingeniería');
-            const nivel = escaparHtmlCert(datos.nivel || 'Nivel 1: Propuesta Teórica / Documental');
+            const nivel = escaparHtmlCert(datos.nivel || 'Nivel 1 — Propuesta Documental / Solo Texto');
             const asesores = escaparHtmlCert(datos.asesores || '');
             const clave = escaparHtmlCert(datos.clave || '');
             const evento = escaparHtmlCert(datos.evento || 'Exposición Institucional de Carteles de Investigación');
@@ -4932,7 +5039,7 @@
                                 </div>
 
                                 <div style="font-family: Arial, Helvetica, sans-serif; font-size: 8.5pt; font-weight: 700; color: #64748b; letter-spacing: 2px; text-transform: uppercase; margin-top: 2mm;">
-                                    Otorga la presente
+                                    Otorga el presente
                                 </div>
                                 <div style="font-size: 23pt; font-weight: 700; color: #991b1b; letter-spacing: 2px; text-transform: uppercase; margin: 2mm 0 1mm 0;">
                                     ${cfgTexto.encabezadoDocumento}
@@ -4959,8 +5066,7 @@
 
                                 <div style="font-family: Arial, Helvetica, sans-serif; font-size: 9.5pt; color: #1e293b; display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; margin-top: 2mm;">
                                     <span><strong>Área / Carrera:</strong> ${area}</span>
-                                    <span>|</span>
-                                    <span><strong>Categoría de Madurez:</strong> ${nivel}</span>
+                                    ${nivel ? `<span>|</span><span><strong>Categoría de Madurez:</strong> ${nivel}</span>` : ''}
                                 </div>
 
                                 ${asesores ? `
@@ -5010,25 +5116,27 @@
         }
 
         function obtenerDatosFormularioCertificado() {
+            const elCarrera = document.getElementById('cert-carrera') || document.getElementById('cert-area');
+            const elClave = document.getElementById('cert-equipo-clave') || document.getElementById('cert-clave');
             return {
-                tipo: document.getElementById('cert-tipo')?.value || 'participacion',
+                tipo: document.getElementById('cert-tipo')?.value || 'RECONOCIMIENTO DE PARTICIPACIÓN',
                 destinatario: document.getElementById('cert-destinatario')?.value.trim() || 'NOMBRE DEL PARTICIPANTE O EQUIPO',
                 tituloProyecto: document.getElementById('cert-titulo-proyecto')?.value.trim() || 'TÍTULO DEL PROYECTO DE INVESTIGACIÓN',
-                area: document.getElementById('cert-area')?.value.trim() || 'Ingeniería',
-                nivel: document.getElementById('cert-nivel')?.value.trim() || 'Nivel 1: Propuesta Teórica / Documental',
+                area: elCarrera?.value.trim() || 'Ingeniería',
+                nivel: document.getElementById('cert-nivel')?.value.trim() || '',
                 asesores: document.getElementById('cert-asesores')?.value.trim() || '',
-                clave: document.getElementById('cert-clave')?.value.trim() || '',
-                evento: document.getElementById('cert-evento')?.value.trim() || 'Exposición Institucional de Carteles de Investigación',
+                clave: elClave?.value.trim() || '',
+                evento: document.getElementById('cert-evento')?.value.trim() || 'ENCUENTRO ACADÉMICO DE EVALUACIÓN DE CARTELES DE INVESTIGACIÓN',
                 fecha: document.getElementById('cert-fecha')?.value.trim() || '',
-                firma1Nombre: document.getElementById('cert-firma1-nombre')?.value.trim() || 'Coordinación Académica de Ingeniería',
-                firma1Cargo: document.getElementById('cert-firma1-cargo')?.value.trim() || 'Dirección Académica UVM',
-                firma2Nombre: document.getElementById('cert-firma2-nombre')?.value.trim() || 'Comité Evaluador de Investigación',
-                firma2Cargo: document.getElementById('cert-firma2-cargo')?.value.trim() || 'Coordinación de Investigación e Innovación'
+                firma1Nombre: document.getElementById('cert-firma1-nombre')?.value.trim() || 'COORDINACIÓN ACADÉMICA',
+                firma1Cargo: document.getElementById('cert-firma1-cargo')?.value.trim() || 'Comité Organizador UVM',
+                firma2Nombre: document.getElementById('cert-firma2-nombre')?.value.trim() || 'DIRECCIÓN ACADÉMICA DE CAMPUS',
+                firma2Cargo: document.getElementById('cert-firma2-cargo')?.value.trim() || 'Universidad del Valle de México'
             };
         }
 
         function actualizarVistaPreviaCertificado() {
-            const cont = document.getElementById('certificado-lienzo-vista-previa');
+            const cont = document.getElementById('certificado-preview-contenedor') || document.getElementById('certificado-lienzo-vista-previa');
             if (!cont) return;
             const datos = obtenerDatosFormularioCertificado();
             cont.innerHTML = generarHtmlCertificadoFormal(datos);
