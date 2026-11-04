@@ -1051,12 +1051,16 @@
                         </div>
 
                         <div>
+                            <label class="block font-bold text-slate-700 uppercase mb-1">Campus / Sede UVM:</label>
+                            <input type="text" id="cert-campus" oninput="actualizarVistaPreviaCertificado()" value="Campus Puebla" placeholder="Ej. Campus Puebla" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-bold text-red-900 focus:ring-2 focus:ring-red-500 focus:outline-none">
+                        </div>
+                        <div>
                             <label class="block font-bold text-slate-700 uppercase mb-1">Nombre del Evento Académico:</label>
                             <input type="text" id="cert-evento" oninput="actualizarVistaPreviaCertificado()" value="ENCUENTRO ACADÉMICO DE EVALUACIÓN DE CARTELES DE INVESTIGACIÓN" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-semibold text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
                         </div>
                         <div>
-                            <label class="block font-bold text-slate-700 uppercase mb-1">Campus / Sede y Fecha de Emisión:</label>
-                            <input type="text" id="cert-fecha" oninput="actualizarVistaPreviaCertificado()" placeholder="Ej. Campus UVM, a 3 de noviembre de 2026" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-semibold text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
+                            <label class="block font-bold text-slate-700 uppercase mb-1">Fecha de Emisión:</label>
+                            <input type="text" id="cert-fecha" oninput="actualizarVistaPreviaCertificado()" placeholder="Ej. Campus Puebla, a 3 de noviembre de 2026" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-semibold text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
                         </div>
                         <div class="grid grid-cols-2 gap-2">
                             <div>
@@ -4876,11 +4880,16 @@
         }
 
         async function inicializarPestanaCertificados() {
+            const inputCampus = document.getElementById('cert-campus');
+            if (inputCampus && !inputCampus.value.trim()) {
+                inputCampus.value = 'Campus Puebla';
+            }
             const inputFecha = document.getElementById('cert-fecha');
             if (inputFecha && !inputFecha.value) {
                 const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
                 const hoy = new Date();
-                inputFecha.value = `Veracruz, Ver., a ${hoy.getDate()} de ${meses[hoy.getMonth()]} de ${hoy.getFullYear()}`;
+                const sedeActual = (inputCampus?.value || 'Campus Puebla').trim();
+                inputFecha.value = `${sedeActual}, a ${hoy.getDate()} de ${meses[hoy.getMonth()]} de ${hoy.getFullYear()}`;
             }
 
             if (!Array.isArray(cartelesAdminCache) || cartelesAdminCache.length === 0) {
@@ -5051,6 +5060,7 @@
             const cfgTexto = obtenerConfigTextoCertificado(datos.tipo);
             const destinatario = escaparHtmlCert(datos.destinatario || 'NOMBRE DEL PARTICIPANTE O EQUIPO');
             const tituloProyecto = escaparHtmlCert(datos.tituloProyecto || 'TÍTULO DEL CARTEL DE INVESTIGACIÓN');
+            const campus = escaparHtmlCert(datos.campus || 'Campus Puebla');
             const area = escaparHtmlCert(datos.area || 'Ingeniería');
             const nivel = escaparHtmlCert(datos.nivel || 'Nivel 1 — Propuesta Documental / Solo Texto');
             const asesores = escaparHtmlCert(datos.asesores || '');
@@ -5076,7 +5086,8 @@
                                     </div>
                                     <div style="text-align: center; flex: 1; padding: 0 10px;">
                                         <div style="font-size: 15pt; font-weight: 700; color: #0f172a; letter-spacing: 1.5px; text-transform: uppercase;">Universidad del Valle de México</div>
-                                        <div style="font-size: 9.5pt; font-weight: 700; color: #991b1b; letter-spacing: 1px; text-transform: uppercase; font-family: Arial, Helvetica, sans-serif; margin-top: 2px;">${evento}</div>
+                                        <div style="font-size: 10pt; font-weight: 800; color: #334155; letter-spacing: 1.5px; text-transform: uppercase; font-family: Arial, Helvetica, sans-serif; margin-top: 1px;">${campus}</div>
+                                        <div style="font-size: 9pt; font-weight: 700; color: #991b1b; letter-spacing: 1px; text-transform: uppercase; font-family: Arial, Helvetica, sans-serif; margin-top: 2px;">${evento}</div>
                                     </div>
                                     <div style="text-align: right; font-family: Arial, Helvetica, sans-serif;">
                                         <div style="font-size: 8pt; font-weight: 700; color: #334155; text-transform: uppercase; border: 1px solid #cbd5e1; padding: 3px 8px; background: #f8fafc;">
@@ -5112,6 +5123,8 @@
                                 </div>
 
                                 <div style="font-family: Arial, Helvetica, sans-serif; font-size: 9.5pt; color: #1e293b; display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; margin-top: 2mm;">
+                                    <span><strong>Campus:</strong> ${campus}</span>
+                                    <span>|</span>
                                     <span><strong>Área / Carrera:</strong> ${area}</span>
                                     ${nivel ? `<span>|</span><span><strong>Categoría de Madurez:</strong> ${nivel}</span>` : ''}
                                 </div>
@@ -5169,6 +5182,7 @@
                 tipo: document.getElementById('cert-tipo')?.value || 'RECONOCIMIENTO DE PARTICIPACIÓN',
                 destinatario: document.getElementById('cert-destinatario')?.value.trim() || 'NOMBRE DEL PARTICIPANTE O EQUIPO',
                 tituloProyecto: document.getElementById('cert-titulo-proyecto')?.value.trim() || 'TÍTULO DEL PROYECTO DE INVESTIGACIÓN',
+                campus: document.getElementById('cert-campus')?.value.trim() || 'Campus Puebla',
                 area: elCarrera?.value.trim() || 'Ingeniería',
                 nivel: document.getElementById('cert-nivel')?.value.trim() || '',
                 asesores: document.getElementById('cert-asesores')?.value.trim() || '',
@@ -5178,7 +5192,7 @@
                 firma1Nombre: document.getElementById('cert-firma1-nombre')?.value.trim() || 'COORDINACIÓN ACADÉMICA',
                 firma1Cargo: document.getElementById('cert-firma1-cargo')?.value.trim() || 'Comité Organizador UVM',
                 firma2Nombre: document.getElementById('cert-firma2-nombre')?.value.trim() || 'DIRECCIÓN ACADÉMICA DE CAMPUS',
-                firma2Cargo: document.getElementById('cert-firma2-cargo')?.value.trim() || 'Universidad del Valle de México'
+                firma2Cargo: document.getElementById('cert-firma2-cargo')?.value.trim() || 'Universidad del Valle de México — Campus Puebla'
             };
         }
 
