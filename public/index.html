@@ -962,125 +962,154 @@
 
             <!-- ============================================================== -->
             <!-- ADMIN SUB-PESTAÑA 5: PLANTILLA PARA IMPRIMIR CERTIFICADOS      -->
-            <!-- (Diseño institucional UVM formal, sin emojis)                  -->
+            <!-- (Conectada automáticamente al Ranking: 1°, 2° y 3° Lugar)       -->
             <!-- ============================================================== -->
             <div id="admin-sec-certificados" class="hidden space-y-6">
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-5">
-                    <div class="flex flex-col md:flex-row justify-between md:items-center gap-3 border-b pb-4">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-6">
+                    <div class="flex flex-col lg:flex-row justify-between lg:items-center gap-4 border-b pb-4">
                         <div>
                             <span class="inline-block bg-red-100 text-red-800 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full tracking-wider mb-1">
-                                Formato Institucional Imprimible
+                                Conectado Automáticamente al Ranking • Campus Puebla
                             </span>
-                            <h3 class="text-lg sm:text-xl font-black text-slate-800">Generador y Plantilla de Certificados / Reconocimientos</h3>
+                            <h3 class="text-lg sm:text-xl font-black text-slate-800">Certificados Automáticos de Ganadores (1°, 2° y 3° Lugar por Nivel)</h3>
                             <p class="text-xs text-slate-500 mt-0.5">
-                                Selecciona un cartel registrado o un profesor juez para autocompletar los datos, personaliza los textos si lo requieres e imprime en formato horizontal tamaño carta.
+                                Los primeros 3 lugares de cada nivel se cargan automáticamente desde el Ranking con todos sus datos (integrantes, título, asesores, área y Campus Puebla) listos para imprimir con un solo clic.
                             </p>
                         </div>
                         <div class="flex flex-wrap items-center gap-2 shrink-0">
-                            <button type="button" onclick="imprimirCertificadoActual()" class="bg-red-700 hover:bg-red-800 text-white px-4 py-2.5 rounded-xl text-xs font-black shadow-md transition">
-                                Imprimir / Guardar PDF Actual
+                            <button type="button" onclick="inicializarPestanaCertificados(true)" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2.5 rounded-xl text-xs font-bold shadow transition">
+                                Actualizar desde Ranking
                             </button>
-                            <button type="button" id="btn-imprimir-lote-integrantes" onclick="imprimirCertificadosIndividualesCartel()" class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow transition">
-                                Imprimir Individual por Integrante y Asesor
+                            <button type="button" onclick="imprimirTodosGanadoresRanking(false)" class="bg-red-700 hover:bg-red-800 text-white px-4 py-2.5 rounded-xl text-xs font-black shadow-md transition">
+                                Imprimir Todos los Ganadores (1° a 3° por Equipo)
+                            </button>
+                            <button type="button" onclick="imprimirTodosGanadoresRanking(true)" class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow transition">
+                                Imprimir Todos Individuales (Alumnos + Asesores)
                             </button>
                         </div>
                     </div>
 
-                    <!-- Controles de Configuración de la Plantilla -->
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs">
-                        <div>
-                            <label class="block font-bold text-slate-700 uppercase mb-1">1. Cargar Datos desde un Cartel:</label>
-                            <select id="cert-select-cartel" onchange="cargarDatosCartelEnCertificado(this.value)" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-semibold text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
-                                <option value="">-- Seleccionar Cartel Registrado --</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block font-bold text-slate-700 uppercase mb-1">O Cargar Profesor Juez Evaluador:</label>
-                            <select id="cert-select-juez" onchange="cargarDatosJuezEnCertificado(this.value)" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-semibold text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
-                                <option value="">-- Seleccionar Profesor Juez --</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block font-bold text-slate-700 uppercase mb-1">2. Tipo de Reconocimiento / Constancia:</label>
-                            <select id="cert-tipo" onchange="actualizarVistaPreviaCertificado()" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-bold text-red-900 focus:ring-2 focus:ring-red-500 focus:outline-none">
-                                <option value="RECONOCIMIENTO DE PARTICIPACIÓN">RECONOCIMIENTO DE PARTICIPACIÓN</option>
-                                <option value="RECONOCIMIENTO — PRIMER LUGAR">RECONOCIMIENTO — PRIMER LUGAR</option>
-                                <option value="RECONOCIMIENTO — SEGUNDO LUGAR">RECONOCIMIENTO — SEGUNDO LUGAR</option>
-                                <option value="RECONOCIMIENTO — TERCER LUGAR">RECONOCIMIENTO — TERCER LUGAR</option>
-                                <option value="CONSTANCIA DE ASESORÍA ACADÉMICA">CONSTANCIA DE ASESORÍA ACADÉMICA (ASESORES)</option>
-                                <option value="CONSTANCIA DE EVALUADOR ACADÉMICO">CONSTANCIA DE EVALUADOR ACADÉMICO (JUEZ)</option>
-                            </select>
-                        </div>
-
-                        <div class="md:col-span-2">
-                            <label class="block font-bold text-slate-700 uppercase mb-1">Nombre(s) del Destinatario o Integrantes (En Mayúsculas):</label>
-                            <input type="text" id="cert-destinatario" oninput="this.value = this.value.toUpperCase(); actualizarVistaPreviaCertificado()" placeholder="EJ. GABRIEL GUERRERO, MARÍA HERNÁNDEZ" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-bold uppercase text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
-                        </div>
-                        <div>
-                            <label class="block font-bold text-slate-700 uppercase mb-1">Seleccionar Destinatario Específico del Cartel:</label>
-                            <select id="cert-select-destinatario-individual" onchange="if(this.value) { document.getElementById('cert-destinatario').value = this.value; actualizarVistaPreviaCertificado(); }" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-semibold text-slate-700 focus:ring-2 focus:ring-red-500 focus:outline-none">
-                                <option value="">-- Equipo Completo / Personalizado --</option>
-                            </select>
-                        </div>
-
-                        <div class="md:col-span-2">
-                            <label class="block font-bold text-slate-700 uppercase mb-1">Título del Proyecto / Cartel:</label>
-                            <input type="text" id="cert-titulo-proyecto" oninput="actualizarVistaPreviaCertificado()" placeholder="Ej. Diseño de un Sistema Automatizado de Captación Pluvial" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-semibold text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
-                        </div>
-                        <div>
-                            <label class="block font-bold text-slate-700 uppercase mb-1">Equipo y Clave (Opcional):</label>
-                            <input type="text" id="cert-equipo-clave" oninput="actualizarVistaPreviaCertificado()" placeholder="Ej. Equipo Los Innovadores (104)" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-semibold text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
-                        </div>
-
-                        <div>
-                            <label class="block font-bold text-slate-700 uppercase mb-1">Nivel de Madurez:</label>
-                            <select id="cert-nivel" onchange="actualizarVistaPreviaCertificado()" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-semibold text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
-                                <option value="Nivel 1 — Propuesta Documental / Solo Texto">Nivel 1 — Propuesta Documental / Solo Texto</option>
-                                <option value="Nivel 2 — Prototipo Funcional / Experimental">Nivel 2 — Prototipo Funcional / Experimental</option>
-                                <option value="Nivel 3 — Producto Terminado / Listo para Venta">Nivel 3 — Producto Terminado / Listo para Venta</option>
-                                <option value="">No mostrar nivel</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block font-bold text-slate-700 uppercase mb-1">Área / Carrera:</label>
-                            <input type="text" id="cert-carrera" oninput="actualizarVistaPreviaCertificado()" value="Ingeniería" placeholder="Ej. Ingeniería" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-semibold text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
-                        </div>
-                        <div>
-                            <label class="block font-bold text-slate-700 uppercase mb-1">Profesor(es) Asesor(es):</label>
-                            <input type="text" id="cert-asesores" oninput="this.value = this.value.toUpperCase(); actualizarVistaPreviaCertificado()" placeholder="EJ. MTRO. ROBERTO MENDOZA, DRA. ANA LÓPEZ" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-semibold uppercase text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
-                        </div>
-
-                        <div>
-                            <label class="block font-bold text-slate-700 uppercase mb-1">Campus / Sede UVM:</label>
-                            <input type="text" id="cert-campus" oninput="actualizarVistaPreviaCertificado()" value="Campus Puebla" placeholder="Ej. Campus Puebla" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-bold text-red-900 focus:ring-2 focus:ring-red-500 focus:outline-none">
-                        </div>
-                        <div>
-                            <label class="block font-bold text-slate-700 uppercase mb-1">Nombre del Evento Académico:</label>
-                            <input type="text" id="cert-evento" oninput="actualizarVistaPreviaCertificado()" value="ENCUENTRO ACADÉMICO DE EVALUACIÓN DE CARTELES DE INVESTIGACIÓN" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-semibold text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
-                        </div>
-                        <div>
-                            <label class="block font-bold text-slate-700 uppercase mb-1">Fecha de Emisión:</label>
-                            <input type="text" id="cert-fecha" oninput="actualizarVistaPreviaCertificado()" placeholder="Ej. Campus Puebla, a 3 de noviembre de 2026" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-semibold text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
-                        </div>
-                        <div class="grid grid-cols-2 gap-2">
-                            <div>
-                                <label class="block font-bold text-slate-700 uppercase mb-1">Firma 1 (Nombre y Cargo):</label>
-                                <input type="text" id="cert-firma1-nombre" oninput="actualizarVistaPreviaCertificado()" value="COORDINACIÓN ACADÉMICA" class="w-full border border-slate-300 p-2 rounded-lg bg-white font-semibold text-slate-800 mb-1">
-                                <input type="text" id="cert-firma1-cargo" oninput="actualizarVistaPreviaCertificado()" value="Comité Organizador UVM" class="w-full border border-slate-300 p-1.5 rounded-lg bg-white text-[11px] text-slate-600">
-                            </div>
-                            <div>
-                                <label class="block font-bold text-slate-700 uppercase mb-1">Firma 2 (Nombre y Cargo):</label>
-                                <input type="text" id="cert-firma2-nombre" oninput="actualizarVistaPreviaCertificado()" value="DIRECCIÓN ACADÉMICA DE CAMPUS" class="w-full border border-slate-300 p-2 rounded-lg bg-white font-semibold text-slate-800 mb-1">
-                                <input type="text" id="cert-firma2-cargo" oninput="actualizarVistaPreviaCertificado()" value="Universidad del Valle de México" class="w-full border border-slate-300 p-1.5 rounded-lg bg-white text-[11px] text-slate-600">
-                            </div>
-                        </div>
+                    <!-- Podio Automático por Nivel (Nivel 1, Nivel 2, Nivel 3) -->
+                    <div id="contenedor-certificados-ranking-niveles" class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                        <!-- Renderizado automáticamente desde rankingGlobalCache -->
                     </div>
+
+                    <!-- Panel Desplegable para Ajustes o Certificados Manuales / Otros -->
+                    <details class="bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
+                        <summary class="px-4 py-3 cursor-pointer font-extrabold text-xs text-slate-700 uppercase tracking-wider flex items-center justify-between hover:bg-slate-100 transition">
+                            <span>Opciones de Personalización, Firmas, Campus o Certificados de Participación / Jueces (Opcional)</span>
+                            <span class="text-[11px] text-red-700 font-bold">Clic para mostrar / ocultar</span>
+                        </summary>
+                        <div class="p-4 border-t border-slate-200 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                            <div>
+                                <label class="block font-bold text-slate-700 uppercase mb-1">1. Cargar Datos desde un Cartel:</label>
+                                <select id="cert-select-cartel" onchange="cargarDatosCartelEnCertificado(this.value)" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-semibold text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
+                                    <option value="">-- Seleccionar Cartel Registrado --</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 uppercase mb-1">O Cargar Profesor Juez Evaluador:</label>
+                                <select id="cert-select-juez" onchange="cargarDatosJuezEnCertificado(this.value)" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-semibold text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
+                                    <option value="">-- Seleccionar Profesor Juez --</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 uppercase mb-1">2. Tipo de Reconocimiento / Constancia:</label>
+                                <select id="cert-tipo" onchange="actualizarVistaPreviaCertificado()" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-bold text-red-900 focus:ring-2 focus:ring-red-500 focus:outline-none">
+                                    <option value="RECONOCIMIENTO — PRIMER LUGAR">RECONOCIMIENTO — PRIMER LUGAR</option>
+                                    <option value="RECONOCIMIENTO — SEGUNDO LUGAR">RECONOCIMIENTO — SEGUNDO LUGAR</option>
+                                    <option value="RECONOCIMIENTO — TERCER LUGAR">RECONOCIMIENTO — TERCER LUGAR</option>
+                                    <option value="RECONOCIMIENTO DE PARTICIPACIÓN">RECONOCIMIENTO DE PARTICIPACIÓN</option>
+                                    <option value="CONSTANCIA DE ASESORÍA ACADÉMICA">CONSTANCIA DE ASESORÍA ACADÉMICA (ASESORES)</option>
+                                    <option value="CONSTANCIA DE EVALUADOR ACADÉMICO">CONSTANCIA DE EVALUADOR ACADÉMICO (JUEZ)</option>
+                                </select>
+                            </div>
+
+                            <div class="md:col-span-2">
+                                <label class="block font-bold text-slate-700 uppercase mb-1">Nombre(s) del Destinatario o Integrantes (En Mayúsculas):</label>
+                                <input type="text" id="cert-destinatario" oninput="this.value = this.value.toUpperCase(); actualizarVistaPreviaCertificado()" placeholder="EJ. GABRIEL GUERRERO, MARÍA HERNÁNDEZ" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-bold uppercase text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 uppercase mb-1">Seleccionar Destinatario Específico del Cartel:</label>
+                                <select id="cert-select-destinatario-individual" onchange="if(this.value) { document.getElementById('cert-destinatario').value = this.value; actualizarVistaPreviaCertificado(); }" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-semibold text-slate-700 focus:ring-2 focus:ring-red-500 focus:outline-none">
+                                    <option value="">-- Equipo Completo / Personalizado --</option>
+                                </select>
+                            </div>
+
+                            <div class="md:col-span-2">
+                                <label class="block font-bold text-slate-700 uppercase mb-1">Título del Proyecto / Cartel:</label>
+                                <input type="text" id="cert-titulo-proyecto" oninput="actualizarVistaPreviaCertificado()" placeholder="Ej. Diseño de un Sistema Automatizado de Captación Pluvial" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-semibold text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 uppercase mb-1">Equipo y Clave (Opcional):</label>
+                                <input type="text" id="cert-equipo-clave" oninput="actualizarVistaPreviaCertificado()" placeholder="Ej. Equipo Los Innovadores (104)" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-semibold text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
+                            </div>
+
+                            <div>
+                                <label class="block font-bold text-slate-700 uppercase mb-1">Nivel de Madurez:</label>
+                                <select id="cert-nivel" onchange="actualizarVistaPreviaCertificado()" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-semibold text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
+                                    <option value="Nivel 1 — Propuesta Documental / Solo Texto">Nivel 1 — Propuesta Documental / Solo Texto</option>
+                                    <option value="Nivel 2 — Prototipo Funcional / Experimental">Nivel 2 — Prototipo Funcional / Experimental</option>
+                                    <option value="Nivel 3 — Producto Terminado / Listo para Venta">Nivel 3 — Producto Terminado / Listo para Venta</option>
+                                    <option value="">No mostrar nivel</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 uppercase mb-1">Área / Carrera:</label>
+                                <input type="text" id="cert-carrera" oninput="actualizarVistaPreviaCertificado()" value="Ingeniería" placeholder="Ej. Ingeniería" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-semibold text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 uppercase mb-1">Profesor(es) Asesor(es):</label>
+                                <input type="text" id="cert-asesores" oninput="this.value = this.value.toUpperCase(); actualizarVistaPreviaCertificado()" placeholder="EJ. MTRO. ROBERTO MENDOZA, DRA. ANA LÓPEZ" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-semibold uppercase text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
+                            </div>
+
+                            <div>
+                                <label class="block font-bold text-slate-700 uppercase mb-1">Campus / Sede UVM:</label>
+                                <input type="text" id="cert-campus" oninput="actualizarVistaPreviaCertificado()" value="Campus Puebla" placeholder="Ej. Campus Puebla" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-bold text-red-900 focus:ring-2 focus:ring-red-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 uppercase mb-1">Nombre del Evento Académico:</label>
+                                <input type="text" id="cert-evento" oninput="actualizarVistaPreviaCertificado()" value="ENCUENTRO ACADÉMICO DE EVALUACIÓN DE CARTELES DE INVESTIGACIÓN" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-semibold text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 uppercase mb-1">Fecha de Emisión:</label>
+                                <input type="text" id="cert-fecha" oninput="actualizarVistaPreviaCertificado()" placeholder="Ej. Campus Puebla, a 3 de noviembre de 2026" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-semibold text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
+                            </div>
+                            <div class="grid grid-cols-2 gap-2 md:col-span-2">
+                                <div>
+                                    <label class="block font-bold text-slate-700 uppercase mb-1">Firma 1 (Nombre y Cargo):</label>
+                                    <input type="text" id="cert-firma1-nombre" oninput="actualizarVistaPreviaCertificado()" value="COORDINACIÓN ACADÉMICA" class="w-full border border-slate-300 p-2 rounded-lg bg-white font-semibold text-slate-800 mb-1">
+                                    <input type="text" id="cert-firma1-cargo" oninput="actualizarVistaPreviaCertificado()" value="Comité Organizador UVM" class="w-full border border-slate-300 p-1.5 rounded-lg bg-white text-[11px] text-slate-600">
+                                </div>
+                                <div>
+                                    <label class="block font-bold text-slate-700 uppercase mb-1">Firma 2 (Nombre y Cargo):</label>
+                                    <input type="text" id="cert-firma2-nombre" oninput="actualizarVistaPreviaCertificado()" value="DIRECCIÓN ACADÉMICA DE CAMPUS" class="w-full border border-slate-300 p-2 rounded-lg bg-white font-semibold text-slate-800 mb-1">
+                                    <input type="text" id="cert-firma2-cargo" oninput="actualizarVistaPreviaCertificado()" value="Universidad del Valle de México" class="w-full border border-slate-300 p-1.5 rounded-lg bg-white text-[11px] text-slate-600">
+                                </div>
+                            </div>
+                            <div class="flex flex-col justify-end gap-2">
+                                <button type="button" onclick="imprimirCertificadoActual()" class="w-full bg-red-700 hover:bg-red-800 text-white px-4 py-2 rounded-lg text-xs font-black shadow transition">
+                                    Imprimir Vista Previa Actual
+                                </button>
+                                <button type="button" id="btn-imprimir-lote-integrantes" onclick="imprimirCertificadosIndividualesCartel()" class="w-full bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg text-xs font-bold shadow transition">
+                                    Imprimir Individuales del Cartel Seleccionado
+                                </button>
+                            </div>
+                        </div>
+                    </details>
 
                     <!-- Vista Previa del Certificado (100% Institucional, Sin Emojis) -->
                     <div class="space-y-2">
-                        <div class="flex justify-between items-center">
-                            <span class="text-xs font-extrabold uppercase tracking-wider text-slate-500">Vista Previa del Certificado (Formato Horizontal Carta):</span>
-                            <span class="text-[11px] text-slate-500">Diseño formal libre de emojis, listo para impresión directa o exportación a PDF</span>
+                        <div class="flex flex-wrap justify-between items-center gap-2">
+                            <span class="text-xs font-extrabold uppercase tracking-wider text-slate-500">Vista Previa del Certificado Activo (Formato Horizontal Carta):</span>
+                            <div class="flex items-center gap-2">
+                                <button type="button" onclick="imprimirCertificadoActual()" class="bg-red-700 hover:bg-red-800 text-white px-3.5 py-1.5 rounded-lg text-xs font-black shadow transition">
+                                    Imprimir este Certificado
+                                </button>
+                                <button type="button" onclick="imprimirCertificadosIndividualesCartel()" class="bg-slate-800 hover:bg-slate-900 text-white px-3.5 py-1.5 rounded-lg text-xs font-bold shadow transition">
+                                    Imprimir por Integrante y Asesor
+                                </button>
+                            </div>
                         </div>
                         <div class="overflow-x-auto bg-slate-200/70 p-4 sm:p-6 rounded-2xl border border-slate-300 flex justify-center">
                             <div id="certificado-preview-contenedor" class="w-full max-w-[960px] bg-white shadow-xl">
@@ -4786,7 +4815,13 @@
                         }
 
                         const btnCertAdmin = (usuarioActual && usuarioActual.rol === 'admin')
-                            ? `<button type="button" onclick="abrirCertificadoDesdeCartel(${r.id}, ${lugarActual})" class="mt-1 inline-flex items-center bg-slate-800 hover:bg-slate-900 text-white px-2 py-0.5 rounded text-[10px] font-bold transition shadow-sm">Certificado</button>`
+                            ? `<div class="mt-1 flex flex-col items-center gap-1">
+                                   ${lugarActual >= 1 && lugarActual <= 3
+                                       ? `<button type="button" onclick="imprimirDirectoDesdeRanking(${r.id}, ${lugarActual}, false)" class="inline-flex items-center bg-red-700 hover:bg-red-800 text-white px-2 py-0.5 rounded text-[10px] font-black transition shadow-sm">Imprimir ${lugarActual}° Lugar</button>`
+                                       : ''
+                                   }
+                                   <button type="button" onclick="abrirCertificadoDesdeCartel(${r.id}, ${lugarActual})" class="inline-flex items-center bg-slate-800 hover:bg-slate-900 text-white px-2 py-0.5 rounded text-[10px] font-bold transition shadow-sm">Ver Certificado</button>
+                               </div>`
                             : '';
 
                         return `
@@ -4867,8 +4902,10 @@
 
         // ==============================================================
         // 9. PLANTILLA INSTITUCIONAL DE CERTIFICADOS IMPRIMIBLES (SIN EMOJIS)
+        //    CONECTADA AUTOMÁTICAMENTE AL RANKING (1°, 2° Y 3° LUGAR)
         // ==============================================================
         let cartelSeleccionadoCertificado = null;
+        let rankingCertificadosCache = [];
 
         function escaparHtmlCert(str) {
             return String(str || '')
@@ -4879,7 +4916,302 @@
                 .replace(/'/g, '&#39;');
         }
 
-        async function inicializarPestanaCertificados() {
+        function obtenerTipoReconocimientoPorLugar(lugar) {
+            if (Number(lugar) === 1) return 'RECONOCIMIENTO — PRIMER LUGAR';
+            if (Number(lugar) === 2) return 'RECONOCIMIENTO — SEGUNDO LUGAR';
+            if (Number(lugar) === 3) return 'RECONOCIMIENTO — TERCER LUGAR';
+            return 'RECONOCIMIENTO DE PARTICIPACIÓN';
+        }
+
+        function construirDatosCertificadoDesdeCartel(cartel, lugar = 1, destinatarioPersonalizado = null, tipoPersonalizado = null) {
+            const base = obtenerDatosFormularioCertificado();
+            const tipoRecon = tipoPersonalizado || obtenerTipoReconocimientoPorLugar(lugar);
+            const dest = destinatarioPersonalizado || cartel.participantes || cartel.nombre_equipo || 'EQUIPO PARTICIPANTE';
+            const asesoresTexto = (cartel.asesor_nombre && cartel.asesor_nombre !== 'Sin Asesor')
+                ? cartel.asesor_nombre
+                : (cartel.profesores_asesores_nombres || '');
+            return {
+                ...base,
+                tipo: tipoRecon,
+                destinatario: String(dest).toUpperCase(),
+                tituloProyecto: cartel.titulo_cartel || 'TÍTULO DEL PROYECTO',
+                campus: base.campus || 'Campus Puebla',
+                area: cartel.carrera || 'Ingeniería',
+                nivel: obtenerDescripcionNivelMadurez(cartel.nivel),
+                asesores: String(asesoresTexto || '').toUpperCase(),
+                clave: `Código: ${cartel.clave || ''} | Equipo: ${cartel.nombre_equipo || ''}`
+            };
+        }
+
+        function obtenerGanadoresPorNivelDesdeRanking() {
+            const fuente = (Array.isArray(rankingCertificadosCache) && rankingCertificadosCache.length > 0)
+                ? rankingCertificadosCache
+                : (Array.isArray(datosRankingGlobal) && datosRankingGlobal.length > 0 ? datosRankingGlobal : cartelesAdminCache);
+
+            const podioPorNivel = { 1: [], 2: [], 3: [] };
+            [1, 2, 3].forEach(niv => {
+                const delNivel = (Array.isArray(fuente) ? fuente : [])
+                    .filter(c => Number(c.nivel) === niv);
+
+                // Ordenar por promedio_final descendente (priorizando los evaluados, pero mostrando también registrados si aún no hay evaluaciones para que siempre estén listos)
+                const ordenados = [...delNivel].sort((a, b) => {
+                    const evalA = Number(a.num_evaluaciones || 0) > 0 && a.promedio_final !== null ? 1 : 0;
+                    const evalB = Number(b.num_evaluaciones || 0) > 0 && b.promedio_final !== null ? 1 : 0;
+                    if (evalB !== evalA) return evalB - evalA;
+                    const promA = parseFloat(a.promedio_final || 0);
+                    const promB = parseFloat(b.promedio_final || 0);
+                    if (promB !== promA) return promB - promA;
+                    return Number(a.id || 0) - Number(b.id || 0);
+                });
+
+                podioPorNivel[niv] = ordenados.slice(0, 3).map((cartel, idx) => ({
+                    lugar: idx + 1,
+                    cartel
+                }));
+            });
+
+            return podioPorNivel;
+        }
+
+        function renderizarPodioCertificadosRanking() {
+            const cont = document.getElementById('contenedor-certificados-ranking-niveles');
+            if (!cont) return;
+
+            const podio = obtenerGanadoresPorNivelDesdeRanking();
+            const titulosNivel = {
+                1: 'Nivel 1 — Propuesta Documental / Solo Texto',
+                2: 'Nivel 2 — Prototipo Funcional / Experimental',
+                3: 'Nivel 3 — Producto Terminado / Listo para Venta'
+            };
+            const coloresBordeNivel = {
+                1: 'border-red-600',
+                2: 'border-amber-500',
+                3: 'border-slate-800'
+            };
+
+            cont.innerHTML = [1, 2, 3].map(niv => {
+                const ganadores = podio[niv] || [];
+                let tarjetasHtml = '';
+
+                if (ganadores.length === 0) {
+                    tarjetasHtml = `
+                        <div class="p-4 text-center text-xs text-slate-400 italic bg-white rounded-xl border border-dashed border-slate-200">
+                            No hay carteles registrados en Nivel ${niv} todavía.
+                        </div>
+                    `;
+                } else {
+                    tarjetasHtml = ganadores.map(({ lugar, cartel }) => {
+                        const etiquetaLugar = lugar === 1 ? '1° LUGAR' : (lugar === 2 ? '2° LUGAR' : '3° LUGAR');
+                        const badgeClase = lugar === 1
+                            ? 'bg-amber-100 text-amber-900 border-amber-300'
+                            : (lugar === 2 ? 'bg-slate-200 text-slate-800 border-slate-300' : 'bg-orange-100 text-orange-900 border-orange-300');
+                        const tieneEval = Number(cartel.num_evaluaciones || 0) > 0 && cartel.promedio_final !== null;
+                        const textoCalif = tieneEval
+                            ? `${formatearPuntajeSegunEscala(cartel.promedio_final)} (${cartel.num_evaluaciones} eval.)`
+                            : 'Sin calificar aún (Datos listos)';
+
+                        return `
+                            <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm space-y-2">
+                                <div class="flex items-center justify-between gap-2">
+                                    <span class="px-2.5 py-0.5 rounded-full text-[11px] font-black border ${badgeClase}">
+                                        ${etiquetaLugar}
+                                    </span>
+                                    <span class="text-[11px] font-bold ${tieneEval ? 'text-emerald-700' : 'text-amber-700'}">
+                                        ${textoCalif}
+                                    </span>
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="font-mono text-[10px] font-black bg-amber-50 text-amber-900 border border-amber-200 px-1.5 py-0.5 rounded">
+                                            ${escaparHtmlCert(cartel.clave || 'S/C')}
+                                        </span>
+                                        <span class="text-xs font-extrabold text-slate-800 line-clamp-1" title="${escaparHtmlCert(cartel.titulo_cartel)}">
+                                            ${escaparHtmlCert(cartel.titulo_cartel)}
+                                        </span>
+                                    </div>
+                                    <p class="text-[11px] text-slate-600 font-semibold mt-1">
+                                        <strong>Equipo:</strong> ${escaparHtmlCert(cartel.nombre_equipo)} • <span class="text-red-700">${escaparHtmlCert(cartel.carrera || 'Ingeniería')}</span>
+                                    </p>
+                                    <p class="text-[11px] text-slate-700 mt-0.5 line-clamp-2">
+                                        <strong>Integrantes:</strong> ${escaparHtmlCert(cartel.participantes || 'No registrados')}
+                                    </p>
+                                    <p class="text-[11px] text-slate-500 mt-0.5">
+                                        <strong>Asesor(es):</strong> ${escaparHtmlCert(cartel.asesor_nombre || 'Sin Asesor')}
+                                    </p>
+                                </div>
+                                <div class="pt-2 border-t border-slate-100 flex flex-wrap gap-1.5">
+                                    <button type="button" onclick="imprimirDirectoDesdeRanking(${cartel.id}, ${lugar}, false)" class="flex-1 bg-red-700 hover:bg-red-800 text-white px-2.5 py-1.5 rounded-lg text-[11px] font-black transition shadow-sm">
+                                        Imprimir ${lugar}° Lugar
+                                    </button>
+                                    <button type="button" onclick="imprimirDirectoDesdeRanking(${cartel.id}, ${lugar}, true)" class="flex-1 bg-slate-800 hover:bg-slate-900 text-white px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition shadow-sm" title="Imprime un certificado por cada alumno integrante y cada asesor">
+                                        Por Integrante + Asesor
+                                    </button>
+                                    <button type="button" onclick="cargarGanadorEnVistaPrevia(${cartel.id}, ${lugar})" class="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition">
+                                        Vista Previa
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+
+                return `
+                    <div class="bg-slate-50 rounded-2xl p-4 border border-slate-200 border-t-4 ${coloresBordeNivel[niv]} flex flex-col justify-between space-y-3">
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between gap-2 border-b border-slate-200 pb-2.5">
+                                <div>
+                                    <span class="text-[10px] font-black uppercase tracking-wider text-red-700 block">Podio Nivel ${niv}</span>
+                                    <h4 class="text-xs font-black text-slate-800">${titulosNivel[niv]}</h4>
+                                </div>
+                                ${ganadores.length > 0 ? `
+                                    <button type="button" onclick="imprimirGanadoresDeNivel(${niv}, false)" class="bg-red-50 hover:bg-red-100 text-red-800 border border-red-200 px-2.5 py-1 rounded-lg text-[10px] font-extrabold transition shrink-0">
+                                        Imprimir Top ${ganadores.length} Nivel ${niv}
+                                    </button>
+                                ` : ''}
+                            </div>
+                            <div class="space-y-2.5">
+                                ${tarjetasHtml}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function cargarGanadorEnVistaPrevia(cartelId, lugar = 1) {
+            const selCartel = document.getElementById('cert-select-cartel');
+            if (selCartel) selCartel.value = String(cartelId);
+            const selTipo = document.getElementById('cert-tipo');
+            if (selTipo) selTipo.value = obtenerTipoReconocimientoPorLugar(lugar);
+            cargarDatosCartelEnCertificado();
+            const previewEl = document.getElementById('certificado-preview-contenedor');
+            if (previewEl) previewEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        async function imprimirDirectoDesdeRanking(cartelId, lugar = 1, individualPorIntegrante = false) {
+            if (!Array.isArray(rankingCertificadosCache) || rankingCertificadosCache.length === 0) {
+                try {
+                    const resR = await fetch('/api/dashboard/ranking');
+                    rankingCertificadosCache = await resR.json();
+                } catch (e) {}
+            }
+            const fuente = [...(rankingCertificadosCache || []), ...(cartelesAdminCache || []), ...(datosRankingGlobal || [])];
+            const cartel = fuente.find(c => Number(c.id) === Number(cartelId));
+            if (!cartel) {
+                alert('No se encontró la información del cartel para imprimir.');
+                return;
+            }
+
+            // Sincronizar también la vista previa con este cartel ganador
+            const selCartel = document.getElementById('cert-select-cartel');
+            if (selCartel) selCartel.value = String(cartel.id);
+            const selTipo = document.getElementById('cert-tipo');
+            if (selTipo) selTipo.value = obtenerTipoReconocimientoPorLugar(lugar);
+            cargarDatosCartelEnCertificado();
+
+            const listaCertificados = [];
+            if (!individualPorIntegrante) {
+                listaCertificados.push(construirDatosCertificadoDesdeCartel(cartel, lugar));
+            } else {
+                const integrantes = String(cartel.participantes || '')
+                    .split(',')
+                    .map(s => s.trim())
+                    .filter(Boolean);
+                if (integrantes.length > 0) {
+                    integrantes.forEach(alumno => {
+                        listaCertificados.push(construirDatosCertificadoDesdeCartel(cartel, lugar, alumno));
+                    });
+                } else {
+                    listaCertificados.push(construirDatosCertificadoDesdeCartel(cartel, lugar));
+                }
+
+                const asesoresLista = String(cartel.profesores_asesores_nombres || cartel.asesor_nombre || '')
+                    .split(',')
+                    .map(s => s.trim())
+                    .filter(s => s && s.toUpperCase() !== 'SIN ASESOR');
+                asesoresLista.forEach(asesor => {
+                    listaCertificados.push(construirDatosCertificadoDesdeCartel(cartel, lugar, asesor, 'CONSTANCIA DE ASESORÍA ACADÉMICA'));
+                });
+            }
+
+            const htmlPaginas = listaCertificados.map(item => `<div class="pagina-impresion">${generarHtmlCertificadoFormal(item)}</div>`).join('');
+            abrirVentanaImpresionCertificados(htmlPaginas, `Certificado ${lugar}° Lugar Nivel ${cartel.nivel} - ${cartel.nombre_equipo}`);
+        }
+
+        function imprimirGanadoresDeNivel(nivel, individualPorIntegrante = false) {
+            const podio = obtenerGanadoresPorNivelDesdeRanking();
+            const ganadores = podio[nivel] || [];
+            if (ganadores.length === 0) {
+                alert(`No hay carteles en Nivel ${nivel} para imprimir.`);
+                return;
+            }
+
+            const listaCertificados = [];
+            ganadores.forEach(({ lugar, cartel }) => {
+                if (!individualPorIntegrante) {
+                    listaCertificados.push(construirDatosCertificadoDesdeCartel(cartel, lugar));
+                } else {
+                    const integrantes = String(cartel.participantes || '').split(',').map(s => s.trim()).filter(Boolean);
+                    if (integrantes.length > 0) {
+                        integrantes.forEach(alumno => {
+                            listaCertificados.push(construirDatosCertificadoDesdeCartel(cartel, lugar, alumno));
+                        });
+                    } else {
+                        listaCertificados.push(construirDatosCertificadoDesdeCartel(cartel, lugar));
+                    }
+                    const asesoresLista = String(cartel.profesores_asesores_nombres || cartel.asesor_nombre || '')
+                        .split(',')
+                        .map(s => s.trim())
+                        .filter(s => s && s.toUpperCase() !== 'SIN ASESOR');
+                    asesoresLista.forEach(asesor => {
+                        listaCertificados.push(construirDatosCertificadoDesdeCartel(cartel, lugar, asesor, 'CONSTANCIA DE ASESORÍA ACADÉMICA'));
+                    });
+                }
+            });
+
+            const htmlPaginas = listaCertificados.map(item => `<div class="pagina-impresion">${generarHtmlCertificadoFormal(item)}</div>`).join('');
+            abrirVentanaImpresionCertificados(htmlPaginas, `Ganadores Nivel ${nivel} (1° a 3° Lugar)`);
+        }
+
+        function imprimirTodosGanadoresRanking(individualPorIntegrante = false) {
+            const podio = obtenerGanadoresPorNivelDesdeRanking();
+            const listaCertificados = [];
+
+            [1, 2, 3].forEach(niv => {
+                const ganadores = podio[niv] || [];
+                ganadores.forEach(({ lugar, cartel }) => {
+                    if (!individualPorIntegrante) {
+                        listaCertificados.push(construirDatosCertificadoDesdeCartel(cartel, lugar));
+                    } else {
+                        const integrantes = String(cartel.participantes || '').split(',').map(s => s.trim()).filter(Boolean);
+                        if (integrantes.length > 0) {
+                            integrantes.forEach(alumno => {
+                                listaCertificados.push(construirDatosCertificadoDesdeCartel(cartel, lugar, alumno));
+                            });
+                        } else {
+                            listaCertificados.push(construirDatosCertificadoDesdeCartel(cartel, lugar));
+                        }
+                        const asesoresLista = String(cartel.profesores_asesores_nombres || cartel.asesor_nombre || '')
+                            .split(',')
+                            .map(s => s.trim())
+                            .filter(s => s && s.toUpperCase() !== 'SIN ASESOR');
+                        asesoresLista.forEach(asesor => {
+                            listaCertificados.push(construirDatosCertificadoDesdeCartel(cartel, lugar, asesor, 'CONSTANCIA DE ASESORÍA ACADÉMICA'));
+                        });
+                    }
+                });
+            });
+
+            if (listaCertificados.length === 0) {
+                alert('No hay carteles registrados en el Ranking todavía.');
+                return;
+            }
+
+            const htmlPaginas = listaCertificados.map(item => `<div class="pagina-impresion">${generarHtmlCertificadoFormal(item)}</div>`).join('');
+            abrirVentanaImpresionCertificados(htmlPaginas, `Todos los Ganadores del Ranking (${listaCertificados.length} certificados)`);
+        }
+
+        async function inicializarPestanaCertificados(forzarRecarga = false) {
             const inputCampus = document.getElementById('cert-campus');
             if (inputCampus && !inputCampus.value.trim()) {
                 inputCampus.value = 'Campus Puebla';
@@ -4892,19 +5224,22 @@
                 inputFecha.value = `${sedeActual}, a ${hoy.getDate()} de ${meses[hoy.getMonth()]} de ${hoy.getFullYear()}`;
             }
 
-            if (!Array.isArray(cartelesAdminCache) || cartelesAdminCache.length === 0) {
-                try {
-                    const res = await fetch('/api/admin/carteles');
-                    cartelesAdminCache = await res.json();
-                } catch (e) {}
-            }
-
-            if (!Array.isArray(profesoresAdminCache) || profesoresAdminCache.length === 0) {
-                try {
-                    const resP = await fetch('/api/profesores');
-                    profesoresAdminCache = await resP.json();
-                } catch (e) {}
-            }
+            try {
+                const [resRanking, resCarteles, resProfes] = await Promise.all([
+                    fetch('/api/dashboard/ranking'),
+                    (!forzarRecarga && Array.isArray(cartelesAdminCache) && cartelesAdminCache.length > 0) ? Promise.resolve(null) : fetch('/api/admin/carteles'),
+                    (!forzarRecarga && Array.isArray(profesoresAdminCache) && profesoresAdminCache.length > 0) ? Promise.resolve(null) : fetch('/api/profesores')
+                ]);
+                if (resRanking && resRanking.ok) {
+                    rankingCertificadosCache = await resRanking.json();
+                }
+                if (resCarteles && resCarteles.ok) {
+                    cartelesAdminCache = await resCarteles.json();
+                }
+                if (resProfes && resProfes.ok) {
+                    profesoresAdminCache = await resProfes.json();
+                }
+            } catch (e) {}
 
             const selCartel = document.getElementById('cert-select-cartel');
             if (selCartel && Array.isArray(cartelesAdminCache)) {
@@ -4920,6 +5255,21 @@
                 selJuez.innerHTML = '<option value="">-- Opcional: Selecciona un Profesor Juez / Asesor --</option>' +
                     profesoresAdminCache.map(p => `<option value="${p.id}">${p.nombre} (${p.carrera || 'General'} - Nivel ${p.nivel_asignado || 1})</option>`).join('');
                 if (prevJ) selJuez.value = prevJ;
+            }
+
+            renderizarPodioCertificadosRanking();
+
+            // Si aún no hay un cartel seleccionado en la vista previa, cargar automáticamente el 1° Lugar del primer nivel disponible
+            if (selCartel && !selCartel.value) {
+                const podio = obtenerGanadoresPorNivelDesdeRanking();
+                const primerGanador = (podio[1] && podio[1][0]) || (podio[2] && podio[2][0]) || (podio[3] && podio[3][0]);
+                if (primerGanador && primerGanador.cartel) {
+                    selCartel.value = String(primerGanador.cartel.id);
+                    const selTipo = document.getElementById('cert-tipo');
+                    if (selTipo) selTipo.value = obtenerTipoReconocimientoPorLugar(primerGanador.lugar);
+                    cargarDatosCartelEnCertificado();
+                    return;
+                }
             }
 
             actualizarVistaPreviaCertificado();
