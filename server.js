@@ -382,7 +382,7 @@ function generarDatosSmsCuenta({ telefono, email, nombre, matricula, password, r
     const telWa = obtenerTelefonoParaWhatsApp(telLimpio);
 
     const textoSms = rol === 'profesor'
-        ? `UVM Carteles - Hola ${nombre}, tus datos de Juez Evaluador (Nivel ${nivel_asignado || 1} - ${carrera || 'General'}):\nUsuario: ${matricula}\nClave: ${password}\nIngresa aqui: ${enlaceAcceso}`
+        ? `UVM Carteles - Hola ${nombre}, tus datos de Juez Evaluador (${carrera || 'General'}):\nUsuario: ${matricula}\nClave: ${password}\nIngresa aqui: ${enlaceAcceso}`
         : `UVM Carteles - Hola ${nombre}, tus datos de acceso:\nUsuario: ${matricula}\nClave: ${password}\nIngresa aqui: ${enlaceAcceso}`;
 
     const bodyEncoded = encodeURIComponent(textoSms);
@@ -1638,7 +1638,7 @@ app.post('/api/profesores', async (req, res) => {
             listo_sms: infoSms.listo_sms,
             enlace_acceso: infoSms.enlace_acceso,
             datos_cuenta: infoSms.datos_cuenta,
-            mensaje: `Profesor ${nombreMayus} registrado con éxito en ${areaCarrera} (Nivel ${nivel}).`
+            mensaje: `Profesor ${nombreMayus} registrado con éxito en ${areaCarrera}.`
         });
     } catch (err) {
         res.status(400).json({ error: err.message });
@@ -2470,7 +2470,6 @@ async function ejecutarRepartoCarteles(req, res) {
             );
 
             const candidatosValidos = profesores.filter(p => 
-                Number(p.nivel_asignado) === Number(cartel.nivel) &&
                 p.carrera && cartel.carrera &&
                 p.carrera.trim().toLowerCase() === cartel.carrera.trim().toLowerCase() &&
                 !idsAsesores.has(Number(p.id)) &&
@@ -2479,7 +2478,7 @@ async function ejecutarRepartoCarteles(req, res) {
 
             if (candidatosValidos.length < 2) {
                 throw new Error(
-                    `El cartel "${cartel.titulo_cartel}" (Área: ${cartel.carrera}, Nivel ${cartel.nivel}) requiere mínimo 2 profesores jueces (máximo 3) de su misma área y nivel (distintos a sus profesores asesores). Disponibles actualmente: ${candidatosValidos.length}. Asigna o registra al menos 2 profesores de ${cartel.carrera} en Nivel ${cartel.nivel}.`
+                    `El cartel "${cartel.titulo_cartel}" (Área: ${cartel.carrera}, Nivel ${cartel.nivel}) requiere mínimo 2 profesores jueces (máximo 3) de su misma área (distintos a sus profesores asesores). Disponibles actualmente: ${candidatosValidos.length}. Asigna o registra al menos 2 profesores de ${cartel.carrera}.`
                 );
             }
 

@@ -483,7 +483,7 @@
                         ¡Bienvenido(a), <span id="dash-profe-nombre">PROFESOR</span>!
                     </h2>
                     <p class="text-xs sm:text-sm text-red-200 mt-1 font-medium">
-                        Área: <span id="dash-profe-carrera" class="font-bold text-white"></span> • Juez Asignado a: <span id="dash-profe-nivel" class="font-bold text-white"></span>
+                        Área: <span id="dash-profe-carrera" class="font-bold text-white"></span> • <span id="dash-profe-nivel" class="font-bold text-white">Evaluador de Todos los Niveles</span>
                     </p>
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
@@ -756,7 +756,7 @@
                                     <th class="p-3">Matrícula / ID</th>
                                     <th class="p-3">Rol Actual</th>
                                     <th class="p-3">Área / Carrera</th>
-                                    <th class="p-3">Nivel & Carteles Asignados</th>
+                                    <th class="p-3">Carteles Asignados</th>
                                     <th class="p-3 text-center">Acciones del Admin</th>
                                 </tr>
                             </thead>
@@ -914,21 +914,10 @@
                 <div class="bg-red-50 border-l-4 border-red-600 p-5 rounded-2xl flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                     <div>
                         <p class="font-extrabold text-red-900 text-base">Reparto Automático de Carteles a Profesores Jueces (Mín. 2 / Máx. 3 Jueces)</p>
-                        <p class="text-xs text-red-700 mt-1">Asigna automáticamente entre 2 (mínimo) y 3 (máximo) profesores jueces por cada cartel respetando Área y Nivel académico.</p>
+                        <p class="text-xs text-red-700 mt-1">Asigna automáticamente entre 2 (mínimo) y 3 (máximo) profesores jueces por cada cartel respetando su Área académica (los profesores pueden revisar carteles de cualquier nivel).</p>
                     </div>
                     <button onclick="repartirCarteles()" class="bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-xl font-bold text-xs shadow transition whitespace-nowrap">
                         Repartir Carteles Automáticamente
-                    </button>
-                </div>
-
-                <!-- Balanceo Aleatorio -->
-                <div class="bg-rose-50 border-l-4 border-rose-600 p-5 rounded-2xl flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-                    <div>
-                        <p class="font-extrabold text-red-900 text-base">Balanceo Aleatorio de Niveles de Profesores</p>
-                        <p class="text-xs text-red-700 mt-1">Distribuye equitativamente los niveles 1, 2 y 3 entre los profesores de cada área.</p>
-                    </div>
-                    <button onclick="randomizarNivelesProfesores()" class="bg-red-700 hover:bg-red-800 text-white px-5 py-2.5 rounded-xl font-bold text-xs shadow transition whitespace-nowrap">
-                        Balancear Niveles
                     </button>
                 </div>
             </div>
@@ -977,6 +966,10 @@
                             </p>
                         </div>
                         <div class="flex flex-wrap items-center gap-2 shrink-0">
+                            <div class="flex items-center gap-2 bg-slate-50 border border-slate-300 px-3 py-1.5 rounded-xl">
+                                <label for="cert-fecha-picker-top" class="text-[11px] font-extrabold text-slate-700 uppercase whitespace-nowrap">Fecha del Reconocimiento:</label>
+                                <input type="date" id="cert-fecha-picker-top" onchange="seleccionarFechaCalendarioCertificado(this.value)" class="border border-slate-300 px-2 py-1 rounded-lg bg-white text-xs font-bold text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
+                            </div>
                             <button type="button" onclick="inicializarPestanaCertificados(true)" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2.5 rounded-xl text-xs font-bold shadow transition">
                                 Actualizar desde Ranking
                             </button>
@@ -1026,8 +1019,8 @@
                             </div>
 
                             <div class="md:col-span-2">
-                                <label class="block font-bold text-slate-700 uppercase mb-1">Nombre(s) del Destinatario o Integrantes (En Mayúsculas):</label>
-                                <input type="text" id="cert-destinatario" oninput="this.value = this.value.toUpperCase(); actualizarVistaPreviaCertificado()" placeholder="EJ. GABRIEL GUERRERO, MARÍA HERNÁNDEZ" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-bold uppercase text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
+                                <label class="block font-bold text-slate-700 uppercase mb-1">Nombre(s) del Galardonado / Integrantes:</label>
+                                <input type="text" id="cert-destinatario" oninput="actualizarVistaPreviaCertificado()" value="Óscar Daniel Máynez Navarro" placeholder="Ej. Óscar Daniel Máynez Navarro" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-bold text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
                             </div>
                             <div>
                                 <label class="block font-bold text-slate-700 uppercase mb-1">Seleccionar Destinatario Específico del Cartel:</label>
@@ -1038,7 +1031,7 @@
 
                             <div class="md:col-span-2">
                                 <label class="block font-bold text-slate-700 uppercase mb-1">Título del Proyecto / Cartel:</label>
-                                <input type="text" id="cert-titulo-proyecto" oninput="actualizarVistaPreviaCertificado()" placeholder="Ej. Diseño de un Sistema Automatizado de Captación Pluvial" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-semibold text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
+                                <input type="text" id="cert-titulo-proyecto" oninput="actualizarVistaPreviaCertificado()" value="Síntesis de nanoestrellas de ZnO para tratamiento de agua" placeholder="Ej. Síntesis de nanoestrellas de ZnO para tratamiento de agua" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-semibold text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
                             </div>
                             <div>
                                 <label class="block font-bold text-slate-700 uppercase mb-1">Equipo y Clave (Opcional):</label>
@@ -1048,19 +1041,19 @@
                             <div>
                                 <label class="block font-bold text-slate-700 uppercase mb-1">Nivel de Madurez:</label>
                                 <select id="cert-nivel" onchange="actualizarVistaPreviaCertificado()" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-semibold text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
-                                    <option value="Nivel 1 — Propuesta Documental / Solo Texto">Nivel 1 — Propuesta Documental / Solo Texto</option>
-                                    <option value="Nivel 2 — Prototipo Funcional / Experimental">Nivel 2 — Prototipo Funcional / Experimental</option>
-                                    <option value="Nivel 3 — Producto Terminado / Listo para Venta">Nivel 3 — Producto Terminado / Listo para Venta</option>
+                                    <option value="Nivel 1 — Propuesta Documental / Solo Texto">Nivel de Madurez 1</option>
+                                    <option value="Nivel 2 — Prototipo Funcional / Experimental">Nivel de Madurez 2</option>
+                                    <option value="Nivel 3 — Producto Terminado / Listo para Venta">Nivel de Madurez 3</option>
                                     <option value="">No mostrar nivel</option>
                                 </select>
                             </div>
                             <div>
-                                <label class="block font-bold text-slate-700 uppercase mb-1">Área / Carrera:</label>
-                                <input type="text" id="cert-carrera" oninput="actualizarVistaPreviaCertificado()" value="Ingeniería" placeholder="Ej. Ingeniería" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-semibold text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
+                                <label class="block font-bold text-slate-700 uppercase mb-1">Vertical / Área / Carrera:</label>
+                                <input type="text" id="cert-carrera" oninput="actualizarVistaPreviaCertificado()" value="Ingeniería en Biotecnología" placeholder="Ej. Ingeniería en Biotecnología" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-semibold text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
                             </div>
                             <div>
                                 <label class="block font-bold text-slate-700 uppercase mb-1">Profesor(es) Asesor(es):</label>
-                                <input type="text" id="cert-asesores" oninput="this.value = this.value.toUpperCase(); actualizarVistaPreviaCertificado()" placeholder="EJ. MTRO. ROBERTO MENDOZA, DRA. ANA LÓPEZ" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-semibold uppercase text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
+                                <input type="text" id="cert-asesores" oninput="actualizarVistaPreviaCertificado()" placeholder="Ej. Mtro. Roberto Mendoza" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-semibold text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
                             </div>
 
                             <div>
@@ -1068,23 +1061,21 @@
                                 <input type="text" id="cert-campus" oninput="actualizarVistaPreviaCertificado()" value="Campus Puebla" placeholder="Ej. Campus Puebla" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-bold text-red-900 focus:ring-2 focus:ring-red-500 focus:outline-none">
                             </div>
                             <div>
-                                <label class="block font-bold text-slate-700 uppercase mb-1">Nombre del Evento Académico:</label>
-                                <input type="text" id="cert-evento" oninput="actualizarVistaPreviaCertificado()" value="ENCUENTRO ACADÉMICO DE EVALUACIÓN DE CARTELES DE INVESTIGACIÓN" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-semibold text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
+                                <label class="block font-bold text-slate-700 uppercase mb-1">Edición / Foro de Investigación:</label>
+                                <input type="text" id="cert-evento" oninput="actualizarVistaPreviaCertificado()" value="20º edición del Foro de Investigación C1-2026" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-semibold text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
                             </div>
                             <div>
-                                <label class="block font-bold text-slate-700 uppercase mb-1">Fecha de Emisión:</label>
-                                <input type="text" id="cert-fecha" oninput="actualizarVistaPreviaCertificado()" placeholder="Ej. Campus Puebla, a 3 de noviembre de 2026" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-semibold text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
-                            </div>
-                            <div class="grid grid-cols-2 gap-2 md:col-span-2">
-                                <div>
-                                    <label class="block font-bold text-slate-700 uppercase mb-1">Firma 1 (Nombre y Cargo):</label>
-                                    <input type="text" id="cert-firma1-nombre" oninput="actualizarVistaPreviaCertificado()" value="COORDINACIÓN ACADÉMICA" class="w-full border border-slate-300 p-2 rounded-lg bg-white font-semibold text-slate-800 mb-1">
-                                    <input type="text" id="cert-firma1-cargo" oninput="actualizarVistaPreviaCertificado()" value="Comité Organizador UVM" class="w-full border border-slate-300 p-1.5 rounded-lg bg-white text-[11px] text-slate-600">
+                                <label class="block font-bold text-slate-700 uppercase mb-1">Fecha de Emisión (Elegir en calendario o escribir):</label>
+                                <div class="flex flex-col sm:flex-row gap-2">
+                                    <input type="date" id="cert-fecha-picker" onchange="seleccionarFechaCalendarioCertificado(this.value)" class="sm:w-40 border border-slate-300 p-2.5 rounded-lg bg-white font-bold text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
+                                    <input type="text" id="cert-fecha" oninput="actualizarVistaPreviaCertificado()" value="" placeholder="Ej. San Andrés Cholula, Puebla a 10 de Noviembre 2026." class="flex-1 border border-slate-300 p-2.5 rounded-lg bg-white font-semibold text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
                                 </div>
-                                <div>
-                                    <label class="block font-bold text-slate-700 uppercase mb-1">Firma 2 (Nombre y Cargo):</label>
-                                    <input type="text" id="cert-firma2-nombre" oninput="actualizarVistaPreviaCertificado()" value="DIRECCIÓN ACADÉMICA DE CAMPUS" class="w-full border border-slate-300 p-2 rounded-lg bg-white font-semibold text-slate-800 mb-1">
-                                    <input type="text" id="cert-firma2-cargo" oninput="actualizarVistaPreviaCertificado()" value="Universidad del Valle de México" class="w-full border border-slate-300 p-1.5 rounded-lg bg-white text-[11px] text-slate-600">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block font-bold text-slate-700 uppercase mb-1">Firma Centrada (Nombre y Cargo):</label>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    <input type="text" id="cert-firma1-nombre" oninput="actualizarVistaPreviaCertificado()" value="Mtro. Javier Quintana Terés" placeholder="Nombre de quien firma" class="w-full border border-slate-300 p-2 rounded-lg bg-white font-semibold text-slate-800">
+                                    <input type="text" id="cert-firma1-cargo" oninput="actualizarVistaPreviaCertificado()" value="Rector UVM Campus Puebla" placeholder="Cargo de quien firma" class="w-full border border-slate-300 p-2 rounded-lg bg-white text-xs text-slate-600">
                                 </div>
                             </div>
                             <div class="flex flex-col justify-end gap-2">
@@ -1098,10 +1089,10 @@
                         </div>
                     </details>
 
-                    <!-- Vista Previa del Certificado (100% Institucional, Sin Emojis) -->
+                    <!-- Vista Previa del Certificado (Diseño Vertical Moderno) -->
                     <div class="space-y-2">
                         <div class="flex flex-wrap justify-between items-center gap-2">
-                            <span class="text-xs font-extrabold uppercase tracking-wider text-slate-500">Vista Previa del Certificado Activo (Formato Horizontal Carta):</span>
+                            <span class="text-xs font-extrabold uppercase tracking-wider text-slate-500">Vista Previa del Certificado Activo (Formato Vertical Carta):</span>
                             <div class="flex items-center gap-2">
                                 <button type="button" onclick="imprimirCertificadoActual()" class="bg-red-700 hover:bg-red-800 text-white px-3.5 py-1.5 rounded-lg text-xs font-black shadow transition">
                                     Imprimir este Certificado
@@ -1112,7 +1103,7 @@
                             </div>
                         </div>
                         <div class="overflow-x-auto bg-slate-200/70 p-4 sm:p-6 rounded-2xl border border-slate-300 flex justify-center">
-                            <div id="certificado-preview-contenedor" class="w-full max-w-[960px] bg-white shadow-xl">
+                            <div id="certificado-preview-contenedor" class="w-full max-w-[816px] bg-white shadow-xl">
                                 <!-- Renderizado dinámicamente por actualizarVistaPreviaCertificado() -->
                             </div>
                         </div>
@@ -1218,15 +1209,6 @@
                             <option value="Hospitalidad y Turismo">Hospitalidad y Turismo</option>
                         </select>
                     </div>
-
-                    <div>
-                        <label class="block font-bold text-xs uppercase text-red-900 mb-1">Nivel Asignado (Por Nivel de Madurez):</label>
-                        <select id="modal-promover-nivel" class="w-full border p-2 rounded-lg text-xs font-semibold bg-white text-slate-700">
-                            <option value="1">Nivel 1 (Solo Texto / Propuesta Teórica)</option>
-                            <option value="2">Nivel 2 (Prototipo Funcional)</option>
-                            <option value="3">Nivel 3 (Producto Listo para Venta)</option>
-                        </select>
-                    </div>
                 </div>
 
                 <div>
@@ -1309,26 +1291,16 @@
                     <input type="tel" id="admin_nuevo_telefono" name="nuevo_telefono_uvm" autocomplete="off" placeholder="Ej. 5512345678" oninput="this.value = this.value.replace(/[^\d+\s-]/g, '')" class="w-full border p-2.5 rounded-xl font-semibold text-xs text-slate-800 focus:ring-2 focus:ring-red-500">
                 </div>
 
-                <div class="grid grid-cols-2 gap-2">
-                    <div>
-                        <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Área / Carrera:</label>
-                        <select id="admin_nuevo_carrera" class="w-full border p-2 rounded-lg text-xs font-semibold bg-white text-slate-700">
-                            <option value="Ingeniería">Ingeniería</option>
-                            <option value="Diseño">Diseño</option>
-                            <option value="Negocios">Negocios</option>
-                            <option value="Ciencias de la Salud">Ciencias de la Salud</option>
-                            <option value="Ciencias Sociales">Ciencias Sociales</option>
-                            <option value="Hospitalidad y Turismo">Hospitalidad y Turismo</option>
-                        </select>
-                    </div>
-                    <div id="admin_nuevo_nivel_contenedor">
-                        <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Nivel Asignado (Madurez):</label>
-                        <select id="admin_nuevo_nivel" class="w-full border p-2 rounded-lg text-xs font-semibold bg-white text-slate-700">
-                            <option value="1">Nivel 1 (Solo Texto / Propuesta)</option>
-                            <option value="2">Nivel 2 (Prototipo)</option>
-                            <option value="3">Nivel 3 (Producto Listo para Venta)</option>
-                        </select>
-                    </div>
+                <div>
+                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Área / Carrera:</label>
+                    <select id="admin_nuevo_carrera" class="w-full border p-2 rounded-lg text-xs font-semibold bg-white text-slate-700">
+                        <option value="Ingeniería">Ingeniería</option>
+                        <option value="Diseño">Diseño</option>
+                        <option value="Negocios">Negocios</option>
+                        <option value="Ciencias de la Salud">Ciencias de la Salud</option>
+                        <option value="Ciencias Sociales">Ciencias Sociales</option>
+                        <option value="Hospitalidad y Turismo">Hospitalidad y Turismo</option>
+                    </select>
                 </div>
                 <div>
                     <div class="flex justify-between items-center mb-1">
@@ -1838,7 +1810,7 @@
         function generarOpcionesSelectAsesor(idSeleccionado = '') {
             const opciones = catalogoProfesoresAsesores.map(p => {
                 const sel = String(p.id) === String(idSeleccionado) ? 'selected' : '';
-                return `<option value="${p.id}" data-nombre="${(p.nombre || '').replace(/"/g, '&quot;')}" ${sel}>${p.nombre} (${p.carrera || 'General'} - Nivel ${p.nivel_asignado || 1})</option>`;
+                return `<option value="${p.id}" data-nombre="${(p.nombre || '').replace(/"/g, '&quot;')}" ${sel}>${p.nombre} (${p.carrera || 'General'})</option>`;
             }).join('');
             return `<option value="">-- Elegir profesor de la lista o escribir nombre manualmente --</option>` + opciones;
         }
@@ -2306,7 +2278,7 @@
                         Evaluar con Clave
                     </button>
                     <span class="bg-red-900/60 text-red-100 px-3 py-1.5 rounded-lg text-xs font-bold border border-red-400/40 flex items-center gap-1.5">
-                        Prof. ${usuarioActual.nombre} <span class="bg-red-700 text-white text-[10px] px-1.5 py-0.2 rounded font-black">NIVEL ${usuarioActual.nivel_asignado || 1}</span>
+                        Prof. ${usuarioActual.nombre} <span class="bg-red-700 text-white text-[10px] px-1.5 py-0.2 rounded font-black">JUEZ EVALUADOR</span>
                     </span>
                     <button onclick="cerrarSesion()" class="bg-red-500/80 hover:bg-red-600 text-white px-2.5 py-1.5 rounded-lg text-xs font-bold transition">
                         Salir
@@ -2750,7 +2722,8 @@
 
             document.getElementById('dash-profe-nombre').innerText = usuarioActual.nombre;
             document.getElementById('dash-profe-carrera').innerText = usuarioActual.carrera || 'Ingeniería';
-            document.getElementById('dash-profe-nivel').innerText = obtenerEtiquetaCortaNivel(usuarioActual.nivel_asignado || 1);
+            const elNivelProfe = document.getElementById('dash-profe-nivel');
+            if (elNivelProfe) elNivelProfe.innerText = 'Evaluador de Todos los Niveles';
 
             const cont = document.getElementById('lista-carteles-profesor');
             document.getElementById('area-evaluacion-profesor').classList.add('hidden');
@@ -3232,7 +3205,6 @@
                     }
                     nivelYCartelesHtml = `
                         <div>
-                            <span class="inline-block font-bold text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded text-[11px]">Nivel ${u.nivel_asignado || 1}</span>
                             ${listaCartelesHtml}
                         </div>
                     `;
@@ -3271,7 +3243,7 @@
                             Hacer Admin
                         </button>
                         <button onclick="abrirModalPromover(${uJson})" class="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 px-2.5 py-1 rounded-lg font-bold text-[11px] transition">
-                            Editar Rol / Nivel
+                            Editar Rol / Área
                         </button>
                         <button onclick="cambiarRolDirecto(${u.id}, 'estudiante', '${u.nombre.replace(/'/g, "\\'")}')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-1 rounded-lg font-bold text-[11px] transition" title="Cambiar a Estudiante">
                             A Estudiante
@@ -3351,7 +3323,8 @@
             document.getElementById('modal-promover-subtitulo').innerText = `${user.nombre} (${user.matricula})`;
             document.getElementById('modal-promover-rol').value = user.rol === 'estudiante' ? 'profesor' : user.rol;
             document.getElementById('modal-promover-carrera').value = user.carrera || 'Ingeniería';
-            document.getElementById('modal-promover-nivel').value = user.nivel_asignado || 1;
+            const elNivelPromover = document.getElementById('modal-promover-nivel');
+            if (elNivelPromover) elNivelPromover.value = user.nivel_asignado || 1;
             const telInput = document.getElementById('modal-promover-telefono');
             if (telInput) telInput.value = user.telefono || user.email || '';
             const passInput = document.getElementById('modal-promover-pass');
@@ -3384,7 +3357,7 @@
             const id = document.getElementById('modal-promover-id').value;
             const rol = document.getElementById('modal-promover-rol').value;
             const carrera = document.getElementById('modal-promover-carrera').value;
-            const nivel_asignado = document.getElementById('modal-promover-nivel').value;
+            const nivel_asignado = document.getElementById('modal-promover-nivel')?.value || 1;
             const telefono = document.getElementById('modal-promover-telefono')?.value.trim() || '';
             const password = document.getElementById('modal-promover-pass')?.value || '';
 
@@ -3498,7 +3471,7 @@
             const soloDigitos = telRaw.replace(/\D/g, '');
             const enlace = datos.enlace_acceso || obtenerUrlExclusivaJueces(datos.matricula);
 
-            const textoSms = datos.mensaje_sms || `Carteles UVM - Juez Evaluador\nHola ${datos.nombre}:\nUsuario: ${datos.matricula}\nClave: ${datos.password}\nNivel: ${datos.nivel_asignado || 1}\nAcceso directo: ${enlace}`;
+            const textoSms = datos.mensaje_sms || `Carteles UVM - Juez Evaluador\nHola ${datos.nombre}:\nUsuario: ${datos.matricula}\nClave: ${datos.password}\nAcceso directo: ${enlace}`;
 
             ultimoTextoMensajeRapido = textoSms;
             ultimoLinkAccesoRapido = enlace;
@@ -3692,7 +3665,7 @@
             const telefono = document.getElementById('admin_nuevo_telefono')?.value.trim() || '';
             const rol = document.getElementById('admin_nuevo_rol').value;
             const carrera = document.getElementById('admin_nuevo_carrera').value;
-            const nivel_asignado = document.getElementById('admin_nuevo_nivel').value;
+            const nivel_asignado = document.getElementById('admin_nuevo_nivel')?.value || 1;
             const password = document.getElementById('admin_nuevo_pass').value;
 
             await ejecutarConBotonBloqueado(btnSubmit, 'Guardando usuario...', async () => {
@@ -3988,7 +3961,7 @@
                 if (selProfe && Array.isArray(profesoresAdminCache)) {
                     const valorPrevio = selProfe.value;
                     selProfe.innerHTML = '<option value="">-- Selecciona un Profesor --</option>' +
-                        profesoresAdminCache.map(p => `<option value="${p.id}">${p.nombre} (${p.carrera || 'General'} - Nivel ${p.nivel_asignado || 1})</option>`).join('');
+                        profesoresAdminCache.map(p => `<option value="${p.id}">${p.nombre} (${p.carrera || 'General'})</option>`).join('');
                     if (valorPrevio) selProfe.value = valorPrevio;
                 }
 
@@ -4096,7 +4069,7 @@
                                 <div>
                                     <h5 class="font-black text-slate-800 text-sm uppercase">${p.nombre}</h5>
                                     <p class="text-[11px] text-slate-500 font-semibold mt-0.5">
-                                        Área: <span class="text-slate-700">${p.carrera || 'General'}</span> • <span class="text-red-700 font-bold">Nivel ${p.nivel_asignado || 1}</span>
+                                        Área: <span class="text-slate-700">${p.carrera || 'General'}</span>
                                     </p>
                                 </div>
                                 <div class="flex flex-col items-end gap-1">
@@ -4131,7 +4104,7 @@
                 <tr class="border-b hover:bg-slate-50 transition">
                     <td class="p-2.5">
                         <div class="font-bold text-slate-800 uppercase">${a.profesor_nombre}</div>
-                        <div class="text-[11px] text-slate-500">${a.profesor_carrera || 'General'} • Nivel ${a.profesor_nivel || 1}</div>
+                        <div class="text-[11px] text-slate-500">${a.profesor_carrera || 'General'}</div>
                     </td>
                     <td class="p-2.5">
                         <div class="font-bold text-slate-800">${a.titulo_cartel}</div>
@@ -4275,7 +4248,7 @@
             document.getElementById('modal-profe-carteles-profesor-id').value = profe.id;
             document.getElementById('modal-profe-carteles-usuario-id').value = usuarioId || '';
             document.getElementById('modal-profe-carteles-titulo').innerText = `Prof. ${profe.nombre}`;
-            document.getElementById('modal-profe-carteles-subtitulo').innerText = `Área: ${profe.carrera || 'General'} • Juez de ${obtenerEtiquetaCortaNivel(profe.nivel_asignado || 1)}`;
+            document.getElementById('modal-profe-carteles-subtitulo').innerText = `Área: ${profe.carrera || 'General'} • Juez Evaluador`;
 
             const selCartel = document.getElementById('modal-profe-select-cartel');
             if (selCartel) {
@@ -4449,7 +4422,7 @@
                 selModal.innerHTML = '<option value="">-- Selecciona un Profesor --</option>' +
                     profesoresAdminCache.map(p => {
                         const esAsesor = esProfesorAsesorDeCartelFront(cartel, p);
-                        return `<option value="${p.id}" ${esAsesor ? 'disabled' : ''}>${p.nombre} (${p.carrera || 'General'} - Nivel ${p.nivel_asignado || 1})${esAsesor ? ' — [ASESOR DE ESTE CARTEL - NO DISPONIBLE]' : ''}</option>`;
+                        return `<option value="${p.id}" ${esAsesor ? 'disabled' : ''}>${p.nombre} (${p.carrera || 'General'})${esAsesor ? ' — [ASESOR DE ESTE CARTEL - NO DISPONIBLE]' : ''}</option>`;
                     }).join('');
             }
 
@@ -4472,7 +4445,7 @@
                 <div class="flex justify-between items-center p-2.5 rounded-xl border bg-white text-xs shadow-sm">
                     <div>
                         <span class="font-bold text-slate-800 uppercase block">${a.profesor_nombre}</span>
-                        <span class="text-[11px] text-slate-500">${a.profesor_carrera || 'General'} • Nivel ${a.profesor_nivel || 1}</span>
+                        <span class="text-[11px] text-slate-500">${a.profesor_carrera || 'General'}</span>
                     </div>
                     <div class="flex items-center gap-2">
                         <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${a.ya_evaluo ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
@@ -4545,7 +4518,7 @@
         }
 
         async function repartirCarteles() {
-            if (!confirm("¿Deseas repartir automáticamente los carteles registrados entre los profesores jueces según su área y nivel de madurez?")) return;
+            if (!confirm("¿Deseas repartir automáticamente los carteles registrados entre los profesores jueces según su área académica?")) return;
             const res = await fetch('/api/admin/repartir-carteles', { method: 'POST' });
             const data = await res.json();
             alert(data.mensaje || data.error);
@@ -4916,6 +4889,31 @@
                 .replace(/'/g, '&#39;');
         }
 
+        function formatearNombreGalardonado(str) {
+            const s = String(str || '').trim();
+            if (!s) return '';
+            // Si está completamente en mayúsculas, convertir a Title Case respetando acentos (ej. ÓSCAR DANIEL -> Óscar Daniel)
+            if (s === s.toUpperCase() && s !== s.toLowerCase()) {
+                const minusculas = new Set(['de', 'del', 'la', 'las', 'el', 'los', 'y', 'e', 'en', 'con', 'por', 'para']);
+                return s
+                    .toLowerCase()
+                    .split(/\s+/)
+                    .map((palabra, idx) => {
+                        if (idx > 0 && minusculas.has(palabra)) return palabra;
+                        return palabra.charAt(0).toUpperCase() + palabra.slice(1);
+                    })
+                    .join(' ');
+            }
+            return s;
+        }
+
+        function extraerNumeroNivelMadurez(nivelRaw) {
+            const str = String(nivelRaw || '').trim();
+            if (!str) return '';
+            const match = str.match(/[123]/);
+            return match ? match[0] : str;
+        }
+
         function obtenerTipoReconocimientoPorLugar(lugar) {
             if (Number(lugar) === 1) return 'RECONOCIMIENTO — PRIMER LUGAR';
             if (Number(lugar) === 2) return 'RECONOCIMIENTO — SEGUNDO LUGAR';
@@ -4926,19 +4924,19 @@
         function construirDatosCertificadoDesdeCartel(cartel, lugar = 1, destinatarioPersonalizado = null, tipoPersonalizado = null) {
             const base = obtenerDatosFormularioCertificado();
             const tipoRecon = tipoPersonalizado || obtenerTipoReconocimientoPorLugar(lugar);
-            const dest = destinatarioPersonalizado || cartel.participantes || cartel.nombre_equipo || 'EQUIPO PARTICIPANTE';
+            const destRaw = destinatarioPersonalizado || cartel.participantes || cartel.nombre_equipo || 'Óscar Daniel Máynez Navarro';
             const asesoresTexto = (cartel.asesor_nombre && cartel.asesor_nombre !== 'Sin Asesor')
                 ? cartel.asesor_nombre
                 : (cartel.profesores_asesores_nombres || '');
             return {
                 ...base,
                 tipo: tipoRecon,
-                destinatario: String(dest).toUpperCase(),
-                tituloProyecto: cartel.titulo_cartel || 'TÍTULO DEL PROYECTO',
+                destinatario: formatearNombreGalardonado(destRaw),
+                tituloProyecto: cartel.titulo_cartel || 'Síntesis de nanoestrellas de ZnO para tratamiento de agua',
                 campus: base.campus || 'Campus Puebla',
-                area: cartel.carrera || 'Ingeniería',
+                area: cartel.carrera || 'Ingeniería en Biotecnología',
                 nivel: obtenerDescripcionNivelMadurez(cartel.nivel),
-                asesores: String(asesoresTexto || '').toUpperCase(),
+                asesores: formatearNombreGalardonado(asesoresTexto),
                 clave: `Código: ${cartel.clave || ''} | Equipo: ${cartel.nombre_equipo || ''}`
             };
         }
@@ -5211,17 +5209,64 @@
             abrirVentanaImpresionCertificados(htmlPaginas, `Todos los Ganadores del Ranking (${listaCertificados.length} certificados)`);
         }
 
+        function obtenerFechaActualYMD() {
+            const hoy = new Date();
+            const yyyy = hoy.getFullYear();
+            const mm = String(hoy.getMonth() + 1).padStart(2, '0');
+            const dd = String(hoy.getDate()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd}`;
+        }
+
+        function formatearFechaCertificadoDesdeYMD(valorYmd) {
+            const meses = [
+                'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+                'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+            ];
+            let anio, mesIdx, dia;
+            const partes = String(valorYmd || '').trim().split('-');
+            if (partes.length === 3) {
+                anio = parseInt(partes[0], 10);
+                mesIdx = parseInt(partes[1], 10) - 1;
+                dia = parseInt(partes[2], 10);
+            }
+            if (!anio || isNaN(mesIdx) || mesIdx < 0 || mesIdx > 11 || !dia) {
+                const hoy = new Date();
+                anio = hoy.getFullYear();
+                mesIdx = hoy.getMonth();
+                dia = hoy.getDate();
+            }
+            return `San Andrés Cholula, Puebla a ${dia} de ${meses[mesIdx]} ${anio}.`;
+        }
+
+        function seleccionarFechaCalendarioCertificado(valorYmd) {
+            if (!valorYmd) return;
+            const pickerTop = document.getElementById('cert-fecha-picker-top');
+            const pickerDetalle = document.getElementById('cert-fecha-picker');
+            if (pickerTop && pickerTop.value !== valorYmd) pickerTop.value = valorYmd;
+            if (pickerDetalle && pickerDetalle.value !== valorYmd) pickerDetalle.value = valorYmd;
+
+            const inputFecha = document.getElementById('cert-fecha');
+            if (inputFecha) {
+                inputFecha.value = formatearFechaCertificadoDesdeYMD(valorYmd);
+            }
+            actualizarVistaPreviaCertificado();
+        }
+
         async function inicializarPestanaCertificados(forzarRecarga = false) {
             const inputCampus = document.getElementById('cert-campus');
             if (inputCampus && !inputCampus.value.trim()) {
                 inputCampus.value = 'Campus Puebla';
             }
+            const fechaHoyYMD = obtenerFechaActualYMD();
+            const pickerTop = document.getElementById('cert-fecha-picker-top');
+            const pickerDetalle = document.getElementById('cert-fecha-picker');
+            if (pickerTop && !pickerTop.value) pickerTop.value = fechaHoyYMD;
+            if (pickerDetalle && !pickerDetalle.value) pickerDetalle.value = fechaHoyYMD;
+
             const inputFecha = document.getElementById('cert-fecha');
-            if (inputFecha && !inputFecha.value) {
-                const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-                const hoy = new Date();
-                const sedeActual = (inputCampus?.value || 'Campus Puebla').trim();
-                inputFecha.value = `${sedeActual}, a ${hoy.getDate()} de ${meses[hoy.getMonth()]} de ${hoy.getFullYear()}`;
+            if (inputFecha && !inputFecha.value.trim()) {
+                const ymdUsar = (pickerTop && pickerTop.value) || (pickerDetalle && pickerDetalle.value) || fechaHoyYMD;
+                inputFecha.value = formatearFechaCertificadoDesdeYMD(ymdUsar);
             }
 
             try {
@@ -5244,7 +5289,7 @@
             const selCartel = document.getElementById('cert-select-cartel');
             if (selCartel && Array.isArray(cartelesAdminCache)) {
                 const prev = selCartel.value;
-                selCartel.innerHTML = '<option value="">-- Selecciona un cartel registrado para autocompletar --</option>' +
+                selCartel.innerHTML = '<option value="">-- Plantilla Base / Selecciona un cartel registrado --</option>' +
                     cartelesAdminCache.map(c => `<option value="${c.id}">[${c.clave || 'S/C'}] ${c.titulo_cartel} (${c.nombre_equipo} - Nivel ${c.nivel})</option>`).join('');
                 if (prev) selCartel.value = prev;
             }
@@ -5253,13 +5298,13 @@
             if (selJuez && Array.isArray(profesoresAdminCache)) {
                 const prevJ = selJuez.value;
                 selJuez.innerHTML = '<option value="">-- Opcional: Selecciona un Profesor Juez / Asesor --</option>' +
-                    profesoresAdminCache.map(p => `<option value="${p.id}">${p.nombre} (${p.carrera || 'General'} - Nivel ${p.nivel_asignado || 1})</option>`).join('');
+                    profesoresAdminCache.map(p => `<option value="${p.id}">${p.nombre} (${p.carrera || 'General'})</option>`).join('');
                 if (prevJ) selJuez.value = prevJ;
             }
 
             renderizarPodioCertificadosRanking();
 
-            // Si aún no hay un cartel seleccionado en la vista previa, cargar automáticamente el 1° Lugar del primer nivel disponible
+            // Si aún no hay un cartel seleccionado en la vista previa y hay ganadores en el ranking, cargar el primero o mantener los valores de la plantilla base
             if (selCartel && !selCartel.value) {
                 const podio = obtenerGanadoresPorNivelDesdeRanking();
                 const primerGanador = (podio[1] && podio[1][0]) || (podio[2] && podio[2][0]) || (podio[3] && podio[3][0]);
@@ -5292,9 +5337,10 @@
 
             // Poblar selector de destinatarios individuales (alumnos y asesores del cartel)
             if (selInd) {
-                const integrantes = String(c.participantes || '').split(',').map(s => s.trim()).filter(Boolean);
-                const asesores = String(c.profesores_asesores_nombres || c.asesor_nombre || '').split(',').map(s => s.trim()).filter(s => s && s.toUpperCase() !== 'SIN ASESOR');
-                let opts = `<option value="${escaparHtmlCert(c.participantes || c.nombre_equipo || '')}">Equipo Completo (${integrantes.length || 1})</option>`;
+                const integrantes = String(c.participantes || '').split(',').map(s => formatearNombreGalardonado(s.trim())).filter(Boolean);
+                const asesores = String(c.profesores_asesores_nombres || c.asesor_nombre || '').split(',').map(s => formatearNombreGalardonado(s.trim())).filter(s => s && s.toUpperCase() !== 'SIN ASESOR');
+                const equipoFormatted = integrantes.length > 0 ? integrantes.join(', ') : formatearNombreGalardonado(c.nombre_equipo || '');
+                let opts = `<option value="${escaparHtmlCert(equipoFormatted)}">Equipo Completo (${integrantes.length || 1})</option>`;
                 integrantes.forEach(al => {
                     opts += `<option value="${escaparHtmlCert(al)}">Alumno: ${escaparHtmlCert(al)}</option>`;
                 });
@@ -5305,17 +5351,18 @@
             }
 
             if (tipo.includes('ASESOR')) {
-                document.getElementById('cert-destinatario').value = c.asesor_nombre || 'PROFESOR ASESOR';
+                document.getElementById('cert-destinatario').value = formatearNombreGalardonado(c.asesor_nombre || 'Profesor Asesor');
             } else {
-                document.getElementById('cert-destinatario').value = c.participantes || c.nombre_equipo || '';
+                const integrantes = String(c.participantes || '').split(',').map(s => formatearNombreGalardonado(s.trim())).filter(Boolean);
+                document.getElementById('cert-destinatario').value = integrantes.length > 0 ? integrantes.join(', ') : formatearNombreGalardonado(c.nombre_equipo || '');
             }
             document.getElementById('cert-titulo-proyecto').value = c.titulo_cartel || '';
             const elCarrera = document.getElementById('cert-carrera') || document.getElementById('cert-area');
-            if (elCarrera) elCarrera.value = c.carrera || 'Ingeniería';
+            if (elCarrera) elCarrera.value = c.carrera || 'Ingeniería en Biotecnología';
             const elNivel = document.getElementById('cert-nivel');
             if (elNivel) elNivel.value = obtenerDescripcionNivelMadurez(c.nivel);
             const elAsesores = document.getElementById('cert-asesores');
-            if (elAsesores) elAsesores.value = c.asesor_nombre && c.asesor_nombre !== 'Sin Asesor' ? c.asesor_nombre : '';
+            if (elAsesores) elAsesores.value = c.asesor_nombre && c.asesor_nombre !== 'Sin Asesor' ? formatearNombreGalardonado(c.asesor_nombre) : '';
             const elClave = document.getElementById('cert-equipo-clave') || document.getElementById('cert-clave');
             if (elClave) elClave.value = `Código: ${c.clave || ''} | Equipo: ${c.nombre_equipo || ''}`;
 
@@ -5329,16 +5376,16 @@
             if (!p) return;
 
             document.getElementById('cert-tipo').value = 'CONSTANCIA DE EVALUADOR ACADÉMICO';
-            document.getElementById('cert-destinatario').value = p.nombre || '';
+            document.getElementById('cert-destinatario').value = formatearNombreGalardonado(p.nombre || '');
             document.getElementById('cert-titulo-proyecto').value = 'Evaluación Académica de Carteles de Investigación';
             const elCarrera = document.getElementById('cert-carrera') || document.getElementById('cert-area');
             if (elCarrera) elCarrera.value = p.carrera || 'Ingeniería';
             const elNivel = document.getElementById('cert-nivel');
-            if (elNivel) elNivel.value = obtenerDescripcionNivelMadurez(p.nivel_asignado || 1);
+            if (elNivel) elNivel.value = '';
             const elAsesores = document.getElementById('cert-asesores');
             if (elAsesores) elAsesores.value = '';
             const elClave = document.getElementById('cert-equipo-clave') || document.getElementById('cert-clave');
-            if (elClave) elClave.value = `Jurado Evaluador - Nivel ${p.nivel_asignado || 1}`;
+            if (elClave) elClave.value = `Jurado Evaluador`;
 
             actualizarVistaPreviaCertificado();
         }
@@ -5362,165 +5409,116 @@
             cargarDatosCartelEnCertificado();
         }
 
-        function obtenerConfigTextoCertificado(tipoRaw) {
-            const t = String(tipoRaw || '').toUpperCase();
+        function construirParrafoCuerpoReconocimiento(datos) {
+            const t = String(datos.tipo || '').toUpperCase();
+            const tituloProyecto = escaparHtmlCert(datos.tituloProyecto || 'Síntesis de nanoestrellas de ZnO para tratamiento de agua');
+            const evento = escaparHtmlCert(datos.evento || '20º edición del Foro de Investigación C1-2026');
+            const area = escaparHtmlCert(datos.area || 'Ingeniería en Biotecnología');
+            const numNivel = extraerNumeroNivelMadurez(datos.nivel);
+            const fragmentoNivel = numNivel ? ` con Nivel de Madurez ${escaparHtmlCert(numNivel)}` : '';
+
+            let lugarTexto = '';
             if (t.includes('PRIMER') || t === 'PRIMER_LUGAR') {
-                return {
-                    encabezadoDocumento: 'RECONOCIMIENTO DE PRIMER LUGAR',
-                    motivoPre: 'Por haber obtenido el PRIMER LUGAR con el proyecto de investigación y desarrollo titulado:',
-                    distincionBadge: 'DISTINCIÓN ACADÉMICA — 1° LUGAR'
-                };
+                lugarTexto = '1º Lugar';
+            } else if (t.includes('SEGUNDO') || t === 'SEGUNDO_LUGAR') {
+                lugarTexto = '2º Lugar';
+            } else if (t.includes('TERCER') || t === 'TERCER_LUGAR') {
+                lugarTexto = '3º Lugar';
             }
-            if (t.includes('SEGUNDO') || t === 'SEGUNDO_LUGAR') {
-                return {
-                    encabezadoDocumento: 'RECONOCIMIENTO DE SEGUNDO LUGAR',
-                    motivoPre: 'Por haber obtenido el SEGUNDO LUGAR con el proyecto de investigación y desarrollo titulado:',
-                    distincionBadge: 'DISTINCIÓN ACADÉMICA — 2° LUGAR'
-                };
-            }
-            if (t.includes('TERCER') || t === 'TERCER_LUGAR') {
-                return {
-                    encabezadoDocumento: 'RECONOCIMIENTO DE TERCER LUGAR',
-                    motivoPre: 'Por haber obtenido el TERCER LUGAR con el proyecto de investigación y desarrollo titulado:',
-                    distincionBadge: 'DISTINCIÓN ACADÉMICA — 3° LUGAR'
-                };
-            }
-            if (t.includes('ASESOR')) {
-                return {
-                    encabezadoDocumento: 'CONSTANCIA DE ASESORÍA ACADÉMICA',
-                    motivoPre: 'Por su destacada labor como PROFESOR ASESOR del proyecto de investigación titulado:',
-                    distincionBadge: 'ASESORÍA DE PROYECTO DE INVESTIGACIÓN'
-                };
-            }
+
             if (t.includes('EVALUADOR') || t.includes('JUEZ')) {
-                return {
-                    encabezadoDocumento: 'CONSTANCIA DE JURADO EVALUADOR',
-                    motivoPre: 'Por su valiosa participación como MIEMBRO DEL COMITÉ EVALUADOR en la revisión académica de:',
-                    distincionBadge: 'COMITÉ EVALUADOR INSTITUCIONAL'
-                };
+                return `Por su destacada participación como Jurado Evaluador en la ${evento}, de la vertical de ${area}.`;
             }
-            return {
-                encabezadoDocumento: 'RECONOCIMIENTO DE PARTICIPACIÓN',
-                motivoPre: 'Por su destacada participación y exposición del cartel de investigación titulado:',
-                distincionBadge: 'PARTICIPACIÓN DESTACADA'
-            };
+
+            if (t.includes('ASESOR')) {
+                if (lugarTexto) {
+                    return `Por su destacada participación como Asesor Académico con el proyecto ${tituloProyecto} en la ${evento}, obteniendo el ${lugarTexto} de la vertical de ${area}${fragmentoNivel}.`;
+                }
+                return `Por su destacada participación como Asesor Académico con el proyecto ${tituloProyecto} en la ${evento}, de la vertical de ${area}${fragmentoNivel}.`;
+            }
+
+            if (lugarTexto) {
+                return `Por su destacada participación con el proyecto ${tituloProyecto} en la ${evento}, obteniendo el ${lugarTexto} de la vertical de ${area}${fragmentoNivel}.`;
+            }
+
+            return `Por su destacada participación con el proyecto ${tituloProyecto} en la ${evento}, de la vertical de ${area}${fragmentoNivel}.`;
         }
 
         function generarHtmlCertificadoFormal(datos) {
-            const cfgTexto = obtenerConfigTextoCertificado(datos.tipo);
-            const destinatario = escaparHtmlCert(datos.destinatario || 'NOMBRE DEL PARTICIPANTE O EQUIPO');
-            const tituloProyecto = escaparHtmlCert(datos.tituloProyecto || 'TÍTULO DEL CARTEL DE INVESTIGACIÓN');
+            const destinatario = escaparHtmlCert(datos.destinatario || 'Óscar Daniel Máynez Navarro');
             const campus = escaparHtmlCert(datos.campus || 'Campus Puebla');
-            const area = escaparHtmlCert(datos.area || 'Ingeniería');
-            const nivel = escaparHtmlCert(datos.nivel || 'Nivel 1 — Propuesta Documental / Solo Texto');
-            const asesores = escaparHtmlCert(datos.asesores || '');
-            const clave = escaparHtmlCert(datos.clave || '');
-            const evento = escaparHtmlCert(datos.evento || 'Exposición Institucional de Carteles de Investigación');
-            const fecha = escaparHtmlCert(datos.fecha || '');
-            const firma1Nombre = escaparHtmlCert(datos.firma1Nombre || 'Coordinación Académica');
-            const firma1Cargo = escaparHtmlCert(datos.firma1Cargo || 'Dirección de Programa');
-            const firma2Nombre = escaparHtmlCert(datos.firma2Nombre || 'Comité Evaluador de Investigación');
-            const firma2Cargo = escaparHtmlCert(datos.firma2Cargo || 'Coordinación de Investigación UVM');
+            const fecha = escaparHtmlCert(datos.fecha || formatearFechaCertificadoDesdeYMD(obtenerFechaActualYMD()));
+            const firmaNombre = escaparHtmlCert(datos.firma1Nombre || 'Mtro. Javier Quintana Terés');
+            const firmaCargo = escaparHtmlCert(datos.firma1Cargo || 'Rector UVM Campus Puebla');
+            const parrafoCuerpo = construirParrafoCuerpoReconocimiento(datos);
 
             return `
-                <div class="certificado-hoja" style="width: 279.4mm; height: 215.9mm; background: #ffffff; color: #0f172a; box-sizing: border-box; padding: 12mm; position: relative; font-family: 'Georgia', 'Times New Roman', serif; margin: 0 auto; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);">
-                    <div style="width: 100%; height: 100%; border: 3px solid #991b1b; padding: 3mm; box-sizing: border-box; position: relative;">
-                        <div style="width: 100%; height: 100%; border: 1px solid #b45309; padding: 10mm 14mm; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; position: relative; background: linear-gradient(180deg, #ffffff 0%, #fffdf9 100%);">
-                            
-                            <!-- Encabezado Institucional -->
-                            <div style="text-align: center;">
-                                <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #991b1b; padding-bottom: 4mm; margin-bottom: 4mm;">
-                                    <div style="text-align: left; font-family: Arial, Helvetica, sans-serif;">
-                                        <div style="font-size: 22pt; font-weight: 900; color: #991b1b; letter-spacing: 2px; line-height: 1;">UVM</div>
-                                        <div style="font-size: 7.5pt; font-weight: 700; color: #475569; letter-spacing: 1px; text-transform: uppercase; margin-top: 2px;">Por siempre responsable de lo que se ha cultivado</div>
-                                    </div>
-                                    <div style="text-align: center; flex: 1; padding: 0 10px;">
-                                        <div style="font-size: 15pt; font-weight: 700; color: #0f172a; letter-spacing: 1.5px; text-transform: uppercase;">Universidad del Valle de México</div>
-                                        <div style="font-size: 10pt; font-weight: 800; color: #334155; letter-spacing: 1.5px; text-transform: uppercase; font-family: Arial, Helvetica, sans-serif; margin-top: 1px;">${campus}</div>
-                                        <div style="font-size: 9pt; font-weight: 700; color: #991b1b; letter-spacing: 1px; text-transform: uppercase; font-family: Arial, Helvetica, sans-serif; margin-top: 2px;">${evento}</div>
-                                    </div>
-                                    <div style="text-align: right; font-family: Arial, Helvetica, sans-serif;">
-                                        <div style="font-size: 8pt; font-weight: 700; color: #334155; text-transform: uppercase; border: 1px solid #cbd5e1; padding: 3px 8px; background: #f8fafc;">
-                                            ${clave || 'FOLIO INSTITUCIONAL'}
-                                        </div>
-                                    </div>
-                                </div>
+                <div class="certificado-hoja" style="width: 215.9mm; height: 279.4mm; background: #ffffff; color: #1e293b; box-sizing: border-box; padding: 24mm 24mm 20mm 24mm; position: relative; font-family: 'Inter', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; margin: 0 auto; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12); display: flex; flex-direction: column; justify-content: space-between; overflow: hidden;">
+                    
+                    <!-- 1. Esquina superior izquierda: Bloque rectangular vertical color gris oscuro -->
+                    <div style="position: absolute; top: 0; left: 20mm; width: 22mm; height: 52mm; background-color: #32363a;"></div>
 
-                                <div style="font-family: Arial, Helvetica, sans-serif; font-size: 8.5pt; font-weight: 700; color: #64748b; letter-spacing: 2px; text-transform: uppercase; margin-top: 2mm;">
-                                    Otorga el presente
-                                </div>
-                                <div style="font-size: 23pt; font-weight: 700; color: #991b1b; letter-spacing: 2px; text-transform: uppercase; margin: 2mm 0 1mm 0;">
-                                    ${cfgTexto.encabezadoDocumento}
-                                </div>
-                                <div style="display: inline-block; font-family: Arial, Helvetica, sans-serif; font-size: 8pt; font-weight: 800; color: #92400e; background: #fef3c7; border: 1px solid #f59e0b; padding: 2px 12px; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 3mm;">
-                                    ${cfgTexto.distincionBadge}
-                                </div>
-                            </div>
+                    <!-- 2. Borde inferior: Franja delgada horizontal color rojo vivo -->
+                    <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 4.5mm; background-color: #e60000;"></div>
 
-                            <!-- Cuerpo Principal -->
-                            <div style="text-align: center; margin: auto 0;">
-                                <div style="font-size: 10pt; font-style: italic; color: #475569; margin-bottom: 2mm;">A:</div>
-                                <div style="font-family: Arial, Helvetica, sans-serif; font-size: 18pt; font-weight: 900; color: #0f172a; text-transform: uppercase; letter-spacing: 0.8px; border-bottom: 1.5px solid #cbd5e1; display: inline-block; min-width: 70%; padding: 0 15px 3mm 15px; margin-bottom: 4mm; line-height: 1.25;">
-                                    ${destinatario}
-                                </div>
-
-                                <div style="font-size: 10.5pt; color: #334155; max-width: 85%; margin: 0 auto 3mm auto; line-height: 1.4;">
-                                    ${cfgTexto.motivoPre}
-                                </div>
-
-                                <div style="font-size: 14pt; font-weight: 700; color: #7f1d1d; max-width: 88%; margin: 0 auto 4mm auto; line-height: 1.3; padding: 2.5mm 5mm; background: #fef2f2; border-left: 3px solid #991b1b; border-right: 3px solid #991b1b;">
-                                    "${tituloProyecto}"
-                                </div>
-
-                                <div style="font-family: Arial, Helvetica, sans-serif; font-size: 9.5pt; color: #1e293b; display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; margin-top: 2mm;">
-                                    <span><strong>Campus:</strong> ${campus}</span>
-                                    <span>|</span>
-                                    <span><strong>Área / Carrera:</strong> ${area}</span>
-                                    ${nivel ? `<span>|</span><span><strong>Categoría de Madurez:</strong> ${nivel}</span>` : ''}
-                                </div>
-
-                                ${asesores ? `
-                                <div style="font-family: Arial, Helvetica, sans-serif; font-size: 9pt; color: #334155; margin-top: 2.5mm;">
-                                    <strong>Profesor(es) Asesor(es):</strong> ${asesores}
-                                </div>
-                                ` : ''}
-                            </div>
-
-                            <!-- Pie y Firmas -->
-                            <div style="margin-top: 4mm;">
-                                <div style="text-align: center; font-size: 9.5pt; color: #475569; font-style: italic; margin-bottom: 9mm;">
-                                    ${fecha}
-                                </div>
-
-                                <div style="display: flex; justify-content: space-around; align-items: flex-end; gap: 25mm; padding: 0 12mm; font-family: Arial, Helvetica, sans-serif;">
-                                    <div style="flex: 1; text-align: center;">
-                                        <div style="border-top: 1.5px solid #1e293b; padding-top: 2.5mm; font-size: 9.5pt; font-weight: 800; color: #0f172a; text-transform: uppercase;">
-                                            ${firma1Nombre}
-                                        </div>
-                                        <div style="font-size: 8pt; font-weight: 600; color: #64748b; text-transform: uppercase; margin-top: 1px;">
-                                            ${firma1Cargo}
-                                        </div>
-                                    </div>
-
-                                    <div style="width: 24mm; height: 24mm; border: 2px double #991b1b; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 2mm; box-sizing: border-box; color: #991b1b; font-family: Arial, Helvetica, sans-serif; shrink: 0;">
-                                        <div style="font-size: 6pt; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase;">SELLO ACADÉMICO</div>
-                                        <div style="font-size: 9pt; font-weight: 900; margin: 1px 0;">UVM</div>
-                                        <div style="font-size: 5.5pt; font-weight: 700; text-transform: uppercase;">INVESTIGACIÓN</div>
-                                    </div>
-
-                                    <div style="flex: 1; text-align: center;">
-                                        <div style="border-top: 1.5px solid #1e293b; padding-top: 2.5mm; font-size: 9.5pt; font-weight: 800; color: #0f172a; text-transform: uppercase;">
-                                            ${firma2Nombre}
-                                        </div>
-                                        <div style="font-size: 8pt; font-weight: 600; color: #64748b; text-transform: uppercase; margin-top: 1px;">
-                                            ${firma2Cargo}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
+                    <!-- 3. Encabezado -->
+                    <div style="text-align: center; margin-top: 12mm; position: relative; z-index: 2;">
+                        <div style="font-size: 18pt; font-weight: 800; color: #1e293b; letter-spacing: 0.4px; line-height: 1.25;">
+                            <span style="color: #d90000; font-weight: 900;">UVM</span> Universidad del Valle de México
+                        </div>
+                        <div style="font-size: 13.5pt; font-weight: 600; color: #475569; margin-top: 2mm;">
+                            ${campus}
+                        </div>
+                        <div style="font-size: 11.5pt; font-weight: 400; color: #64748b; margin-top: 8mm;">
+                            Extiende el presente
                         </div>
                     </div>
+
+                    <!-- 4, 5 y 6. Título central, Nombre del galardonado y Texto principal del cuerpo -->
+                    <div style="text-align: center; margin: auto 0; padding: 0 6mm; position: relative; z-index: 2;">
+                        <div style="font-size: 38pt; font-weight: 800; color: #1f2937; letter-spacing: 0.5px; line-height: 1.1; margin-bottom: 7mm;">
+                            Reconocimiento
+                        </div>
+
+                        <div style="font-size: 13pt; font-weight: 400; color: #4b5563; margin-bottom: 3mm;">
+                            a
+                        </div>
+
+                        <div style="font-size: 24pt; font-weight: 800; color: #111827; line-height: 1.25; margin-bottom: 10mm; word-break: break-word;">
+                            ${destinatario}
+                        </div>
+
+                        <div style="font-size: 12.5pt; font-weight: 400; color: #334155; line-height: 1.65; max-width: 155mm; margin: 0 auto;">
+                            ${parrafoCuerpo}
+                        </div>
+                    </div>
+
+                    <!-- 7. Pie de página -->
+                    <div style="text-align: center; position: relative; z-index: 2; padding-bottom: 6mm;">
+                        <div style="font-size: 11pt; font-weight: 400; color: #475569; margin-bottom: 4mm;">
+                            ${fecha}
+                        </div>
+
+                        <div style="font-size: 11.5pt; font-weight: 600; font-style: italic; color: #1e293b; margin-bottom: 22mm;">
+                            “Por siempre responsable de lo que se ha cultivado”
+                        </div>
+
+                        <!-- Línea de firma centrada -->
+                        <div style="width: 78mm; margin: 0 auto;">
+                            <div style="border-top: 1.5px solid #334155; padding-top: 3mm; font-size: 11.5pt; font-weight: 700; color: #111827;">
+                                ${firmaNombre}
+                            </div>
+                            <div style="font-size: 10pt; font-weight: 500; color: #4b5563; margin-top: 1mm;">
+                                ${firmaCargo}
+                            </div>
+                        </div>
+
+                        <!-- Leyenda pequeña en la esquina inferior derecha -->
+                        <div style="text-align: right; font-size: 8.5pt; font-weight: 400; color: #64748b; margin-top: 10mm;">
+                            Sin validez oficial, con valor curricular
+                        </div>
+                    </div>
+
                 </div>
             `;
         }
@@ -5529,20 +5527,18 @@
             const elCarrera = document.getElementById('cert-carrera') || document.getElementById('cert-area');
             const elClave = document.getElementById('cert-equipo-clave') || document.getElementById('cert-clave');
             return {
-                tipo: document.getElementById('cert-tipo')?.value || 'RECONOCIMIENTO DE PARTICIPACIÓN',
-                destinatario: document.getElementById('cert-destinatario')?.value.trim() || 'NOMBRE DEL PARTICIPANTE O EQUIPO',
-                tituloProyecto: document.getElementById('cert-titulo-proyecto')?.value.trim() || 'TÍTULO DEL PROYECTO DE INVESTIGACIÓN',
+                tipo: document.getElementById('cert-tipo')?.value || 'RECONOCIMIENTO — PRIMER LUGAR',
+                destinatario: document.getElementById('cert-destinatario')?.value.trim() || 'Óscar Daniel Máynez Navarro',
+                tituloProyecto: document.getElementById('cert-titulo-proyecto')?.value.trim() || 'Síntesis de nanoestrellas de ZnO para tratamiento de agua',
                 campus: document.getElementById('cert-campus')?.value.trim() || 'Campus Puebla',
-                area: elCarrera?.value.trim() || 'Ingeniería',
-                nivel: document.getElementById('cert-nivel')?.value.trim() || '',
+                area: elCarrera?.value.trim() || 'Ingeniería en Biotecnología',
+                nivel: document.getElementById('cert-nivel')?.value.trim() || 'Nivel 1 — Propuesta Documental / Solo Texto',
                 asesores: document.getElementById('cert-asesores')?.value.trim() || '',
                 clave: elClave?.value.trim() || '',
-                evento: document.getElementById('cert-evento')?.value.trim() || 'ENCUENTRO ACADÉMICO DE EVALUACIÓN DE CARTELES DE INVESTIGACIÓN',
-                fecha: document.getElementById('cert-fecha')?.value.trim() || '',
-                firma1Nombre: document.getElementById('cert-firma1-nombre')?.value.trim() || 'COORDINACIÓN ACADÉMICA',
-                firma1Cargo: document.getElementById('cert-firma1-cargo')?.value.trim() || 'Comité Organizador UVM',
-                firma2Nombre: document.getElementById('cert-firma2-nombre')?.value.trim() || 'DIRECCIÓN ACADÉMICA DE CAMPUS',
-                firma2Cargo: document.getElementById('cert-firma2-cargo')?.value.trim() || 'Universidad del Valle de México — Campus Puebla'
+                evento: document.getElementById('cert-evento')?.value.trim() || '20º edición del Foro de Investigación C1-2026',
+                fecha: document.getElementById('cert-fecha')?.value.trim() || formatearFechaCertificadoDesdeYMD(obtenerFechaActualYMD()),
+                firma1Nombre: document.getElementById('cert-firma1-nombre')?.value.trim() || 'Mtro. Javier Quintana Terés',
+                firma1Cargo: document.getElementById('cert-firma1-cargo')?.value.trim() || 'Rector UVM Campus Puebla'
             };
         }
 
@@ -5554,7 +5550,7 @@
         }
 
         function abrirVentanaImpresionCertificados(htmlPaginas, tituloVentana = 'Certificados UVM') {
-            const ventana = window.open('', '_blank', 'width=1150,height=850');
+            const ventana = window.open('', '_blank', 'width=920,height=1050');
             if (!ventana) {
                 alert('Por favor permite las ventanas emergentes en tu navegador para poder imprimir el certificado.');
                 return;
@@ -5567,7 +5563,7 @@
                     <title>${escaparHtmlCert(tituloVentana)}</title>
                     <style>
                         @page {
-                            size: letter landscape;
+                            size: letter portrait;
                             margin: 0;
                         }
                         html, body {
@@ -5608,7 +5604,7 @@
                 </head>
                 <body>
                     <div class="no-print-bar" style="background: #0f172a; color: #ffffff; padding: 10px 20px; font-family: Arial, sans-serif; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 50;">
-                        <span style="font-size: 13px; font-weight: bold;">Vista de Impresión Oficial UVM (Formato Carta Horizontal / Sin Emojis)</span>
+                        <span style="font-size: 13px; font-weight: bold;">Vista de Impresión Oficial UVM (Formato Carta Vertical)</span>
                         <div style="display: flex; gap: 10px;">
                             <button onclick="window.print()" style="background: #dc2626; color: #ffffff; border: none; padding: 8px 16px; border-radius: 6px; font-weight: bold; cursor: pointer;">Imprimir / Guardar PDF</button>
                             <button onclick="window.close()" style="background: #334155; color: #ffffff; border: none; padding: 8px 14px; border-radius: 6px; font-weight: bold; cursor: pointer;">Cerrar</button>
@@ -5649,7 +5645,7 @@
                     integrantes.forEach(alumno => {
                         listaCertificados.push({
                             ...datosBase,
-                            destinatario: alumno
+                            destinatario: formatearNombreGalardonado(alumno)
                         });
                     });
                 } else {
@@ -5665,7 +5661,7 @@
                     listaCertificados.push({
                         ...datosBase,
                         tipo: 'asesor',
-                        destinatario: asesor
+                        destinatario: formatearNombreGalardonado(asesor)
                     });
                 });
             } else {
