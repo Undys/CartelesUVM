@@ -2611,9 +2611,9 @@ app.post('/api/evaluar-invitado', async (req, res) => {
             });
         }
 
-        if (!clave || !nombre_maestro || !nombre_maestro.trim()) {
+        if (!clave || !String(clave).trim()) {
             await connection.rollback();
-            return res.status(400).json({ error: "La clave del cartel y el nombre del Maestro Invitado son requeridos." });
+            return res.status(400).json({ error: "La clave del cartel es requerida." });
         }
 
         const resultadoRubrica = calcularPuntajeRubrica(req.body);
@@ -2640,23 +2640,67 @@ app.post('/api/evaluar-invitado', async (req, res) => {
             return res.status(400).json({ error: "Este cartel ya cuenta con sus 3 evaluaciones completadas." });
         }
 
-        // Nombre del maestro invitado con mayúscula en cada palabra
-        const nombreFormateado = capitalizarNombre(nombre_maestro.trim());
+        // Resolver profesor automáticamente desde la cuenta activa (profesor_id / usuario_id) o fallback a nombre_maestro
+        let profesorId = null;
+        let nombreFormateado = '';
 
-        // Buscar o registrar al maestro invitado en la tabla de profesores
-        let profesorId;
-        const [existentes] = await connection.execute(
-            'SELECT id, nombre FROM profesores WHERE LOWER(TRIM(nombre)) = LOWER(TRIM(?))',
-            [nombreFormateado]
-        );
-        if (existentes.length > 0) {
-            profesorId = existentes[0].id;
-        } else {
-            const [nuevoProfe] = await connection.execute(
-                'INSERT INTO profesores (nombre, carrera, nivel_asignado, password) VALUES (?, ?, ?, ?)',
-                [nombreFormateado, cartel.carrera || 'General', cartel.nivel || 1, 'invitado123']
+        if (profesor_id && !isNaN(parseInt(profesor_id))) {
+            const [pDirecto] = await connection.execute(
+                'SELECT id, nombre FROM profesores WHERE id = ?',
+                [parseInt(profesor_id)]
             );
-            profesorId = nuevoProfe.insertId;
+            if (pDirecto.length > 0) {
+                profesorId = pDirecto[0].id;
+                nombreFormateado = capitalizarNombre(pDirecto[0].nombre);
+            }
+        }
+
+        if (!profesorId && usuario_id && !isNaN(parseInt(usuario_id))) {
+            const [uRows] = await connection.execute(
+                'SELECT id, nombre, profesor_id FROM usuarios WHERE id = ?',
+                [parseInt(usuario_id)]
+            );
+            if (uRows.length > 0) {
+                const u = uRows[0];
+                if (u.profesor_id) {
+                    const [pVinc] = await connection.execute(
+                        'SELECT id, nombre FROM profesores WHERE id = ?',
+                        [u.profesor_id]
+                    );
+                    if (pVinc.length > 0) {
+                        profesorId = pVinc[0].id;
+                        nombreFormateado = capitalizarNombre(pVinc[0].nombre);
+                    }
+                }
+                if (!nombreFormateado && u.nombre) {
+                    nombreFormateado = capitalizarNombre(u.nombre.trim());
+                }
+            }
+        }
+
+        if (!nombreFormateado && nombre_maestro && String(nombre_maestro).trim()) {
+            nombreFormateado = capitalizarNombre(String(nombre_maestro).trim());
+        }
+
+        if (!profesorId) {
+            if (!nombreFormateado) {
+                await connection.rollback();
+                return res.status(400).json({ error: "No se pudo identificar la cuenta del profesor evaluador." });
+            }
+            const [existentes] = await connection.execute(
+                'SELECT id, nombre FROM profesores WHERE LOWER(TRIM(nombre)) = LOWER(TRIM(?))',
+                [nombreFormateado]
+            );
+            if (existentes.length > 0) {
+                profesorId = existentes[0].id;
+                nombreFormateado = capitalizarNombre(existentes[0].nombre);
+            } else {
+                const [nuevoProfe] = await connection.execute(
+                    'INSERT INTO profesores (nombre, carrera, nivel_asignado, password) VALUES (?, ?, ?, ?)',
+                    [nombreFormateado, cartel.carrera || 'General', cartel.nivel || 1, 'invitado123']
+                );
+                profesorId = nuevoProfe.insertId;
+            }
         }
 
         // Bloquear conflicto de interés si el profesor invitado o el profesor en sesión es asesor del cartel

@@ -1562,15 +1562,15 @@
                 <div>
                     <span class="inline-block bg-amber-100 text-amber-900 font-black text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-wider mb-1">Evaluador Invitado / Suplencia</span>
                     <h3 class="font-black text-xl text-slate-800">Evaluación con Clave de Stand</h3>
-                    <p class="text-xs text-gray-500 mt-0.5">Ingresa tu nombre y la clave de acceso del cartel para calificarlo en su mesa.</p>
+                    <p class="text-xs text-gray-500 mt-0.5">Ingresa la clave de acceso del cartel para calificarlo en su mesa con tu cuenta activa.</p>
                 </div>
                 <button onclick="cerrarModalInvitado()" class="text-gray-400 hover:text-gray-600 text-xl font-bold">✕</button>
             </div>
 
             <div class="space-y-3 border-b pb-4">
-                <div>
-                    <label class="block font-bold text-xs text-slate-700 mb-1">Tu Nombre Completo:</label>
-                    <input type="text" id="invitado_nombre" placeholder="Ej. MTRO. ROBERTO MENDOZA" oninput="this.value = this.value.toUpperCase()" class="w-full border p-2.5 rounded-xl uppercase font-bold text-xs text-slate-800 focus:ring-2 focus:ring-amber-500">
+                <div class="bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 flex items-center justify-between">
+                    <span class="text-[11px] font-bold text-slate-500 uppercase">Evaluando con la cuenta de:</span>
+                    <span id="invitado-nombre-cuenta" class="text-xs font-black text-slate-800 uppercase"></span>
                 </div>
                 <div>
                     <label class="block font-bold text-xs text-slate-700 mb-1">Clave Única del Cartel:</label>
@@ -4545,6 +4545,10 @@
                 alert("Acceso restringido: Solo los profesores/jueces con sesión iniciada pueden acceder a la evaluación de Maestro Invitado.");
                 return;
             }
+            const badgeCuenta = document.getElementById('invitado-nombre-cuenta');
+            if (badgeCuenta) {
+                badgeCuenta.innerText = usuarioActual.nombre || 'Profesor Evaluador';
+            }
             document.getElementById('modal-evaluar-invitado').classList.remove('hidden');
             document.getElementById('invitado_clave').value = '';
             document.getElementById('invitado-area-cartel').classList.add('hidden');
@@ -4563,10 +4567,8 @@
             }
 
             const clave = document.getElementById('invitado_clave').value.trim().toUpperCase();
-            const nombre = document.getElementById('invitado_nombre').value.trim().toUpperCase();
 
             if (!clave) return alert("Por favor ingresa la clave del cartel.");
-            if (!nombre) return alert("Por favor escribe el nombre del maestro evaluador.");
 
             try {
                 const params = new URLSearchParams({
@@ -4633,7 +4635,7 @@
             }
 
             const clave = document.getElementById('invitado_clave').value.trim().toUpperCase();
-            const nombre = document.getElementById('invitado_nombre').value.trim().toUpperCase();
+            const nombre = (usuarioActual.nombre || '').trim().toUpperCase();
             const suplirId = document.getElementById('invitado-select-suplir').value;
 
             const payload = {
