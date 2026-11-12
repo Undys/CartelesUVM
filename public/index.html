@@ -907,14 +907,14 @@
                     <form id="form-asignacion-manual" class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end bg-slate-50 p-4 rounded-xl border border-slate-200">
                         <div>
                             <label class="block font-bold text-xs uppercase text-slate-700 mb-1">1. Selecciona al Profesor Juez:</label>
-                            <select id="manual-asig-profesor" required class="w-full border border-slate-300 p-2.5 rounded-xl text-xs font-semibold bg-white text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
+                            <select id="manual-asig-profesor" required onchange="actualizarCartelesCompatiblesManual()" class="w-full border border-slate-300 p-2.5 rounded-xl text-xs font-semibold bg-white text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
                                 <option value="">-- Selecciona un Profesor --</option>
                             </select>
                         </div>
                         <div>
-                            <label class="block font-bold text-xs uppercase text-slate-700 mb-1">2A. Selecciona el Cartel de la lista:</label>
+                            <label class="block font-bold text-xs uppercase text-slate-700 mb-1">2A. Carteles del Área del Profesor:</label>
                             <select id="manual-asig-cartel" onchange="if(this.value) document.getElementById('manual-asig-clave-cartel').value = ''" class="w-full border border-slate-300 p-2.5 rounded-xl text-xs font-semibold bg-white text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
-                                <option value="">-- Selecciona un Cartel --</option>
+                                <option value="">-- Primero selecciona un Profesor --</option>
                             </select>
                         </div>
                         <div>
@@ -4203,18 +4203,18 @@
                 if (selProfe && Array.isArray(profesoresAdminCache)) {
                     const valorPrevio = selProfe.value;
                     selProfe.innerHTML = '<option value="">-- Selecciona un Profesor --</option>' +
-                        profesoresAdminCache.map(p => `<option value="${p.id}">${p.nombre} (${p.carrera || 'General'})</option>`).join('');
+                        profesoresAdminCache.map(p => {
+                            const areaGen = obtenerAreaGeneralFront(p.carrera) || p.carrera || 'General';
+                            const etiquetaArea = normalizarTextoCarreraFront(p.carrera) !== normalizarTextoCarreraFront(areaGen)
+                                ? `${p.carrera} • Área: ${areaGen}`
+                                : areaGen;
+                            return `<option value="${p.id}">${p.nombre} (${etiquetaArea})</option>`;
+                        }).join('');
                     if (valorPrevio) selProfe.value = valorPrevio;
                 }
 
-                // Poblar selector de carteles en pestaña de asignación manual
-                const selCartel = document.getElementById('manual-asig-cartel');
-                if (selCartel && Array.isArray(cartelesAdminCache)) {
-                    const valorPrevio = selCartel.value;
-                    selCartel.innerHTML = '<option value="">-- Selecciona un Cartel --</option>' +
-                        cartelesAdminCache.map(c => `<option value="${c.id}">[${c.clave || 'SIN-CLAVE'}] ${c.titulo_cartel} (${c.carrera || 'General'} - Nivel ${c.nivel})</option>`).join('');
-                    if (valorPrevio) selCartel.value = valorPrevio;
-                }
+                // Poblar selector de carteles filtrando únicamente los de la misma Área General del profesor seleccionado
+                actualizarCartelesCompatiblesManual();
 
                 renderizarCartelesPorProfesor();
                 renderizarTablaAsignacionesManuales(asignacionesAdminCache);
@@ -4222,6 +4222,41 @@
                 renderizarDirectorioClaves(cartelesAdminCache);
             } catch (err) {
                 console.error("Error al cargar datos de asignación manual:", err);
+            }
+        }
+
+        function actualizarCartelesCompatiblesManual() {
+            const selProfe = document.getElementById('manual-asig-profesor');
+            const selCartel = document.getElementById('manual-asig-cartel');
+            if (!selCartel) return;
+
+            const profId = selProfe ? parseInt(selProfe.value) : null;
+            const profe = profId ? profesoresAdminCache.find(p => Number(p.id) === profId) : null;
+
+            if (!profe) {
+                selCartel.innerHTML = '<option value="">-- Primero selecciona al Profesor Juez --</option>';
+                return;
+            }
+
+            const areaGeneralProfe = obtenerAreaGeneralFront(profe.carrera) || profe.carrera || 'General';
+            const cartelesCompatibles = (Array.isArray(cartelesAdminCache) ? cartelesAdminCache : []).filter(c =>
+                sonCarrerasDeMismaAreaFront(profe.carrera, c.carrera)
+            );
+
+            if (cartelesCompatibles.length === 0) {
+                selCartel.innerHTML = `<option value="">-- No hay carteles registrados del área de ${areaGeneralProfe} --</option>`;
+                return;
+            }
+
+            const valorPrevio = selCartel.value;
+            selCartel.innerHTML = `<option value="">-- Selecciona un Cartel de ${areaGeneralProfe} (${cartelesCompatibles.length}) --</option>` +
+                cartelesCompatibles.map(c => {
+                    const esAsesor = esProfesorAsesorDeCartelFront(c, profe);
+                    return `<option value="${c.id}" ${esAsesor ? 'disabled' : ''}>[${c.clave || 'SIN-CLAVE'}] ${c.titulo_cartel} (${c.carrera || 'General'} - Nivel ${c.nivel})${esAsesor ? ' — [ASESORADO POR ESTE PROFESOR]' : ''}</option>`;
+                }).join('');
+
+            if (valorPrevio && cartelesCompatibles.some(c => String(c.id) === String(valorPrevio))) {
+                selCartel.value = valorPrevio;
             }
         }
 
@@ -4419,6 +4454,12 @@
                 ? cartelesAdminCache.find(c => String(c.clave || '').trim().toUpperCase() === clave_cartel)
                 : cartelesAdminCache.find(c => Number(c.id) === Number(cartel_id));
 
+            if (profeObj && cartelObj && !sonCarrerasDeMismaAreaFront(profeObj.carrera, cartelObj.carrera)) {
+                const areaP = obtenerAreaGeneralFront(profeObj.carrera) || profeObj.carrera || 'General';
+                const areaC = obtenerAreaGeneralFront(cartelObj.carrera) || cartelObj.carrera || 'General';
+                return alert(`Área incompatible: El profesor ${profeObj.nombre} pertenece al área de ${areaP} (${profeObj.carrera}), por lo que solo puede evaluar carteles de ${areaP}. El cartel "${cartelObj.titulo_cartel}" [${cartelObj.clave}] pertenece al área de ${areaC} (${cartelObj.carrera}).`);
+            }
+
             if (profeObj && cartelObj && esProfesorAsesorDeCartelFront(cartelObj, profeObj)) {
                 return alert(`Conflicto de interés: El profesor ${profeObj.nombre} figura como asesor del cartel "${cartelObj.titulo_cartel}" [${cartelObj.clave}], por lo que no puede ser asignado como juez para calificarlo.`);
             }
@@ -4496,20 +4537,17 @@
             const selCartel = document.getElementById('modal-profe-select-cartel');
             if (selCartel) {
                 const cartelesMismaArea = cartelesAdminCache.filter(c => sonCarrerasDeMismaAreaFront(profe.carrera, c.carrera));
-                const cartelesOtraArea = cartelesAdminCache.filter(c => !sonCarrerasDeMismaAreaFront(profe.carrera, c.carrera));
                 const renderOpcionCartel = (c) => {
                     const esAsesor = esProfesorAsesorDeCartelFront(c, profe);
                     return `<option value="${c.id}" ${esAsesor ? 'disabled' : ''}>[${c.clave || 'SIN-CLAVE'}] ${c.titulo_cartel} (${c.carrera || 'General'} - Nivel ${c.nivel})${esAsesor ? ' — [ASESORADO POR ESTE PROFESOR - NO DISPONIBLE]' : ''}</option>`;
                 };
 
-                let htmlOpciones = '<option value="">-- Selecciona un Cartel para Asignar --</option>';
-                if (cartelesMismaArea.length > 0) {
-                    htmlOpciones += `<optgroup label="Misma Área General (${areaGeneralProfe})">` + cartelesMismaArea.map(renderOpcionCartel).join('') + `</optgroup>`;
+                if (cartelesMismaArea.length === 0) {
+                    selCartel.innerHTML = `<option value="">-- No hay carteles registrados del área de ${areaGeneralProfe} --</option>`;
+                } else {
+                    selCartel.innerHTML = `<option value="">-- Selecciona un Cartel de ${areaGeneralProfe} (${cartelesMismaArea.length}) --</option>` +
+                        cartelesMismaArea.map(renderOpcionCartel).join('');
                 }
-                if (cartelesOtraArea.length > 0) {
-                    htmlOpciones += `<optgroup label="Otras Áreas">` + cartelesOtraArea.map(renderOpcionCartel).join('') + `</optgroup>`;
-                }
-                selCartel.innerHTML = htmlOpciones;
             }
 
             renderizarListaCartelesDeProfesorModal(profe.id);
@@ -4637,13 +4675,18 @@
                 return alert("Selecciona un cartel de la lista o escribe su código manualmente.");
             }
 
+            const profeObj = profesoresAdminCache.find(p => Number(p.id) === Number(profesor_id));
+            const cartelObj = clave_cartel
+                ? cartelesAdminCache.find(c => String(c.clave || '').trim().toUpperCase() === clave_cartel)
+                : cartelesAdminCache.find(c => Number(c.id) === Number(cartel_id));
+
+            if (profeObj && cartelObj && !sonCarrerasDeMismaAreaFront(profeObj.carrera, cartelObj.carrera)) {
+                const areaP = obtenerAreaGeneralFront(profeObj.carrera) || profeObj.carrera || 'General';
+                const areaC = obtenerAreaGeneralFront(cartelObj.carrera) || cartelObj.carrera || 'General';
+                return alert(`Área incompatible: El profesor ${profeObj.nombre} pertenece al área de ${areaP} (${profeObj.carrera}), por lo que solo puede evaluar carteles de ${areaP}. El cartel "${cartelObj.titulo_cartel}" [${cartelObj.clave}] pertenece al área de ${areaC} (${cartelObj.carrera}).`);
+            }
+
             await ejecutarConBotonBloqueado(btnSubmit, 'Asignando...', async () => {
-                try {
-                    const res = await fetch('/api/admin/asignaciones', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ cartel_id, clave_cartel, profesor_id })
-                    });
                     const data = await res.json();
                     if (res.ok) {
                         document.getElementById('modal-profe-select-cartel').value = '';
@@ -4674,20 +4717,17 @@
             const selModal = document.getElementById('modal-asig-select-profesor');
             if (selModal) {
                 const profesMismaArea = profesoresAdminCache.filter(p => sonCarrerasDeMismaAreaFront(p.carrera, cartel.carrera));
-                const profesOtraArea = profesoresAdminCache.filter(p => !sonCarrerasDeMismaAreaFront(p.carrera, cartel.carrera));
                 const renderOpcionProfe = (p) => {
                     const esAsesor = esProfesorAsesorDeCartelFront(cartel, p);
                     return `<option value="${p.id}" ${esAsesor ? 'disabled' : ''}>${p.nombre} (${p.carrera || 'General'})${esAsesor ? ' — [ASESOR DE ESTE CARTEL - NO DISPONIBLE]' : ''}</option>`;
                 };
 
-                let htmlOpciones = '<option value="">-- Selecciona un Profesor --</option>';
-                if (profesMismaArea.length > 0) {
-                    htmlOpciones += `<optgroup label="Profesores del Área (${areaGeneralCartel})">` + profesMismaArea.map(renderOpcionProfe).join('') + `</optgroup>`;
+                if (profesMismaArea.length === 0) {
+                    selModal.innerHTML = `<option value="">-- No hay profesores registrados del área de ${areaGeneralCartel} --</option>`;
+                } else {
+                    selModal.innerHTML = `<option value="">-- Selecciona un Profesor de ${areaGeneralCartel} (${profesMismaArea.length}) --</option>` +
+                        profesMismaArea.map(renderOpcionProfe).join('');
                 }
-                if (profesOtraArea.length > 0) {
-                    htmlOpciones += `<optgroup label="Profesores de Otras Áreas">` + profesOtraArea.map(renderOpcionProfe).join('') + `</optgroup>`;
-                }
-                selModal.innerHTML = htmlOpciones;
             }
 
             renderizarListaAsignadosModal(cartel.id);

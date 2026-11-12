@@ -255,6 +255,29 @@ function sonCarrerasDeMismaArea(carreraProfesor, carreraCartel) {
     return normalizarTextoCarrera(areaProfe) === normalizarTextoCarrera(areaCartel);
 }
 
+// Limpia asignaciones incompatibles por área (por ejemplo, si a un profesor de Ingeniería se le asignó por error un cartel de Negocios)
+async function limpiarAsignacionesDeAreasIncompatibles() {
+    if (!pool) return 0;
+    try {
+        const [asigs] = await pool.query(`
+            SELECT a.id, p.carrera as profesor_carrera, c.carrera as cartel_carrera
+            FROM asignaciones a
+            JOIN profesores p ON a.profesor_id = p.id
+            JOIN carteles c ON a.cartel_id = c.id
+        `);
+        let eliminadas = 0;
+        for (const a of asigs) {
+            if (!sonCarrerasDeMismaArea(a.profesor_carrera, a.cartel_carrera)) {
+                await pool.query('DELETE FROM asignaciones WHERE id = ?', [a.id]);
+                eliminadas++;
+            }
+        }
+        return eliminadas;
+    } catch (e) {
+        return 0;
+    }
+}
+
 // Helper para generar claves numéricas únicas de carteles según su nivel (Nivel 1 -> empieza con 1, Nivel 2 -> empieza con 2, Nivel 3 -> empieza con 3)
 function generarClaveAleatoria(nivel = 1) {
     const n = [1, 2, 3].includes(Number(nivel)) ? Number(nivel) : 1;
@@ -939,6 +962,11 @@ async function asegurarEsquemaYColumnas() {
         console.warn('Error al verificar admin de respaldo:', e.message || e.code);
     }
 
+    // 8. Limpiar cualquier asignación previa entre áreas incompatibles
+    try {
+        await limpiarAsignacionesDeAreasIncompatibles();
+    } catch (e) {}
+
     esquemaVerificado = true;
     console.log('[OK] Esquema y columna telefono (SMS directo) verificados correctamente.');
 }
@@ -1449,6 +1477,8 @@ app.put('/api/admin/usuarios/:id/rol', async (req, res) => {
             [nuevoRol, telActualizado, telActualizado, nuevaCarrera, nuevoNivel, profId, passActualizada, id]
         );
 
+        await limpiarAsignacionesDeAreasIncompatibles();
+
         const infoSms = generarDatosSmsCuenta({
             telefono: telActualizado,
             nombre: user.nombre,
@@ -1513,6 +1543,7 @@ app.put('/api/admin/usuarios/:id', async (req, res) => {
                 'UPDATE profesores SET nombre = ?, telefono = ?, email = ?, carrera = ?, nivel_asignado = ?, password = ? WHERE id = ?',
                 [nombreMayus, telVal, telVal, car, niv, pass, user.profesor_id]
             );
+            await limpiarAsignacionesDeAreasIncompatibles();
         }
 
         res.json({ mensaje: "Usuario actualizado correctamente" });
@@ -1615,6 +1646,8 @@ app.put('/api/profesores/:id/carrera', async (req, res) => {
         const { id } = req.params;
         const { carrera } = req.body;
         await pool.query('UPDATE profesores SET carrera = ? WHERE id = ?', [carrera, id]);
+        await pool.query('UPDATE usuarios SET carrera = ? WHERE profesor_id = ?', [carrera, id]);
+        await limpiarAsignacionesDeAreasIncompatibles();
         res.json({ mensaje: "Área de profesor actualizada correctamente" });
     } catch (err) {
         res.status(400).json({ error: err.message });
@@ -1999,14 +2032,14 @@ app.post('/api/admin/asignaciones', async (req, res) => {
 
         let cartelRow = null;
         if (claveCartel) {
-            const [cPorClave] = await pool.query('SELECT id, titulo_cartel, clave, profesor_asesor_id, profesores_asesores_ids, profesores_asesores_nombres FROM carteles WHERE LOWER(TRIM(clave)) = LOWER(?)', [claveCartel]);
+            const [cPorClave] = await pool.query('SELECT id, titulo_cartel, clave, carrera, profesor_asesor_id, profesores_asesores_ids, profesores_asesores_nombres FROM carteles WHERE LOWER(TRIM(clave)) = LOWER(?)', [claveCartel]);
             if (cPorClave.length === 0) {
                 return res.status(404).json({ error: `No se encontró ningún cartel con el código/clave "${claveCartel}".` });
             }
             cartelRow = cPorClave[0];
             cartelId = cartelRow.id;
         } else if (cartelId) {
-            const [cRows] = await pool.query('SELECT id, titulo_cartel, clave, profesor_asesor_id, profesores_asesores_ids, profesores_asesores_nombres FROM carteles WHERE id = ?', [cartelId]);
+            const [cRows] = await pool.query('SELECT id, titulo_cartel, clave, carrera, profesor_asesor_id, profesores_asesores_ids, profesores_asesores_nombres FROM carteles WHERE id = ?', [cartelId]);
             if (cRows.length === 0) {
                 return res.status(404).json({ error: "El cartel seleccionado no existe." });
             }
@@ -2015,9 +2048,18 @@ app.post('/api/admin/asignaciones', async (req, res) => {
             return res.status(400).json({ error: "Debes seleccionar un cartel o ingresar su código/clave." });
         }
 
-        const [pRows] = await pool.query('SELECT id, nombre FROM profesores WHERE id = ?', [profesorId]);
+        const [pRows] = await pool.query('SELECT id, nombre, carrera FROM profesores WHERE id = ?', [profesorId]);
         if (pRows.length === 0) {
             return res.status(404).json({ error: "El profesor seleccionado no existe." });
+        }
+
+        // Validar que el profesor y el cartel pertenezcan a la misma Área General (ej. un ingeniero solo puede calificar ingenierías, no negocios)
+        if (!sonCarrerasDeMismaArea(pRows[0].carrera, cartelRow.carrera)) {
+            const areaProfe = obtenerAreaGeneral(pRows[0].carrera) || pRows[0].carrera || 'General';
+            const areaCartel = obtenerAreaGeneral(cartelRow.carrera) || cartelRow.carrera || 'General';
+            return res.status(400).json({
+                error: `Área incompatible: El profesor ${pRows[0].nombre} pertenece al área de ${areaProfe} (${pRows[0].carrera}), por lo que no puede evaluar el cartel "${cartelRow.titulo_cartel}" [${cartelRow.clave}] que pertenece al área de ${areaCartel} (${cartelRow.carrera}).`
+            });
         }
 
         // Bloquear conflicto de interés: un profesor asesor del cartel no puede ser asignado como juez del mismo
@@ -2074,38 +2116,54 @@ app.delete('/api/admin/asignaciones/:id', async (req, res) => {
 
 
 
-// Helper para verificar que una petición provenga de un Profesor / Juez autenticado
-async function verificarAccesoProfesorJuez(connOrPool, usuarioId, profesorId) {
+// Helper para obtener los datos del Profesor / Juez autenticado (incluyendo su carrera/área)
+async function obtenerProfesorJuezAutenticado(connOrPool, usuarioId, profesorId) {
     const uid = parseInt(usuarioId);
     const pid = parseInt(profesorId);
 
-    if (uid && !isNaN(uid)) {
-        const [uRows] = await connOrPool.query(
-            "SELECT id, rol, profesor_id FROM usuarios WHERE id = ? AND rol = 'profesor'",
-            [uid]
-        );
-        if (uRows.length > 0) return true;
-    }
-
     if (pid && !isNaN(pid)) {
         const [pRows] = await connOrPool.query(
-            'SELECT id FROM profesores WHERE id = ?',
+            'SELECT id, nombre, carrera FROM profesores WHERE id = ?',
             [pid]
         );
-        if (pRows.length > 0) return true;
+        if (pRows.length > 0) return pRows[0];
     }
 
-    return false;
+    if (uid && !isNaN(uid)) {
+        const [uRows] = await connOrPool.query(
+            "SELECT id, nombre, carrera, rol, profesor_id FROM usuarios WHERE id = ? AND rol = 'profesor'",
+            [uid]
+        );
+        if (uRows.length > 0) {
+            const u = uRows[0];
+            if (u.profesor_id) {
+                const [pVinc] = await connOrPool.query(
+                    'SELECT id, nombre, carrera FROM profesores WHERE id = ?',
+                    [u.profesor_id]
+                );
+                if (pVinc.length > 0) return pVinc[0];
+            }
+            return { id: u.profesor_id || null, nombre: u.nombre, carrera: u.carrera || 'Ingeniería' };
+        }
+    }
+
+    return null;
 }
 
-// Obtener detalles de un cartel por su clave (exclusivo para profesores/jueces desde su dashboard)
+// Helper para verificar que una petición provenga de un Profesor / Juez autenticado
+async function verificarAccesoProfesorJuez(connOrPool, usuarioId, profesorId) {
+    const profe = await obtenerProfesorJuezAutenticado(connOrPool, usuarioId, profesorId);
+    return Boolean(profe);
+}
+
+// Obtener detalles de un cartel por su clave (exclusivo para profesores/jueces desde su dashboard y de su misma Área General)
 app.get('/api/carteles/clave/:clave', async (req, res) => {
     try {
         const usuarioId = req.query.usuario_id;
         const profesorId = req.query.profesor_id;
 
-        const autorizado = await verificarAccesoProfesorJuez(pool, usuarioId, profesorId);
-        if (!autorizado) {
+        const profeAutenticado = await obtenerProfesorJuezAutenticado(pool, usuarioId, profesorId);
+        if (!profeAutenticado) {
             return res.status(403).json({
                 error: "Acceso denegado: Solo los profesores/jueces con sesión iniciada pueden consultar y evaluar carteles mediante clave."
             });
@@ -2128,6 +2186,22 @@ app.get('/api/carteles/clave/:clave', async (req, res) => {
         }
 
         const cartel = carteles[0];
+
+        // Bloquear si el cartel pertenece a otra Área General distinta a la del profesor (ej. un ingeniero no puede evaluar negocios)
+        if (!sonCarrerasDeMismaArea(profeAutenticado.carrera, cartel.carrera)) {
+            const areaProfe = obtenerAreaGeneral(profeAutenticado.carrera) || profeAutenticado.carrera || 'General';
+            const areaCartel = obtenerAreaGeneral(cartel.carrera) || cartel.carrera || 'General';
+            return res.status(403).json({
+                error: `Área incompatible: Tu perfil pertenece al área de ${areaProfe} (${profeAutenticado.carrera}), por lo que solo puedes calificar carteles de ${areaProfe}. El cartel "${cartel.titulo_cartel}" [${cartel.clave}] pertenece al área de ${areaCartel} (${cartel.carrera}).`
+            });
+        }
+
+        // Bloquear si el profesor figura como asesor de este cartel
+        if (esProfesorAsesorDeCartel(cartel, profeAutenticado.id, profeAutenticado.nombre)) {
+            return res.status(400).json({
+                error: `Conflicto de interés: Figuras como profesor asesor del cartel "${cartel.titulo_cartel}" [${cartel.clave}], por lo que no puedes evaluarlo como juez.`
+            });
+        }
 
         // Obtener profesores asignados al cartel y quién ya evaluó vs quién está pendiente (para tomar su lugar)
         const [asignados] = await pool.query(
@@ -2611,8 +2685,12 @@ app.post('/api/admin/cerrar-y-asignar', ejecutarRepartoCarteles);
 app.get('/api/profesores/:profesor_id/carteles-asignados', async (req, res) => {
     try {
         const { profesor_id } = req.params;
+        const [pRows] = await pool.query('SELECT id, carrera FROM profesores WHERE id = ?', [profesor_id]);
+        const profeCarrera = pRows.length > 0 ? pRows[0].carrera : '';
+
         const query = `
             SELECT c.*, 
+                   a.id as asignacion_id,
                    COALESCE(NULLIF(c.profesores_asesores_nombres, ''), (SELECT nombre FROM profesores p WHERE p.id = c.profesor_asesor_id)) as asesor_nombre,
                    (SELECT COUNT(*) FROM evaluaciones e2 WHERE e2.cartel_id = c.id) as total_evaluaciones
             FROM asignaciones a
@@ -2621,7 +2699,18 @@ app.get('/api/profesores/:profesor_id/carteles-asignados', async (req, res) => {
             WHERE a.profesor_id = ? AND e.id IS NULL
         `;
         const [rows] = await pool.query(query, [profesor_id]);
-        res.json(rows);
+
+        // Filtrar únicamente los carteles que pertenecen a la misma Área General del profesor (y limpiar asignaciones incompatibles si existían)
+        const compatibles = [];
+        for (const row of rows) {
+            if (!profeCarrera || sonCarrerasDeMismaArea(profeCarrera, row.carrera)) {
+                compatibles.push(row);
+            } else if (row.asignacion_id) {
+                try { await pool.query('DELETE FROM asignaciones WHERE id = ?', [row.asignacion_id]); } catch (e) {}
+            }
+        }
+
+        res.json(compatibles);
     } catch (err) {
         res.status(400).json({ error: err.message });
     }
@@ -2646,13 +2735,20 @@ app.post('/api/evaluar', async (req, res) => {
             return res.status(400).json({ error: resultadoRubrica.error });
         }
 
-        // Verificar que este profesor no sea asesor del cartel que intenta evaluar
+        // Verificar que este profesor pertenezca a la misma Área General que el cartel y que no sea asesor del mismo
         const [cRowsEval] = await pool.query(
-            'SELECT id, titulo_cartel, clave, profesor_asesor_id, profesores_asesores_ids, profesores_asesores_nombres FROM carteles WHERE id = ?',
+            'SELECT id, titulo_cartel, clave, carrera, profesor_asesor_id, profesores_asesores_ids, profesores_asesores_nombres FROM carteles WHERE id = ?',
             [cartel_id]
         );
-        const [pRowsEval] = await pool.query('SELECT id, nombre FROM profesores WHERE id = ?', [profesor_id]);
+        const [pRowsEval] = await pool.query('SELECT id, nombre, carrera FROM profesores WHERE id = ?', [profesor_id]);
         if (cRowsEval.length > 0 && pRowsEval.length > 0) {
+            if (!sonCarrerasDeMismaArea(pRowsEval[0].carrera, cRowsEval[0].carrera)) {
+                const areaProfe = obtenerAreaGeneral(pRowsEval[0].carrera) || pRowsEval[0].carrera || 'General';
+                const areaCartel = obtenerAreaGeneral(cRowsEval[0].carrera) || cRowsEval[0].carrera || 'General';
+                return res.status(403).json({
+                    error: `Área incompatible: Tu perfil pertenece al área de ${areaProfe} (${pRowsEval[0].carrera}), por lo que solo puedes evaluar carteles de ${areaProfe}, no de ${areaCartel} (${cRowsEval[0].carrera}).`
+                });
+            }
             if (esProfesorAsesorDeCartel(cRowsEval[0], pRowsEval[0].id, pRowsEval[0].nombre)) {
                 return res.status(400).json({
                     error: `Conflicto de interés: No puedes evaluar el cartel "${cRowsEval[0].titulo_cartel}" [${cRowsEval[0].clave}] porque figuras como profesor asesor del mismo.`
@@ -2746,37 +2842,43 @@ app.post('/api/evaluar-invitado', async (req, res) => {
         // Resolver profesor automáticamente desde la cuenta activa (profesor_id / usuario_id) o fallback a nombre_maestro
         let profesorId = null;
         let nombreFormateado = '';
+        let carreraProfesor = '';
 
         if (profesor_id && !isNaN(parseInt(profesor_id))) {
             const [pDirecto] = await connection.execute(
-                'SELECT id, nombre FROM profesores WHERE id = ?',
+                'SELECT id, nombre, carrera FROM profesores WHERE id = ?',
                 [parseInt(profesor_id)]
             );
             if (pDirecto.length > 0) {
                 profesorId = pDirecto[0].id;
                 nombreFormateado = capitalizarNombre(pDirecto[0].nombre);
+                carreraProfesor = pDirecto[0].carrera || '';
             }
         }
 
         if (!profesorId && usuario_id && !isNaN(parseInt(usuario_id))) {
             const [uRows] = await connection.execute(
-                'SELECT id, nombre, profesor_id FROM usuarios WHERE id = ?',
+                'SELECT id, nombre, carrera, profesor_id FROM usuarios WHERE id = ?',
                 [parseInt(usuario_id)]
             );
             if (uRows.length > 0) {
                 const u = uRows[0];
                 if (u.profesor_id) {
                     const [pVinc] = await connection.execute(
-                        'SELECT id, nombre FROM profesores WHERE id = ?',
+                        'SELECT id, nombre, carrera FROM profesores WHERE id = ?',
                         [u.profesor_id]
                     );
                     if (pVinc.length > 0) {
                         profesorId = pVinc[0].id;
                         nombreFormateado = capitalizarNombre(pVinc[0].nombre);
+                        carreraProfesor = pVinc[0].carrera || '';
                     }
                 }
                 if (!nombreFormateado && u.nombre) {
                     nombreFormateado = capitalizarNombre(u.nombre.trim());
+                }
+                if (!carreraProfesor && u.carrera) {
+                    carreraProfesor = u.carrera;
                 }
             }
         }
@@ -2791,19 +2893,30 @@ app.post('/api/evaluar-invitado', async (req, res) => {
                 return res.status(400).json({ error: "No se pudo identificar la cuenta del profesor evaluador." });
             }
             const [existentes] = await connection.execute(
-                'SELECT id, nombre FROM profesores WHERE LOWER(TRIM(nombre)) = LOWER(TRIM(?))',
+                'SELECT id, nombre, carrera FROM profesores WHERE LOWER(TRIM(nombre)) = LOWER(TRIM(?))',
                 [nombreFormateado]
             );
             if (existentes.length > 0) {
                 profesorId = existentes[0].id;
                 nombreFormateado = capitalizarNombre(existentes[0].nombre);
+                carreraProfesor = existentes[0].carrera || carreraProfesor;
             } else {
                 const [nuevoProfe] = await connection.execute(
                     'INSERT INTO profesores (nombre, carrera, nivel_asignado, password) VALUES (?, ?, ?, ?)',
-                    [nombreFormateado, cartel.carrera || 'General', cartel.nivel || 1, 'invitado123']
+                    [nombreFormateado, carreraProfesor || cartel.carrera || 'Ingeniería', cartel.nivel || 1, 'invitado123']
                 );
                 profesorId = nuevoProfe.insertId;
             }
+        }
+
+        // Bloquear si el profesor pertenece a otra Área General distinta a la del cartel (ej. un ingeniero no puede evaluar un cartel de negocios)
+        if (carreraProfesor && !sonCarrerasDeMismaArea(carreraProfesor, cartel.carrera)) {
+            await connection.rollback();
+            const areaProfe = obtenerAreaGeneral(carreraProfesor) || carreraProfesor || 'General';
+            const areaCartel = obtenerAreaGeneral(cartel.carrera) || cartel.carrera || 'General';
+            return res.status(403).json({
+                error: `Área incompatible: El profesor ${nombreFormateado} pertenece al área de ${areaProfe} (${carreraProfesor}), por lo que solo puede evaluar carteles de ${areaProfe}. El cartel "${cartel.titulo_cartel}" [${cartel.clave}] pertenece al área de ${areaCartel} (${cartel.carrera}).`
+            });
         }
 
         // Bloquear conflicto de interés si el profesor invitado o el profesor en sesión es asesor del cartel
