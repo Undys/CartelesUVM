@@ -801,27 +801,20 @@ async function asegurarEsquemaYColumnas() {
         }
     } catch (e) {}
 
-    // 7. ADMIN PREDETERMINADO TEMPORAL (Usuario: admin / Contraseña: admin123)
+    // 7. ADMIN PREDETERMINADO DE RESPALDO (Solo se crea si NO existe ningún administrador en la BD)
     try {
-        const adminUserDefault = 'admin';
-        const adminPassDefault = 'admin123';
-
-        const [admExist] = await pool.query("SELECT id FROM usuarios WHERE LOWER(TRIM(matricula)) = LOWER(?)", [adminUserDefault]);
-        if (admExist.length === 0) {
+        const [[{ totalAdmins }]] = await pool.query("SELECT COUNT(*) as totalAdmins FROM usuarios WHERE rol = 'admin'");
+        if (totalAdmins === 0) {
+            const adminUserDefault = 'admin';
+            const adminPassDefault = 'admin123';
             await pool.query(
                 "INSERT INTO usuarios (nombre, matricula, telefono, email, password, rol, carrera, nivel_asignado) VALUES ('ADMINISTRADOR PREDETERMINADO', ?, NULL, 'admin@uvmnet.edu', ?, 'admin', 'General', 1)",
                 [adminUserDefault, adminPassDefault]
             );
-            console.log(`[OK] Administrador predeterminado creado -> Usuario: ${adminUserDefault} | Contraseña: ${adminPassDefault}`);
-        } else {
-            await pool.query(
-                "UPDATE usuarios SET password = ?, rol = 'admin' WHERE id = ?",
-                [adminPassDefault, admExist[0].id]
-            );
-            console.log(`[OK] Administrador predeterminado activo -> Usuario: ${adminUserDefault} | Contraseña: ${adminPassDefault}`);
+            console.log(`[OK] No había administradores; se creó el predeterminado -> Usuario: ${adminUserDefault} | Contraseña: ${adminPassDefault}`);
         }
     } catch (e) {
-        console.warn('Error al asegurar admin predeterminado:', e.message || e.code);
+        console.warn('Error al verificar admin de respaldo:', e.message || e.code);
     }
 
     esquemaVerificado = true;
@@ -912,31 +905,6 @@ app.post('/api/login', async (req, res) => {
 
         if (!idf || !pass) {
             return res.status(400).json({ error: "Ingresa tu usuario/matrícula y contraseña." });
-        }
-
-        // 0. Acceso garantizado para el Administrador Predeterminado (admin / admin123 o admin / admin)
-        const adminPassEnv = (process.env.ADMIN_PASSWORD || '').trim();
-        if (idf.toLowerCase() === 'admin' && (pass === 'admin123' || pass === 'admin' || (adminPassEnv && pass === adminPassEnv))) {
-            try {
-                const [admRows] = await pool.query('SELECT id, nombre, matricula, telefono, email, rol, carrera, semestre, nivel_asignado FROM usuarios WHERE LOWER(TRIM(matricula)) = "admin"');
-                if (admRows.length > 0) {
-                    return res.json({ mensaje: "Acceso correcto", usuario: { ...admRows[0], rol: 'admin' } });
-                }
-            } catch (e) {}
-
-            return res.json({
-                mensaje: "Acceso concedido como Administrador Predeterminado",
-                usuario: {
-                    id: 1,
-                    nombre: 'ADMINISTRADOR PREDETERMINADO',
-                    matricula: 'admin',
-                    telefono: null,
-                    email: 'admin@uvmnet.edu',
-                    rol: 'admin',
-                    carrera: 'General',
-                    nivel_asignado: 1
-                }
-            });
         }
 
         // 1. Buscar en tabla usuarios (por matrícula, nombre, teléfono o correo)
