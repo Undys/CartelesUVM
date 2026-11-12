@@ -4249,11 +4249,13 @@
             }
 
             const valorPrevio = selCartel.value;
+            const opcionesHtml = cartelesCompatibles.map(c => {
+                const esAsesor = esProfesorAsesorDeCartelFront(c, profe);
+                return `<option value="${c.id}" ${esAsesor ? 'disabled' : ''}>[${c.clave || 'SIN-CLAVE'}] ${c.titulo_cartel} (${c.carrera || 'General'} - Nivel ${c.nivel})${esAsesor ? ' — [ASESORADO POR ESTE PROFESOR]' : ''}</option>`;
+            }).join('');
+
             selCartel.innerHTML = `<option value="">-- Selecciona un Cartel de ${areaGeneralProfe} (${cartelesCompatibles.length}) --</option>` +
-                cartelesCompatibles.map(c => {
-                    const esAsesor = esProfesorAsesorDeCartelFront(c, profe);
-                    return `<option value="${c.id}" ${esAsesor ? 'disabled' : ''}>[${c.clave || 'SIN-CLAVE'}] ${c.titulo_cartel} (${c.carrera || 'General'} - Nivel ${c.nivel})${esAsesor ? ' — [ASESORADO POR ESTE PROFESOR]' : ''}</option>`;
-                }).join('');
+                `<optgroup label="Área: ${areaGeneralProfe} y sus ramas (${cartelesCompatibles.length})">${opcionesHtml}</optgroup>`;
 
             if (valorPrevio && cartelesCompatibles.some(c => String(c.id) === String(valorPrevio))) {
                 selCartel.value = valorPrevio;
@@ -4546,7 +4548,9 @@
                     selCartel.innerHTML = `<option value="">-- No hay carteles registrados del área de ${areaGeneralProfe} --</option>`;
                 } else {
                     selCartel.innerHTML = `<option value="">-- Selecciona un Cartel de ${areaGeneralProfe} (${cartelesMismaArea.length}) --</option>` +
-                        cartelesMismaArea.map(renderOpcionCartel).join('');
+                        `<optgroup label="Área: ${areaGeneralProfe} y sus ramas (${cartelesMismaArea.length})">` +
+                        cartelesMismaArea.map(renderOpcionCartel).join('') +
+                        `</optgroup>`;
                 }
             }
 
@@ -4687,6 +4691,12 @@
             }
 
             await ejecutarConBotonBloqueado(btnSubmit, 'Asignando...', async () => {
+                try {
+                    const res = await fetch('/api/admin/asignaciones', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ cartel_id, clave_cartel, profesor_id })
+                    });
                     const data = await res.json();
                     if (res.ok) {
                         document.getElementById('modal-profe-select-cartel').value = '';
@@ -4726,7 +4736,9 @@
                     selModal.innerHTML = `<option value="">-- No hay profesores registrados del área de ${areaGeneralCartel} --</option>`;
                 } else {
                     selModal.innerHTML = `<option value="">-- Selecciona un Profesor de ${areaGeneralCartel} (${profesMismaArea.length}) --</option>` +
-                        profesMismaArea.map(renderOpcionProfe).join('');
+                        `<optgroup label="Área: ${areaGeneralCartel} y sus ramas (${profesMismaArea.length})">` +
+                        profesMismaArea.map(renderOpcionProfe).join('') +
+                        `</optgroup>`;
                 }
             }
 

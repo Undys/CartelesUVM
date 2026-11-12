@@ -1156,6 +1156,8 @@ app.get('/api/admin/usuarios', async (req, res) => {
             await pool.query('UPDATE usuarios SET profesor_id = ? WHERE id = ?', [pIns.insertId, u.id]);
         }
 
+        await limpiarAsignacionesDeAreasIncompatibles();
+
         const [rows] = await pool.query(`
             SELECT id, nombre, matricula, COALESCE(NULLIF(telefono, ''), email) as telefono, email, rol, carrera, semestre, nivel_asignado, profesor_id, created_at
             FROM usuarios
@@ -1903,6 +1905,7 @@ app.post('/api/login/profesor', async (req, res) => {
 // Obtener lista completa de carteles para administración (incluyendo profesores asignados y asesores múltiples)
 app.get('/api/admin/carteles', async (req, res) => {
     try {
+        await limpiarAsignacionesDeAreasIncompatibles();
         const query = `
             SELECT 
                 c.id, c.titulo_cartel, c.clave, c.nombre_equipo, c.participantes, c.carrera, c.semestre, c.nivel, c.archivo_url,
@@ -1953,6 +1956,7 @@ app.get('/api/admin/carteles', async (req, res) => {
 // Obtener todas las asignaciones de carteles a profesores (vista admin)
 app.get('/api/admin/asignaciones', async (req, res) => {
     try {
+        await limpiarAsignacionesDeAreasIncompatibles();
         const [rows] = await pool.query(`
             SELECT 
                 a.id,
