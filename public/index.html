@@ -543,9 +543,6 @@
                     </p>
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
-                    <button onclick="abrirModalMisAreasProfesor()" class="bg-white/15 hover:bg-white/25 text-white border border-white/30 px-4 py-2.5 rounded-xl font-extrabold text-xs sm:text-sm shadow-md transition flex items-center gap-1.5">
-                        <span>+ Añadir / Editar Mis Áreas</span>
-                    </button>
                     <button onclick="abrirModalInvitado()" class="bg-amber-500 hover:bg-amber-600 text-slate-900 px-4 py-2.5 rounded-xl font-extrabold text-xs sm:text-sm shadow-md transition flex items-center gap-1.5">
                         <span>Evaluador Invitado / Evaluar con Clave (Suplencia)</span>
                     </button>
@@ -909,7 +906,12 @@
 
                     <form id="form-asignacion-manual" class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end bg-slate-50 p-4 rounded-xl border border-slate-200">
                         <div>
-                            <label class="block font-bold text-xs uppercase text-slate-700 mb-1">1. Selecciona al Profesor Juez:</label>
+                            <div class="flex items-center justify-between gap-2 mb-1">
+                                <label class="block font-bold text-xs uppercase text-slate-700">1. Selecciona al Profesor Juez:</label>
+                                <button type="button" id="btn-editar-areas-profe-manual" onclick="const pid = document.getElementById('manual-asig-profesor').value; if(pid) abrirModalAreasDesdeProfeId(pid); else alert('Primero selecciona un profesor de la lista.');" class="text-[11px] font-extrabold text-red-700 hover:text-red-900 bg-red-50 hover:bg-red-100 border border-red-200 px-2 py-0.5 rounded-lg transition">
+                                    + Añadir / Editar Áreas
+                                </button>
+                            </div>
                             <select id="manual-asig-profesor" required onchange="actualizarCartelesCompatiblesManual()" class="w-full border border-slate-300 p-2.5 rounded-xl text-xs font-semibold bg-white text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
                                 <option value="">-- Selecciona un Profesor --</option>
                             </select>
@@ -1224,8 +1226,8 @@
     <!-- MODAL 1: PROMOVER O ASIGNAR ROL A USUARIO (ADMIN)               -->
     <!-- (Requerimiento: admin elije a los profes y estudiantes)         -->
     <!-- ============================================================== -->
-    <div id="modal-promover-usuario" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border space-y-4">
+    <div id="modal-promover-usuario" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border space-y-4 my-8">
             <div class="flex justify-between items-start">
                 <div>
                     <h3 class="font-black text-lg text-slate-800">Modificar Rol y Datos de Usuario</h3>
@@ -1454,82 +1456,6 @@
     </div>
 
     <!-- ============================================================== -->
-    <!-- MODAL 2.A1: GESTIONAR MIS ÁREAS / CARRERAS (PROFESOR / JUEZ)    -->
-    <!-- ============================================================== -->
-    <div id="modal-mis-areas-profesor" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-        <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border space-y-4 my-8">
-            <div class="flex justify-between items-start border-b pb-3">
-                <div>
-                    <span class="inline-block bg-rose-100 text-rose-800 font-black text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-wider mb-1">Perfil Multidisciplinario</span>
-                    <h3 class="font-black text-lg text-slate-800">Mis Áreas y Carreras de Evaluación</h3>
-                    <p class="text-xs text-gray-500 mt-0.5">Añade todas las áreas o carreras en las que puedes evaluar carteles (sin límite máximo).</p>
-                </div>
-                <button onclick="cerrarModalMisAreasProfesor()" class="text-gray-400 hover:text-gray-600 text-lg font-bold">✕</button>
-            </div>
-
-            <form id="form-mis-areas-profesor" class="space-y-3">
-                <div>
-                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Área / Carrera Principal:</label>
-                    <select id="profe_propia_carrera_principal" class="w-full border p-2.5 rounded-xl text-xs font-semibold bg-white text-slate-800 focus:ring-2 focus:ring-red-500">
-                        <optgroup label="Área: Ingeniería">
-                            <option value="Ingeniería">Ingeniería (Área General)</option>
-                            <option value="Ingenierías">Ingenierías</option>
-                            <option value="Ingeniería Mecatrónica">Ingeniería Mecatrónica</option>
-                            <option value="Ingeniería en Sistemas Computacionales">Ingeniería en Sistemas Computacionales</option>
-                        </optgroup>
-                        <optgroup label="Área: Arte, Diseño y Arquitectura">
-                            <option value="Arte, Diseño y Arquitectura">Arte, Diseño y Arquitectura (Área General)</option>
-                            <option value="Arquitectura">Arquitectura</option>
-                            <option value="Diseño Multimedia">Diseño Multimedia</option>
-                            <option value="Diseño y Comunicación Gráfica">Diseño y Comunicación Gráfica</option>
-                            <option value="Diseño Industrial">Diseño Industrial</option>
-                        </optgroup>
-                        <optgroup label="Área: Negocios">
-                            <option value="Negocios">Negocios (Área General)</option>
-                            <option value="Administración de Negocios Internacionales">Administración de Negocios Internacionales</option>
-                            <option value="Administración de Empresa">Administración de Empresa</option>
-                            <option value="Mercadotecnia">Mercadotecnia</option>
-                            <option value="Comercio y Logística Internacionales">Comercio y Logística Internacionales</option>
-                            <option value="Contaduría Pública y Finanzas">Contaduría Pública y Finanzas</option>
-                        </optgroup>
-                        <optgroup label="Área: Ciencias de la Salud">
-                            <option value="Ciencias de la Salud">Ciencias de la Salud</option>
-                        </optgroup>
-                        <optgroup label="Área: Ciencias Sociales y Comunicación">
-                            <option value="Ciencias Sociales">Ciencias Sociales (Área General)</option>
-                            <option value="Ciencias de la Comunicación">Ciencias de la Comunicación</option>
-                            <option value="Comunicación y Medios Digitales">Comunicación y Medios Digitales</option>
-                        </optgroup>
-                        <optgroup label="Área: Hospitalidad y Turismo">
-                            <option value="Hospitalidad y Turismo">Hospitalidad y Turismo (Área General)</option>
-                            <option value="Gastronomía Internacional">Gastronomía Internacional</option>
-                            <option value="Administración Turística y Hotelera">Administración Turística y Hotelera</option>
-                        </optgroup>
-                    </select>
-                </div>
-
-                <div id="contenedor-areas-extra-profe-propio" class="space-y-2"></div>
-
-                <div>
-                    <button type="button" onclick="agregarSelectorAreaExtra('contenedor-areas-extra-profe-propio')" class="inline-flex items-center gap-1.5 bg-rose-700 hover:bg-rose-800 text-white px-3.5 py-2 rounded-xl text-xs font-extrabold shadow-sm transition">
-                        + Añadir otra área / carrera
-                    </button>
-                    <p class="text-[11px] text-slate-500 mt-1">Puedes agregar tantas áreas como necesites para poder calificar carteles de todas tus áreas.</p>
-                </div>
-
-                <div class="flex justify-end gap-2 pt-3 border-t">
-                    <button type="button" onclick="cerrarModalMisAreasProfesor()" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100">
-                        Cancelar
-                    </button>
-                    <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-xl text-xs font-bold shadow">
-                        Guardar Mis Áreas
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- ============================================================== -->
     <!-- MODAL 2.A2: ENVÍO RÁPIDO POR WHATSAPP (1 CLIC)                 -->
     <!-- ============================================================== -->
     <div id="modal-envio-rapido-correo" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
@@ -1632,13 +1558,18 @@
     <!-- ============================================================== -->
     <div id="modal-ver-carteles-profesor" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
         <div class="bg-white rounded-2xl p-6 max-w-2xl w-full shadow-2xl border space-y-4 my-8">
-            <div class="flex justify-between items-start border-b pb-3">
+            <div class="flex justify-between items-start border-b pb-3 gap-2">
                 <div>
                     <span class="inline-block bg-red-100 text-red-800 font-black text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-wider mb-1">Carteles del Profesor Juez</span>
                     <h3 class="font-black text-lg text-slate-800" id="modal-profe-carteles-titulo">Carteles Asignados</h3>
                     <p id="modal-profe-carteles-subtitulo" class="text-xs text-gray-500 font-semibold mt-0.5"></p>
                 </div>
-                <button onclick="cerrarModalCartelesProfesor()" class="text-gray-400 hover:text-gray-600 text-lg font-bold">✕</button>
+                <div class="flex items-center gap-2 shrink-0">
+                    <button type="button" onclick="const pid = document.getElementById('modal-profe-carteles-profesor-id').value; if(pid) abrirModalAreasDesdeProfeId(pid);" class="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 px-3 py-1.5 rounded-xl text-xs font-extrabold shadow-sm transition">
+                        + Añadir / Editar Áreas
+                    </button>
+                    <button onclick="cerrarModalCartelesProfesor()" class="text-gray-400 hover:text-gray-600 text-lg font-bold">✕</button>
+                </div>
             </div>
 
             <form id="form-modal-asignar-cartel-a-profe" class="space-y-2.5 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
@@ -3187,50 +3118,6 @@
         // ==============================================================
         // 4. DASHBOARD DE PROFESORES / JUECES
         // ==============================================================
-        function abrirModalMisAreasProfesor() {
-            if (!usuarioActual || usuarioActual.rol !== 'profesor') return;
-            poblarSelectoresAreasMultiples('profe_propia_carrera_principal', 'contenedor-areas-extra-profe-propio', usuarioActual.carrera || 'Ingeniería');
-            document.getElementById('modal-mis-areas-profesor').classList.remove('hidden');
-        }
-
-        function cerrarModalMisAreasProfesor() {
-            const modal = document.getElementById('modal-mis-areas-profesor');
-            if (modal) modal.classList.add('hidden');
-        }
-
-        document.getElementById('form-mis-areas-profesor').onsubmit = async (e) => {
-            e.preventDefault();
-            if (!usuarioActual || usuarioActual.rol !== 'profesor') return;
-            const form = e.currentTarget;
-            const btnSubmit = form.querySelector('button[type="submit"]');
-            const nuevaCarreraMultiple = recopilarAreasDeFormulario('profe_propia_carrera_principal', 'contenedor-areas-extra-profe-propio');
-            const profId = usuarioActual.profesor_id || usuarioActual.id;
-
-            await ejecutarConBotonBloqueado(btnSubmit, 'Guardando áreas...', async () => {
-                try {
-                    const res = await fetch(`/api/profesores/${profId}/carrera`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            carrera: nuevaCarreraMultiple,
-                            usuario_id: usuarioActual.id
-                        })
-                    });
-                    const data = await res.json();
-                    if (res.ok) {
-                        usuarioActual.carrera = data.carrera || nuevaCarreraMultiple;
-                        cerrarModalMisAreasProfesor();
-                        alert(data.mensaje || 'Tus áreas de evaluación han sido actualizadas.');
-                        cargarDashboardProfesor();
-                    } else {
-                        alert(data.error || 'No se pudieron actualizar tus áreas.');
-                    }
-                } catch (err) {
-                    alert('Error al actualizar áreas: ' + err.message);
-                }
-            });
-        };
-
         async function cargarDashboardProfesor() {
             if (!usuarioActual || usuarioActual.rol !== 'profesor') return;
 
@@ -3898,8 +3785,14 @@
                             limpiarAlmacenamientoSesion();
                         }
                         cerrarModalPromover();
-                        cargarAdminUsuarios();
-                        cargarAdminDashboard();
+                        await cargarAdminUsuarios();
+                        await cargarAdminDashboard();
+                        await cargarDatosAsignacionManual();
+                        const modalProfeCarteles = document.getElementById('modal-ver-carteles-profesor');
+                        const profIdAbierto = document.getElementById('modal-profe-carteles-profesor-id')?.value;
+                        if (modalProfeCarteles && !modalProfeCarteles.classList.contains('hidden') && profIdAbierto) {
+                            abrirModalCartelesProfesor(parseInt(profIdAbierto));
+                        }
                         if (rol === 'profesor' && data.datos_cuenta && telefono) {
                             abrirModalSmsDirecto(data.datos_cuenta, data.mensaje);
                         } else {
