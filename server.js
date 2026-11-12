@@ -133,6 +133,128 @@ function convertirMayusculas(str) {
     return str.trim().toUpperCase();
 }
 
+// Helper para normalizar texto de carrera/área sin acentos ni mayúsculas
+function normalizarTextoCarrera(str = '') {
+    return String(str || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim()
+        .toLowerCase();
+}
+
+// Helper para englobar cualquier carrera específica dentro de su Área General (Vertical académica UVM)
+function obtenerAreaGeneral(carreraRaw = '') {
+    const c = normalizarTextoCarrera(carreraRaw);
+    if (!c) return '';
+
+    // 1. Hospitalidad y Turismo (antes que Negocios por "Administración Turística y Hotelera")
+    if (
+        c.includes('hospitalidad') ||
+        c.includes('turis') ||
+        c.includes('hotel') ||
+        c.includes('gastronom') ||
+        c.includes('culinari')
+    ) {
+        return 'Hospitalidad y Turismo';
+    }
+
+    // 2. Arte, Diseño y Arquitectura (antes que Ingeniería y Comunicación por "Diseño Industrial" y "Diseño y Comunicación Gráfica")
+    if (
+        c.includes('arte') ||
+        c.includes('diseno') ||
+        c.includes('arquitectura') ||
+        c.includes('multimedia') ||
+        c.includes('comunicacion grafica') ||
+        c.includes('moda') ||
+        c.includes('interiores')
+    ) {
+        return 'Arte, Diseño y Arquitectura';
+    }
+
+    // 3. Ciencias de la Salud (antes que Ingeniería por "QFBT / Químico Farmacéutico Biotecnólogo")
+    if (
+        c.includes('salud') ||
+        c.includes('medicin') ||
+        c.includes('fisioterapi') ||
+        c.includes('nutricion') ||
+        c.includes('enfermeri') ||
+        c.includes('psicologi') ||
+        c.includes('odontologi') ||
+        c.includes('dentista') ||
+        c.includes('farmaceutic') ||
+        c.includes('qfbt') ||
+        c.includes('veterinari')
+    ) {
+        return 'Ciencias de la Salud';
+    }
+
+    // 4. Ingeniería (engloba Ingeniería general, Ingenierías, Mecatrónica, Sistemas, Industrial, Biotecnología, etc.)
+    if (
+        c.includes('ingenier') ||
+        c.includes('mecatronic') ||
+        c.includes('sistemas') ||
+        c.includes('computacion') ||
+        c.includes('industrial') ||
+        c.includes('civil') ||
+        c.includes('biotecnolog') ||
+        c.includes('software') ||
+        c.includes('energia') ||
+        c.includes('sustentable') ||
+        c.includes('mecanic') ||
+        c.includes('electronic') ||
+        c.includes('telecomunicacion') ||
+        c.includes('ambiental') ||
+        c.includes('petrol') ||
+        c.includes('datos') ||
+        c.includes('biomedic') ||
+        c.includes('quimic')
+    ) {
+        return 'Ingeniería';
+    }
+
+    // 5. Negocios (engloba Negocios, Administración de Negocios Internacionales, Administración de Empresa, Mercadotecnia, Comercio y Logística, Contaduría y Finanzas)
+    if (
+        c.includes('negocio') ||
+        c.includes('administracion') ||
+        c.includes('mercadotecnia') ||
+        c.includes('marketing') ||
+        c.includes('comercio') ||
+        c.includes('logistica') ||
+        c.includes('contaduria') ||
+        c.includes('finanza') ||
+        c.includes('economia') ||
+        c.includes('actuaria') ||
+        c.includes('direccion')
+    ) {
+        return 'Negocios';
+    }
+
+    // 6. Ciencias Sociales (engloba Ciencias Sociales, Ciencias de la Comunicación, Comunicación y Medios Digitales, Derecho, Relaciones Internacionales, etc.)
+    if (
+        c.includes('social') ||
+        c.includes('comunicacion') ||
+        c.includes('medios digitales') ||
+        c.includes('derecho') ||
+        c.includes('relaciones internacionales') ||
+        c.includes('criminologi') ||
+        c.includes('pedagogi') ||
+        c.includes('educacion') ||
+        c.includes('periodismo')
+    ) {
+        return 'Ciencias Sociales';
+    }
+
+    return String(carreraRaw || '').trim();
+}
+
+// Verifica si la carrera/área de un profesor y la carrera de un cartel pertenecen a la misma Área General
+function sonCarrerasDeMismaArea(carreraProfesor, carreraCartel) {
+    const areaProfe = obtenerAreaGeneral(carreraProfesor);
+    const areaCartel = obtenerAreaGeneral(carreraCartel);
+    if (!areaProfe || !areaCartel) return false;
+    return normalizarTextoCarrera(areaProfe) === normalizarTextoCarrera(areaCartel);
+}
+
 // Helper para generar claves numéricas únicas de carteles según su nivel (Nivel 1 -> empieza con 1, Nivel 2 -> empieza con 2, Nivel 3 -> empieza con 3)
 function generarClaveAleatoria(nivel = 1) {
     const n = [1, 2, 3].includes(Number(nivel)) ? Number(nivel) : 1;
@@ -1627,7 +1749,7 @@ app.post('/api/admin/profesores/randomizar-niveles', async (req, res) => {
 
         const porArea = {};
         profesores.forEach(p => {
-            const area = p.carrera || 'General';
+            const area = obtenerAreaGeneral(p.carrera) || 'General';
             if (!porArea[area]) porArea[area] = [];
             porArea[area].push(p.id);
         });
@@ -2437,20 +2559,33 @@ async function ejecutarRepartoCarteles(req, res) {
                     .filter(Boolean)
             );
 
+            const areaGeneralCartel = obtenerAreaGeneral(cartel.carrera) || cartel.carrera;
+
             const candidatosValidos = profesores.filter(p => 
                 p.carrera && cartel.carrera &&
-                p.carrera.trim().toLowerCase() === cartel.carrera.trim().toLowerCase() &&
+                sonCarrerasDeMismaArea(p.carrera, cartel.carrera) &&
                 !idsAsesores.has(Number(p.id)) &&
-                !nombresAsesores.has((p.nombre || '').trim().toLowerCase())
+                !nombresAsesores.has((p.nombre || '').trim().toLowerCase()) &&
+                !esProfesorAsesorDeCartel(cartel, p.id, p.nombre)
             );
 
             if (candidatosValidos.length < 2) {
+                const etiquetaCarrera = normalizarTextoCarrera(cartel.carrera) !== normalizarTextoCarrera(areaGeneralCartel)
+                    ? `${cartel.carrera} (Área: ${areaGeneralCartel})`
+                    : areaGeneralCartel;
                 throw new Error(
-                    `El cartel "${cartel.titulo_cartel}" (Área: ${cartel.carrera}, Nivel ${cartel.nivel}) requiere mínimo 2 profesores jueces (máximo 3) de su misma área (distintos a sus profesores asesores). Disponibles actualmente: ${candidatosValidos.length}. Asigna o registra al menos 2 profesores de ${cartel.carrera}.`
+                    `El cartel "${cartel.titulo_cartel}" (${etiquetaCarrera}, Nivel ${cartel.nivel}) requiere mínimo 2 profesores jueces (máximo 3) del área de ${areaGeneralCartel} (distintos a sus profesores asesores). Disponibles actualmente: ${candidatosValidos.length}. Asigna o registra al menos 2 profesores del área de ${areaGeneralCartel}.`
                 );
             }
 
-            candidatosValidos.sort((a, b) => cargaProfesores[a.id] - cargaProfesores[b.id]);
+            candidatosValidos.sort((a, b) => {
+                const diffCarga = cargaProfesores[a.id] - cargaProfesores[b.id];
+                if (diffCarga !== 0) return diffCarga;
+                // En caso de empate en carga de carteles, dar preferencia si coincide exactamente la carrera específica
+                const exactoA = normalizarTextoCarrera(a.carrera) === normalizarTextoCarrera(cartel.carrera) ? 0 : 1;
+                const exactoB = normalizarTextoCarrera(b.carrera) === normalizarTextoCarrera(cartel.carrera) ? 0 : 1;
+                return exactoA - exactoB;
+            });
             // Asignar mínimo 2 y máximo 3 jueces
             const asignados = candidatosValidos.slice(0, 3);
 
