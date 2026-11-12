@@ -801,24 +801,24 @@ async function asegurarEsquemaYColumnas() {
         }
     } catch (e) {}
 
-    // 7. ADMIN PREDETERMINADO DE RESPALDO (Solo se crea si NO existe ningún administrador en la BD)
+    // 7. ADMIN DE RESPALDO DESDE .env (Solo se crea si NO existe ningún administrador en la BD y están definidas las variables en .env)
     try {
         const [[{ totalAdmins }]] = await pool.query("SELECT COUNT(*) as totalAdmins FROM usuarios WHERE rol = 'admin'");
-        if (totalAdmins === 0) {
-            const adminUserDefault = 'admin';
-            const adminPassDefault = 'admin123';
+        const adminUserEnv = (process.env.ADMIN_USER || '').trim();
+        const adminPassEnv = (process.env.ADMIN_PASSWORD || '').trim();
+        if (totalAdmins === 0 && adminUserEnv && adminPassEnv) {
             await pool.query(
                 "INSERT INTO usuarios (nombre, matricula, telefono, email, password, rol, carrera, nivel_asignado) VALUES ('ADMINISTRADOR PREDETERMINADO', ?, NULL, 'admin@uvmnet.edu', ?, 'admin', 'General', 1)",
-                [adminUserDefault, adminPassDefault]
+                [adminUserEnv, adminPassEnv]
             );
-            console.log(`[OK] No había administradores; se creó el predeterminado -> Usuario: ${adminUserDefault} | Contraseña: ${adminPassDefault}`);
+            console.log(`[OK] No había administradores; se creó el administrador de respaldo desde .env -> Usuario: ${adminUserEnv}`);
         }
     } catch (e) {
         console.warn('Error al verificar admin de respaldo:', e.message || e.code);
     }
 
     esquemaVerificado = true;
-    console.log('[OK] Esquema, columna telefono (SMS directo) y administrador predeterminado verificados correctamente.');
+    console.log('[OK] Esquema y columna telefono (SMS directo) verificados correctamente.');
 }
 
 conectarBD();
