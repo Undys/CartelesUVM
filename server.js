@@ -142,8 +142,42 @@ function normalizarTextoCarrera(str = '') {
         .toLowerCase();
 }
 
-// Helper para englobar cualquier carrera específica dentro de su Área General (Vertical académica UVM)
-function obtenerAreaGeneral(carreraRaw = '') {
+// Helper para separar la lista de áreas/carreras de un profesor (soporta profesores multidisciplinarios sin límite de áreas)
+function dividirCarrerasProfesor(carreraRaw = '') {
+    if (!carreraRaw) return [];
+    const listaCruda = Array.isArray(carreraRaw)
+        ? carreraRaw.map(x => String(x || ''))
+        : [String(carreraRaw || '')];
+
+    const TOKEN_ARTE = '__TOKEN_ARTE_DISENO_ARQ__';
+    const resultado = [];
+    const vistos = new Set();
+
+    for (const item of listaCruda) {
+        const protegido = item.replace(/arte\s*,\s*dise[ñn]o\s*y\s*arquitectura/gi, TOKEN_ARTE);
+        const partes = protegido.split(/[|;,]+/);
+        for (const p of partes) {
+            const restaurado = p.replace(new RegExp(TOKEN_ARTE, 'g'), 'Arte, Diseño y Arquitectura').trim();
+            if (!restaurado) continue;
+            const claveNorm = normalizarTextoCarrera(restaurado);
+            if (claveNorm && !vistos.has(claveNorm)) {
+                vistos.add(claveNorm);
+                resultado.push(restaurado);
+            }
+        }
+    }
+    return resultado;
+}
+
+// Helper para formatear y guardar múltiples áreas/carreras separadas por " | "
+function normalizarCarrerasMultiples(carreraRaw, valorDefecto = 'Ingeniería') {
+    const lista = dividirCarrerasProfesor(carreraRaw);
+    if (lista.length === 0) return valorDefecto;
+    return lista.join(' | ');
+}
+
+// Helper para englobar una carrera individual dentro de su Área General (Vertical académica UVM)
+function obtenerAreaGeneralIndividual(carreraRaw = '') {
     const c = normalizarTextoCarrera(carreraRaw);
     if (!c) return '';
 
@@ -247,12 +281,35 @@ function obtenerAreaGeneral(carreraRaw = '') {
     return String(carreraRaw || '').trim();
 }
 
-// Verifica si la carrera/área de un profesor y la carrera de un cartel pertenecen a la misma Área General
+// Devuelve arreglo de todas las Áreas Generales a las que pertenece un profesor o cartel
+function obtenerAreasGenerales(carreraRaw = '') {
+    const partes = dividirCarrerasProfesor(carreraRaw);
+    const areas = [];
+    const vistos = new Set();
+    for (const p of partes) {
+        const area = obtenerAreaGeneralIndividual(p);
+        const norm = normalizarTextoCarrera(area);
+        if (norm && !vistos.has(norm)) {
+            vistos.add(norm);
+            areas.push(area);
+        }
+    }
+    return areas;
+}
+
+// Devuelve texto con el Área General (o las Áreas Generales unidas por " | " si es multidisciplinario)
+function obtenerAreaGeneral(carreraRaw = '') {
+    const areas = obtenerAreasGenerales(carreraRaw);
+    if (areas.length === 0) return '';
+    return areas.join(' | ');
+}
+
+// Verifica si alguna de las áreas de un profesor coincide con el área del cartel (soporta profesores multidisciplinarios)
 function sonCarrerasDeMismaArea(carreraProfesor, carreraCartel) {
-    const areaProfe = obtenerAreaGeneral(carreraProfesor);
-    const areaCartel = obtenerAreaGeneral(carreraCartel);
-    if (!areaProfe || !areaCartel) return false;
-    return normalizarTextoCarrera(areaProfe) === normalizarTextoCarrera(areaCartel);
+    const areasProfe = obtenerAreasGenerales(carreraProfesor).map(normalizarTextoCarrera).filter(Boolean);
+    const areasCartel = obtenerAreasGenerales(carreraCartel).map(normalizarTextoCarrera).filter(Boolean);
+    if (areasProfe.length === 0 || areasCartel.length === 0) return false;
+    return areasProfe.some(ap => areasCartel.includes(ap));
 }
 
 // Limpia asignaciones incompatibles por área (por ejemplo, si a un profesor de Ingeniería se le asignó por error un cartel de Negocios)
@@ -798,9 +855,15 @@ async function asegurarEsquemaYColumnas() {
     try {
         const [pCols] = await pool.query("SHOW COLUMNS FROM profesores LIKE 'carrera'");
         if (pCols.length === 0) {
-            await pool.query("ALTER TABLE profesores ADD COLUMN carrera VARCHAR(100) NOT NULL DEFAULT 'Ingeniería'");
+            await pool.query("ALTER TABLE profesores ADD COLUMN carrera TEXT NOT NULL");
             console.log('[OK] Columna carrera agregada a profesores');
+        } else {
+            await pool.query("ALTER TABLE profesores MODIFY COLUMN carrera TEXT NOT NULL");
         }
+    } catch (e) {}
+
+    try {
+        await pool.query("ALTER TABLE usuarios MODIFY COLUMN carrera TEXT NULL");
     } catch (e) {}
 
     // 3. Asegurar columnas en carteles
@@ -1244,7 +1307,7 @@ async function generarMatriculaUnica(nombre, rol = 'profesor', matriculaBase = '
 // Admin da de alta a un usuario manualmente (eligiendo si es estudiante o profesor) y genera su SMS directo al instante
 app.post('/api/admin/usuarios', async (req, res) => {
     try {
-        const { nombre, matricula, telefono, celular, email, password, rol, carrera, semestre, nivel_asignado } = req.body;
+        const { nombre, matricula, telefono, celular, email, password, rol, carrera, carreras, semestre, nivel_asignado } = req.body;
         if (!nombre || !password) {
             return res.status(400).json({ error: "Nombre y contraseña son obligatorios." });
         }
@@ -1252,7 +1315,10 @@ app.post('/api/admin/usuarios', async (req, res) => {
         const nombreMayus = convertirMayusculas(nombre);
         const telVal = normalizarTelefono(telefono || celular || email || '') || null;
         const rolVal = (rol === 'profesor' || rol === 'admin') ? rol : 'estudiante';
-        const carreraVal = (carrera && carrera.trim()) ? carrera.trim() : 'Ingeniería';
+        const rawCarrera = carreras !== undefined ? carreras : carrera;
+        const carreraVal = rolVal === 'profesor'
+            ? normalizarCarrerasMultiples(rawCarrera, 'Ingeniería')
+            : ((typeof rawCarrera === 'string' && rawCarrera.trim()) ? rawCarrera.trim() : 'Ingeniería');
         const semVal = parseInt(semestre) || 1;
         const nivelVal = parseInt(nivel_asignado) || 1;
 
@@ -1433,7 +1499,7 @@ app.post('/api/admin/usuarios/:id/reenviar-correo', manejarEnvioSmsUsuario);
 app.put('/api/admin/usuarios/:id/rol', async (req, res) => {
     try {
         const { id } = req.params;
-        const { rol, carrera, nivel_asignado, password, telefono, celular, email } = req.body;
+        const { rol, carrera, carreras, nivel_asignado, password, telefono, celular, email } = req.body;
 
         const [userRows] = await pool.query('SELECT * FROM usuarios WHERE id = ?', [id]);
         if (userRows.length === 0) return res.status(404).json({ error: "Usuario no encontrado." });
@@ -1441,7 +1507,10 @@ app.put('/api/admin/usuarios/:id/rol', async (req, res) => {
 
         const rolesValidos = ['estudiante', 'profesor', 'admin'];
         const nuevoRol = rolesValidos.includes(rol) ? rol : 'estudiante';
-        const nuevaCarrera = (carrera && carrera.trim()) ? carrera.trim() : (nuevoRol === 'admin' ? 'General' : (user.carrera || 'Ingeniería'));
+        const rawCarrera = carreras !== undefined ? carreras : carrera;
+        const nuevaCarrera = nuevoRol === 'profesor'
+            ? normalizarCarrerasMultiples(rawCarrera || user.carrera, 'Ingeniería')
+            : ((typeof rawCarrera === 'string' && rawCarrera.trim()) ? rawCarrera.trim() : (nuevoRol === 'admin' ? 'General' : (user.carrera || 'Ingeniería')));
         const nuevoNivel = parseInt(nivel_asignado) || user.nivel_asignado || 1;
         const passActualizada = (password && password.trim()) ? password.trim() : user.password;
         const rawTel = telefono !== undefined ? telefono : (celular !== undefined ? celular : email);
@@ -1510,7 +1579,7 @@ app.put('/api/admin/usuarios/:id/rol', async (req, res) => {
 app.put('/api/admin/usuarios/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const { nombre, matricula, telefono, celular, email, carrera, semestre, nivel_asignado, password, rol } = req.body;
+        const { nombre, matricula, telefono, celular, email, carrera, carreras, semestre, nivel_asignado, password, rol } = req.body;
 
         const [userRows] = await pool.query('SELECT * FROM usuarios WHERE id = ?', [id]);
         if (userRows.length === 0) return res.status(404).json({ error: "Usuario no encontrado." });
@@ -1530,7 +1599,10 @@ app.put('/api/admin/usuarios/:id', async (req, res) => {
         const mat = matricula ? matricula.trim() : user.matricula;
         const rawTel = telefono !== undefined ? telefono : (celular !== undefined ? celular : email);
         const telVal = rawTel !== undefined ? (normalizarTelefono(rawTel) || null) : (user.telefono || user.email || null);
-        const car = carrera || user.carrera;
+        const rawCarrera = carreras !== undefined ? carreras : carrera;
+        const car = rolFinal === 'profesor'
+            ? normalizarCarrerasMultiples(rawCarrera || user.carrera, 'Ingeniería')
+            : (rawCarrera || user.carrera);
         const sem = semestre !== undefined ? parseInt(semestre) : user.semestre;
         const niv = nivel_asignado !== undefined ? parseInt(nivel_asignado) : user.nivel_asignado;
         const pass = (password && password.trim()) ? password.trim() : user.password;
@@ -1642,15 +1714,41 @@ app.put('/api/profesores/:id/nivel', async (req, res) => {
     }
 });
 
-// Cambiar el área / carrera de un profesor
+// Cambiar el área / carrera de un profesor (soporta una o múltiples áreas sin límite para profesores multidisciplinarios)
 app.put('/api/profesores/:id/carrera', async (req, res) => {
     try {
         const { id } = req.params;
-        const { carrera } = req.body;
-        await pool.query('UPDATE profesores SET carrera = ? WHERE id = ?', [carrera, id]);
-        await pool.query('UPDATE usuarios SET carrera = ? WHERE profesor_id = ?', [carrera, id]);
+        const { carrera, carreras, usuario_id } = req.body;
+        const rawCarrera = carreras !== undefined ? carreras : carrera;
+        const carreraNormalizada = normalizarCarrerasMultiples(rawCarrera, 'Ingeniería');
+
+        let profId = parseInt(id);
+        let userId = usuario_id ? parseInt(usuario_id) : null;
+
+        // Verificar si id corresponde a profesores.id; si no existe y existe en usuarios, sincronizar
+        const [pCheck] = await pool.query('SELECT id FROM profesores WHERE id = ?', [profId]);
+        if (pCheck.length === 0 && (userId || profId)) {
+            const [uRows] = await pool.query('SELECT id, profesor_id FROM usuarios WHERE id = ?', [userId || profId]);
+            if (uRows.length > 0 && uRows[0].profesor_id) {
+                profId = uRows[0].profesor_id;
+                userId = uRows[0].id;
+            }
+        }
+
+        if (profId) {
+            await pool.query('UPDATE profesores SET carrera = ? WHERE id = ?', [carreraNormalizada, profId]);
+            await pool.query('UPDATE usuarios SET carrera = ? WHERE profesor_id = ?', [carreraNormalizada, profId]);
+        }
+        if (userId) {
+            await pool.query('UPDATE usuarios SET carrera = ? WHERE id = ?', [carreraNormalizada, userId]);
+        }
+
         await limpiarAsignacionesDeAreasIncompatibles();
-        res.json({ mensaje: "Área de profesor actualizada correctamente" });
+        res.json({
+            mensaje: "Área(s) del profesor actualizadas correctamente",
+            carrera: carreraNormalizada,
+            areas_generales: obtenerAreasGenerales(carreraNormalizada)
+        });
     } catch (err) {
         res.status(400).json({ error: err.message });
     }
@@ -1723,13 +1821,14 @@ app.get('/api/profesores', async (req, res) => {
 
 app.post('/api/profesores', async (req, res) => {
     try {
-        const { nombre, matricula, telefono, celular, email, carrera, nivel_asignado, password } = req.body;
+        const { nombre, matricula, telefono, celular, email, carrera, carreras, nivel_asignado, password } = req.body;
         if (!nombre || !password) {
             return res.status(400).json({ error: "El nombre y la contraseña son obligatorios" });
         }
         const nombreMayus = convertirMayusculas(nombre.trim());
         const telVal = normalizarTelefono(telefono || celular || email || '') || null;
-        const areaCarrera = (carrera && carrera.trim()) ? carrera.trim() : 'Ingeniería';
+        const rawCarrera = carreras !== undefined ? carreras : carrera;
+        const areaCarrera = normalizarCarrerasMultiples(rawCarrera, 'Ingeniería');
         const nivelAleatorio = Math.floor(Math.random() * 3) + 1;
         const nivel = (nivel_asignado !== undefined && nivel_asignado !== null && nivel_asignado !== '') 
             ? parseInt(nivel_asignado) 
@@ -2659,9 +2758,15 @@ async function ejecutarRepartoCarteles(req, res) {
             candidatosValidos.sort((a, b) => {
                 const diffCarga = cargaProfesores[a.id] - cargaProfesores[b.id];
                 if (diffCarga !== 0) return diffCarga;
-                // En caso de empate en carga de carteles, dar preferencia si coincide exactamente la carrera específica
-                const exactoA = normalizarTextoCarrera(a.carrera) === normalizarTextoCarrera(cartel.carrera) ? 0 : 1;
-                const exactoB = normalizarTextoCarrera(b.carrera) === normalizarTextoCarrera(cartel.carrera) ? 0 : 1;
+                // En empate de carga, priorizar al profesor especializado en una sola área para dejar a los multidisciplinarios disponibles para otras áreas que los necesiten
+                const numAreasA = obtenerAreasGenerales(a.carrera).length || 1;
+                const numAreasB = obtenerAreasGenerales(b.carrera).length || 1;
+                if (numAreasA !== numAreasB) return numAreasA - numAreasB;
+                // En caso de empate, dar preferencia si incluye exactamente la carrera específica del cartel
+                const carrerasA = dividirCarrerasProfesor(a.carrera).map(normalizarTextoCarrera);
+                const carrerasB = dividirCarrerasProfesor(b.carrera).map(normalizarTextoCarrera);
+                const exactoA = carrerasA.includes(normalizarTextoCarrera(cartel.carrera)) ? 0 : 1;
+                const exactoB = carrerasB.includes(normalizarTextoCarrera(cartel.carrera)) ? 0 : 1;
                 return exactoA - exactoB;
             });
             // Asignar mínimo 2 y máximo 3 jueces

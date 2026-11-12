@@ -539,10 +539,13 @@
                         ¡Bienvenido(a), <span id="dash-profe-nombre">PROFESOR</span>!
                     </h2>
                     <p class="text-xs sm:text-sm text-red-200 mt-1 font-medium">
-                        Área: <span id="dash-profe-carrera" class="font-bold text-white"></span> • <span id="dash-profe-nivel" class="font-bold text-white">Evaluador de Todos los Niveles</span>
+                        Área(s): <span id="dash-profe-carrera" class="font-bold text-white"></span> • <span id="dash-profe-nivel" class="font-bold text-white">Evaluador de Todos los Niveles</span>
                     </p>
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
+                    <button onclick="abrirModalMisAreasProfesor()" class="bg-white/15 hover:bg-white/25 text-white border border-white/30 px-4 py-2.5 rounded-xl font-extrabold text-xs sm:text-sm shadow-md transition flex items-center gap-1.5">
+                        <span>+ Añadir / Editar Mis Áreas</span>
+                    </button>
                     <button onclick="abrirModalInvitado()" class="bg-amber-500 hover:bg-amber-600 text-slate-900 px-4 py-2.5 rounded-xl font-extrabold text-xs sm:text-sm shadow-md transition flex items-center gap-1.5">
                         <span>Evaluador Invitado / Evaluar con Clave (Suplencia)</span>
                     </button>
@@ -1255,7 +1258,7 @@
 
                 <div id="modal-grupo-profesor" class="space-y-3 bg-red-50/70 p-3.5 rounded-xl border border-red-200">
                     <div>
-                        <label class="block font-bold text-xs uppercase text-red-900 mb-1">Área / Carrera:</label>
+                        <label class="block font-bold text-xs uppercase text-red-900 mb-1">Área(s) / Carrera(s) del Profesor:</label>
                         <select id="modal-promover-carrera" class="w-full border p-2 rounded-lg text-xs font-semibold bg-white text-slate-700">
                             <optgroup label="Área: Ingeniería">
                                 <option value="Ingeniería">Ingeniería (Área General)</option>
@@ -1292,6 +1295,13 @@
                                 <option value="Administración Turística y Hotelera">Administración Turística y Hotelera</option>
                             </optgroup>
                         </select>
+                        <div id="contenedor-areas-extra-promover" class="space-y-2 mt-2"></div>
+                        <div class="mt-2">
+                            <button type="button" onclick="agregarSelectorAreaExtra('contenedor-areas-extra-promover')" class="inline-flex items-center gap-1.5 bg-red-700 hover:bg-red-800 text-white px-3 py-1.5 rounded-xl text-[11px] font-extrabold shadow-sm transition">
+                                + Añadir otra área / carrera (Multidisciplinario)
+                            </button>
+                            <p class="text-[10px] text-red-800 mt-1">Sin límite de áreas: si el profesor evalúa en varias áreas o carreras, agrégalas aquí.</p>
+                        </div>
                     </div>
                 </div>
 
@@ -1376,7 +1386,7 @@
                 </div>
 
                 <div>
-                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Área / Carrera:</label>
+                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Área(s) / Carrera(s):</label>
                     <select id="admin_nuevo_carrera" class="w-full border p-2 rounded-lg text-xs font-semibold bg-white text-slate-700">
                         <optgroup label="Área: Ingeniería">
                             <option value="Ingeniería">Ingeniería (Área General)</option>
@@ -1413,6 +1423,13 @@
                             <option value="Administración Turística y Hotelera">Administración Turística y Hotelera</option>
                         </optgroup>
                     </select>
+                    <div id="contenedor-areas-extra-nuevo" class="space-y-2 mt-2"></div>
+                    <div id="grupo-btn-areas-extra-nuevo" class="mt-2">
+                        <button type="button" onclick="agregarSelectorAreaExtra('contenedor-areas-extra-nuevo')" class="inline-flex items-center gap-1.5 bg-rose-700 hover:bg-rose-800 text-white px-3 py-1.5 rounded-xl text-[11px] font-extrabold shadow-sm transition">
+                            + Añadir otra área / carrera (Profesor Multidisciplinario)
+                        </button>
+                        <p class="text-[10px] text-slate-500 mt-1">Sin límite máximo: puedes agregar todas las áreas en las que imparta clase o evalúe el profesor.</p>
+                    </div>
                 </div>
                 <div>
                     <div class="flex justify-between items-center mb-1">
@@ -1430,6 +1447,82 @@
                     </button>
                     <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-xl text-xs font-bold shadow">
                         Guardar y Preparar WhatsApp
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- MODAL 2.A1: GESTIONAR MIS ÁREAS / CARRERAS (PROFESOR / JUEZ)    -->
+    <!-- ============================================================== -->
+    <div id="modal-mis-areas-profesor" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border space-y-4 my-8">
+            <div class="flex justify-between items-start border-b pb-3">
+                <div>
+                    <span class="inline-block bg-rose-100 text-rose-800 font-black text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-wider mb-1">Perfil Multidisciplinario</span>
+                    <h3 class="font-black text-lg text-slate-800">Mis Áreas y Carreras de Evaluación</h3>
+                    <p class="text-xs text-gray-500 mt-0.5">Añade todas las áreas o carreras en las que puedes evaluar carteles (sin límite máximo).</p>
+                </div>
+                <button onclick="cerrarModalMisAreasProfesor()" class="text-gray-400 hover:text-gray-600 text-lg font-bold">✕</button>
+            </div>
+
+            <form id="form-mis-areas-profesor" class="space-y-3">
+                <div>
+                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Área / Carrera Principal:</label>
+                    <select id="profe_propia_carrera_principal" class="w-full border p-2.5 rounded-xl text-xs font-semibold bg-white text-slate-800 focus:ring-2 focus:ring-red-500">
+                        <optgroup label="Área: Ingeniería">
+                            <option value="Ingeniería">Ingeniería (Área General)</option>
+                            <option value="Ingenierías">Ingenierías</option>
+                            <option value="Ingeniería Mecatrónica">Ingeniería Mecatrónica</option>
+                            <option value="Ingeniería en Sistemas Computacionales">Ingeniería en Sistemas Computacionales</option>
+                        </optgroup>
+                        <optgroup label="Área: Arte, Diseño y Arquitectura">
+                            <option value="Arte, Diseño y Arquitectura">Arte, Diseño y Arquitectura (Área General)</option>
+                            <option value="Arquitectura">Arquitectura</option>
+                            <option value="Diseño Multimedia">Diseño Multimedia</option>
+                            <option value="Diseño y Comunicación Gráfica">Diseño y Comunicación Gráfica</option>
+                            <option value="Diseño Industrial">Diseño Industrial</option>
+                        </optgroup>
+                        <optgroup label="Área: Negocios">
+                            <option value="Negocios">Negocios (Área General)</option>
+                            <option value="Administración de Negocios Internacionales">Administración de Negocios Internacionales</option>
+                            <option value="Administración de Empresa">Administración de Empresa</option>
+                            <option value="Mercadotecnia">Mercadotecnia</option>
+                            <option value="Comercio y Logística Internacionales">Comercio y Logística Internacionales</option>
+                            <option value="Contaduría Pública y Finanzas">Contaduría Pública y Finanzas</option>
+                        </optgroup>
+                        <optgroup label="Área: Ciencias de la Salud">
+                            <option value="Ciencias de la Salud">Ciencias de la Salud</option>
+                        </optgroup>
+                        <optgroup label="Área: Ciencias Sociales y Comunicación">
+                            <option value="Ciencias Sociales">Ciencias Sociales (Área General)</option>
+                            <option value="Ciencias de la Comunicación">Ciencias de la Comunicación</option>
+                            <option value="Comunicación y Medios Digitales">Comunicación y Medios Digitales</option>
+                        </optgroup>
+                        <optgroup label="Área: Hospitalidad y Turismo">
+                            <option value="Hospitalidad y Turismo">Hospitalidad y Turismo (Área General)</option>
+                            <option value="Gastronomía Internacional">Gastronomía Internacional</option>
+                            <option value="Administración Turística y Hotelera">Administración Turística y Hotelera</option>
+                        </optgroup>
+                    </select>
+                </div>
+
+                <div id="contenedor-areas-extra-profe-propio" class="space-y-2"></div>
+
+                <div>
+                    <button type="button" onclick="agregarSelectorAreaExtra('contenedor-areas-extra-profe-propio')" class="inline-flex items-center gap-1.5 bg-rose-700 hover:bg-rose-800 text-white px-3.5 py-2 rounded-xl text-xs font-extrabold shadow-sm transition">
+                        + Añadir otra área / carrera
+                    </button>
+                    <p class="text-[11px] text-slate-500 mt-1">Puedes agregar tantas áreas como necesites para poder calificar carteles de todas tus áreas.</p>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-3 border-t">
+                    <button type="button" onclick="cerrarModalMisAreasProfesor()" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-xl text-xs font-bold shadow">
+                        Guardar Mis Áreas
                     </button>
                 </div>
             </form>
@@ -1815,8 +1908,41 @@
                 .toLowerCase();
         }
 
-        // Helper para englobar cualquier carrera específica dentro de su Área General (Vertical académica UVM)
-        function obtenerAreaGeneralFront(carreraRaw = '') {
+        // Helper para separar la lista de áreas/carreras de un profesor (soporta profesores multidisciplinarios sin límite de áreas)
+        function dividirCarrerasProfesorFront(carreraRaw = '') {
+            if (!carreraRaw) return [];
+            const listaCruda = Array.isArray(carreraRaw)
+                ? carreraRaw.map(x => String(x || ''))
+                : [String(carreraRaw || '')];
+
+            const TOKEN_ARTE = '__TOKEN_ARTE_DISENO_ARQ__';
+            const resultado = [];
+            const vistos = new Set();
+
+            for (const item of listaCruda) {
+                const protegido = item.replace(/arte\s*,\s*dise[ñn]o\s*y\s*arquitectura/gi, TOKEN_ARTE);
+                const partes = protegido.split(/[|;,]+/);
+                for (const p of partes) {
+                    const restaurado = p.replace(new RegExp(TOKEN_ARTE, 'g'), 'Arte, Diseño y Arquitectura').trim();
+                    if (!restaurado) continue;
+                    const claveNorm = normalizarTextoCarreraFront(restaurado);
+                    if (claveNorm && !vistos.has(claveNorm)) {
+                        vistos.add(claveNorm);
+                        resultado.push(restaurado);
+                    }
+                }
+            }
+            return resultado;
+        }
+
+        function normalizarCarrerasMultiplesFront(carreraRaw, valorDefecto = 'Ingeniería') {
+            const lista = dividirCarrerasProfesorFront(carreraRaw);
+            if (lista.length === 0) return valorDefecto;
+            return lista.join(' | ');
+        }
+
+        // Helper para englobar una carrera individual dentro de su Área General (Vertical académica UVM)
+        function obtenerAreaGeneralIndividualFront(carreraRaw = '') {
             const c = normalizarTextoCarreraFront(carreraRaw);
             if (!c) return '';
 
@@ -1914,20 +2040,128 @@
             return String(carreraRaw || '').trim();
         }
 
+        function obtenerAreasGeneralesFront(carreraRaw = '') {
+            const partes = dividirCarrerasProfesorFront(carreraRaw);
+            const areas = [];
+            const vistos = new Set();
+            for (const p of partes) {
+                const area = obtenerAreaGeneralIndividualFront(p);
+                const norm = normalizarTextoCarreraFront(area);
+                if (norm && !vistos.has(norm)) {
+                    vistos.add(norm);
+                    areas.push(area);
+                }
+            }
+            return areas;
+        }
+
+        function obtenerAreaGeneralFront(carreraRaw = '') {
+            const areas = obtenerAreasGeneralesFront(carreraRaw);
+            if (areas.length === 0) return '';
+            return areas.join(' | ');
+        }
+
         function sonCarrerasDeMismaAreaFront(carreraA, carreraB) {
-            const areaA = obtenerAreaGeneralFront(carreraA);
-            const areaB = obtenerAreaGeneralFront(carreraB);
-            if (!areaA || !areaB) return false;
-            return normalizarTextoCarreraFront(areaA) === normalizarTextoCarreraFront(areaB);
+            const areasA = obtenerAreasGeneralesFront(carreraA).map(normalizarTextoCarreraFront).filter(Boolean);
+            const areasB = obtenerAreasGeneralesFront(carreraB).map(normalizarTextoCarreraFront).filter(Boolean);
+            if (areasA.length === 0 || areasB.length === 0) return false;
+            return areasA.some(a => areasB.includes(a));
         }
 
         function formatearEtiquetaCarreraYArea(carreraRaw) {
-            const carrera = (carreraRaw || 'General').trim();
-            const area = obtenerAreaGeneralFront(carrera);
-            if (area && normalizarTextoCarreraFront(carrera) !== normalizarTextoCarreraFront(area)) {
-                return `${carrera} <span class="block text-[10px] text-slate-500 font-bold mt-0.5">Área: ${area}</span>`;
+            const lista = dividirCarrerasProfesorFront(carreraRaw);
+            if (lista.length === 0) return 'General';
+            const areasGen = obtenerAreasGeneralesFront(carreraRaw);
+            const badgesCarreras = lista.map(c => `<span class="inline-block bg-slate-100 text-slate-800 border border-slate-200 px-2 py-0.5 rounded-md text-[11px] font-bold mr-1 mb-1">${c}</span>`).join('');
+            const mostrarResumenAreas = areasGen.length > 0 && (
+                lista.length > 1 || normalizarTextoCarreraFront(lista[0]) !== normalizarTextoCarreraFront(areasGen[0])
+            );
+            return `<div>${badgesCarreras}${mostrarResumenAreas ? `<span class="block text-[10px] text-red-700 font-bold mt-0.5">Área(s) General(es): ${areasGen.join(' • ')}</span>` : ''}</div>`;
+        }
+
+        function generarOpcionesAreasCarrerasHtml() {
+            const baseSelect = document.getElementById('admin_nuevo_carrera') || document.getElementById('modal-promover-carrera');
+            if (baseSelect) return baseSelect.innerHTML;
+            return `
+                <option value="Ingeniería">Ingeniería (Área General)</option>
+                <option value="Arte, Diseño y Arquitectura">Arte, Diseño y Arquitectura (Área General)</option>
+                <option value="Negocios">Negocios (Área General)</option>
+                <option value="Ciencias de la Salud">Ciencias de la Salud</option>
+                <option value="Ciencias Sociales">Ciencias Sociales (Área General)</option>
+                <option value="Hospitalidad y Turismo">Hospitalidad y Turismo (Área General)</option>
+            `;
+        }
+
+        function agregarSelectorAreaExtra(contenedorId, valorInicial = '') {
+            const cont = document.getElementById(contenedorId);
+            if (!cont) return;
+
+            const fila = document.createElement('div');
+            fila.className = 'flex items-center gap-2 fila-area-extra';
+            fila.innerHTML = `
+                <select class="select-area-extra flex-1 border border-slate-300 p-2 rounded-lg text-xs font-semibold bg-white text-slate-700 focus:ring-2 focus:ring-red-500">
+                    ${generarOpcionesAreasCarrerasHtml()}
+                </select>
+                <button type="button" onclick="this.parentElement.remove()" class="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-2.5 py-2 rounded-lg text-xs font-black transition" title="Quitar esta área">
+                    ✕
+                </button>
+            `;
+            cont.appendChild(fila);
+            const sel = fila.querySelector('.select-area-extra');
+            if (sel && valorInicial) {
+                const valorMapeado = valorInicial === 'Diseño' ? 'Arte, Diseño y Arquitectura' : valorInicial;
+                sel.value = valorMapeado;
+                if (sel.value !== valorMapeado) {
+                    const opt = document.createElement('option');
+                    opt.value = valorMapeado;
+                    opt.textContent = valorMapeado;
+                    sel.appendChild(opt);
+                    sel.value = valorMapeado;
+                }
             }
-            return carrera;
+        }
+
+        function poblarSelectoresAreasMultiples(selectPrincipalId, contenedorExtrasId, carreraRaw) {
+            const selPrincipal = document.getElementById(selectPrincipalId);
+            const contExtras = document.getElementById(contenedorExtrasId);
+            if (contExtras) contExtras.innerHTML = '';
+
+            const lista = dividirCarrerasProfesorFront(carreraRaw);
+            const primera = lista.length > 0
+                ? (lista[0] === 'Diseño' ? 'Arte, Diseño y Arquitectura' : lista[0])
+                : 'Ingeniería';
+
+            if (selPrincipal) {
+                selPrincipal.value = primera;
+                if (selPrincipal.value !== primera) {
+                    const opt = document.createElement('option');
+                    opt.value = primera;
+                    opt.textContent = primera;
+                    selPrincipal.appendChild(opt);
+                    selPrincipal.value = primera;
+                }
+            }
+
+            if (contExtras && lista.length > 1) {
+                for (let i = 1; i < lista.length; i++) {
+                    agregarSelectorAreaExtra(contenedorExtrasId, lista[i]);
+                }
+            }
+        }
+
+        function recopilarAreasDeFormulario(selectPrincipalId, contenedorExtrasId) {
+            const valores = [];
+            const selPrincipal = document.getElementById(selectPrincipalId);
+            if (selPrincipal && selPrincipal.value) {
+                valores.push(selPrincipal.value);
+            }
+            const contExtras = document.getElementById(contenedorExtrasId);
+            if (contExtras) {
+                contExtras.querySelectorAll('.select-area-extra').forEach(s => {
+                    if (s.value) valores.push(s.value);
+                });
+            }
+            return normalizarCarrerasMultiplesFront(valores, 'Ingeniería');
         }
 
         // Descripciones de Niveles por Nivel de Madurez (Sin semestres)
@@ -2953,11 +3187,59 @@
         // ==============================================================
         // 4. DASHBOARD DE PROFESORES / JUECES
         // ==============================================================
+        function abrirModalMisAreasProfesor() {
+            if (!usuarioActual || usuarioActual.rol !== 'profesor') return;
+            poblarSelectoresAreasMultiples('profe_propia_carrera_principal', 'contenedor-areas-extra-profe-propio', usuarioActual.carrera || 'Ingeniería');
+            document.getElementById('modal-mis-areas-profesor').classList.remove('hidden');
+        }
+
+        function cerrarModalMisAreasProfesor() {
+            const modal = document.getElementById('modal-mis-areas-profesor');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        document.getElementById('form-mis-areas-profesor').onsubmit = async (e) => {
+            e.preventDefault();
+            if (!usuarioActual || usuarioActual.rol !== 'profesor') return;
+            const form = e.currentTarget;
+            const btnSubmit = form.querySelector('button[type="submit"]');
+            const nuevaCarreraMultiple = recopilarAreasDeFormulario('profe_propia_carrera_principal', 'contenedor-areas-extra-profe-propio');
+            const profId = usuarioActual.profesor_id || usuarioActual.id;
+
+            await ejecutarConBotonBloqueado(btnSubmit, 'Guardando áreas...', async () => {
+                try {
+                    const res = await fetch(`/api/profesores/${profId}/carrera`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            carrera: nuevaCarreraMultiple,
+                            usuario_id: usuarioActual.id
+                        })
+                    });
+                    const data = await res.json();
+                    if (res.ok) {
+                        usuarioActual.carrera = data.carrera || nuevaCarreraMultiple;
+                        cerrarModalMisAreasProfesor();
+                        alert(data.mensaje || 'Tus áreas de evaluación han sido actualizadas.');
+                        cargarDashboardProfesor();
+                    } else {
+                        alert(data.error || 'No se pudieron actualizar tus áreas.');
+                    }
+                } catch (err) {
+                    alert('Error al actualizar áreas: ' + err.message);
+                }
+            });
+        };
+
         async function cargarDashboardProfesor() {
             if (!usuarioActual || usuarioActual.rol !== 'profesor') return;
 
             document.getElementById('dash-profe-nombre').innerText = usuarioActual.nombre;
-            document.getElementById('dash-profe-carrera').innerText = usuarioActual.carrera || 'Ingeniería';
+            const areasGenProfe = obtenerAreasGeneralesFront(usuarioActual.carrera || 'Ingeniería');
+            const textoCarrerasProfe = dividirCarrerasProfesorFront(usuarioActual.carrera || 'Ingeniería').join(' • ');
+            document.getElementById('dash-profe-carrera').innerText = areasGenProfe.length > 1
+                ? `${textoCarrerasProfe} (Áreas: ${areasGenProfe.join(' / ')})`
+                : (textoCarrerasProfe || 'Ingeniería');
             const elNivelProfe = document.getElementById('dash-profe-nivel');
             if (elNivelProfe) elNivelProfe.innerText = 'Evaluador de Todos los Niveles';
 
@@ -3560,7 +3842,7 @@
             document.getElementById('modal-promover-id').value = user.id;
             document.getElementById('modal-promover-subtitulo').innerText = `${user.nombre} (${user.matricula})`;
             document.getElementById('modal-promover-rol').value = user.rol === 'estudiante' ? 'profesor' : user.rol;
-            document.getElementById('modal-promover-carrera').value = user.carrera === 'Diseño' ? 'Arte, Diseño y Arquitectura' : (user.carrera || 'Ingeniería');
+            poblarSelectoresAreasMultiples('modal-promover-carrera', 'contenedor-areas-extra-promover', user.carrera || 'Ingeniería');
             const elNivelPromover = document.getElementById('modal-promover-nivel');
             if (elNivelPromover) elNivelPromover.value = user.nivel_asignado || 1;
             const telInput = document.getElementById('modal-promover-telefono');
@@ -3594,7 +3876,9 @@
             const btnSubmit = form.querySelector('button[type="submit"]');
             const id = document.getElementById('modal-promover-id').value;
             const rol = document.getElementById('modal-promover-rol').value;
-            const carrera = document.getElementById('modal-promover-carrera').value;
+            const carrera = rol === 'profesor'
+                ? recopilarAreasDeFormulario('modal-promover-carrera', 'contenedor-areas-extra-promover')
+                : document.getElementById('modal-promover-carrera').value;
             const nivel_asignado = document.getElementById('modal-promover-nivel')?.value || 1;
             const telefono = document.getElementById('modal-promover-telefono')?.value.trim() || '';
             const password = document.getElementById('modal-promover-pass')?.value || '';
@@ -3845,6 +4129,8 @@
 
         function abrirModalCrearUsuario(rolInicial = 'profesor') {
             document.getElementById('form-crear-usuario-admin').reset();
+            const contExtrasNuevo = document.getElementById('contenedor-areas-extra-nuevo');
+            if (contExtrasNuevo) contExtrasNuevo.innerHTML = '';
             const selRol = document.getElementById('admin_nuevo_rol');
             if (selRol) selRol.value = rolInicial;
             const inputMat = document.getElementById('admin_nuevo_matricula');
@@ -3871,6 +4157,16 @@
             const profeInfo = document.getElementById('admin_nuevo_profe_info');
             const inputTelefono = document.getElementById('admin_nuevo_telefono');
             const tituloModal = document.getElementById('modal-crear-usuario-titulo');
+            const btnAreasExtra = document.getElementById('grupo-btn-areas-extra-nuevo');
+            const contExtrasNuevo = document.getElementById('contenedor-areas-extra-nuevo');
+
+            if (btnAreasExtra) {
+                if (rol === 'profesor') btnAreasExtra.classList.remove('hidden');
+                else {
+                    btnAreasExtra.classList.add('hidden');
+                    if (contExtrasNuevo) contExtrasNuevo.innerHTML = '';
+                }
+            }
 
             if (nivelCont) {
                 if (rol === 'profesor') nivelCont.classList.remove('hidden');
@@ -3902,7 +4198,9 @@
             const matricula = document.getElementById('admin_nuevo_matricula').value.trim();
             const telefono = document.getElementById('admin_nuevo_telefono')?.value.trim() || '';
             const rol = document.getElementById('admin_nuevo_rol').value;
-            const carrera = document.getElementById('admin_nuevo_carrera').value;
+            const carrera = rol === 'profesor'
+                ? recopilarAreasDeFormulario('admin_nuevo_carrera', 'contenedor-areas-extra-nuevo')
+                : document.getElementById('admin_nuevo_carrera').value;
             const nivel_asignado = document.getElementById('admin_nuevo_nivel')?.value || 1;
             const password = document.getElementById('admin_nuevo_pass').value;
 
@@ -4225,6 +4523,31 @@
             }
         }
 
+        function construirOptgroupsCartelesPorAreasProfesor(profe, cartelesCompatibles) {
+            const areasProfe = obtenerAreasGeneralesFront(profe.carrera);
+            const renderOpcion = (c) => {
+                const esAsesor = esProfesorAsesorDeCartelFront(c, profe);
+                return `<option value="${c.id}" ${esAsesor ? 'disabled' : ''}>[${c.clave || 'SIN-CLAVE'}] ${c.titulo_cartel} (${c.carrera || 'General'} - Nivel ${c.nivel})${esAsesor ? ' — [ASESORADO POR ESTE PROFESOR - NO DISPONIBLE]' : ''}</option>`;
+            };
+
+            if (areasProfe.length <= 1) {
+                const areaUnica = areasProfe[0] || profe.carrera || 'General';
+                return `<optgroup label="Área: ${areaUnica} y sus ramas (${cartelesCompatibles.length})">` +
+                    cartelesCompatibles.map(renderOpcion).join('') +
+                    `</optgroup>`;
+            }
+
+            return areasProfe.map(areaGen => {
+                const delArea = cartelesCompatibles.filter(c =>
+                    normalizarTextoCarreraFront(obtenerAreaGeneralIndividualFront(c.carrera)) === normalizarTextoCarreraFront(areaGen)
+                );
+                if (delArea.length === 0) return '';
+                return `<optgroup label="Área: ${areaGen} y sus ramas (${delArea.length})">` +
+                    delArea.map(renderOpcion).join('') +
+                    `</optgroup>`;
+            }).join('');
+        }
+
         function actualizarCartelesCompatiblesManual() {
             const selProfe = document.getElementById('manual-asig-profesor');
             const selCartel = document.getElementById('manual-asig-cartel');
@@ -4244,18 +4567,13 @@
             );
 
             if (cartelesCompatibles.length === 0) {
-                selCartel.innerHTML = `<option value="">-- No hay carteles registrados del área de ${areaGeneralProfe} --</option>`;
+                selCartel.innerHTML = `<option value="">-- No hay carteles registrados de: ${areaGeneralProfe} --</option>`;
                 return;
             }
 
             const valorPrevio = selCartel.value;
-            const opcionesHtml = cartelesCompatibles.map(c => {
-                const esAsesor = esProfesorAsesorDeCartelFront(c, profe);
-                return `<option value="${c.id}" ${esAsesor ? 'disabled' : ''}>[${c.clave || 'SIN-CLAVE'}] ${c.titulo_cartel} (${c.carrera || 'General'} - Nivel ${c.nivel})${esAsesor ? ' — [ASESORADO POR ESTE PROFESOR]' : ''}</option>`;
-            }).join('');
-
             selCartel.innerHTML = `<option value="">-- Selecciona un Cartel de ${areaGeneralProfe} (${cartelesCompatibles.length}) --</option>` +
-                `<optgroup label="Área: ${areaGeneralProfe} y sus ramas (${cartelesCompatibles.length})">${opcionesHtml}</optgroup>`;
+                construirOptgroupsCartelesPorAreasProfesor(profe, cartelesCompatibles);
 
             if (valorPrevio && cartelesCompatibles.some(c => String(c.id) === String(valorPrevio))) {
                 selCartel.value = valorPrevio;
@@ -4347,9 +4665,9 @@
                             <div class="flex justify-between items-start gap-2 border-b border-slate-100 pb-2.5">
                                 <div>
                                     <h5 class="font-black text-slate-800 text-sm uppercase">${p.nombre}</h5>
-                                    <p class="text-[11px] text-slate-500 font-semibold mt-0.5">
-                                        Área: <span class="text-slate-700">${p.carrera || 'General'}</span>
-                                    </p>
+                                    <div class="text-[11px] text-slate-500 font-semibold mt-1">
+                                        ${formatearEtiquetaCarreraYArea(p.carrera)}
+                                    </div>
                                 </div>
                                 <div class="flex flex-col items-end gap-1">
                                     <span class="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold ${asignados.length > 0 ? 'bg-red-100 text-red-900 border border-red-200' : 'bg-slate-100 text-slate-600 border border-slate-200'}">
@@ -4360,7 +4678,10 @@
                             </div>
                             ${listaHtml}
                         </div>
-                        <div class="pt-2 border-t border-slate-100 flex justify-end">
+                        <div class="pt-2 border-t border-slate-100 flex flex-wrap justify-end gap-2">
+                            <button type="button" onclick="abrirModalAreasDesdeProfeId(${p.id})" class="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 px-3 py-1.5 rounded-xl text-[11px] font-bold shadow-sm transition">
+                                + Añadir / Editar Áreas
+                            </button>
                             <button type="button" onclick="abrirModalCartelesProfesor(${p.id})" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-xl text-[11px] font-bold shadow-sm transition">
                                 Ver / + Asignar Carteles a este Profesor
                             </button>
@@ -4368,6 +4689,30 @@
                     </div>
                 `;
             }).join('');
+        }
+
+        async function abrirModalAreasDesdeProfeId(profesorId) {
+            if (!Array.isArray(usuariosAdminCache) || usuariosAdminCache.length === 0) {
+                await cargarAdminUsuarios();
+            }
+            const user = usuariosAdminCache.find(u => Number(u.profesor_id) === Number(profesorId));
+            if (user) {
+                abrirModalPromover(user);
+            } else {
+                const profe = profesoresAdminCache.find(p => Number(p.id) === Number(profesorId));
+                if (profe) {
+                    const nuevasAreas = prompt(`Ingresa las áreas o carreras del profesor ${profe.nombre} separadas por " | " (ej. Ingeniería | Negocios):`, profe.carrera || 'Ingeniería');
+                    if (nuevasAreas && nuevasAreas.trim()) {
+                        await fetch(`/api/profesores/${profe.id}/carrera`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ carrera: nuevasAreas.trim() })
+                        });
+                        await cargarDatosAsignacionManual();
+                        await cargarAdminUsuarios();
+                    }
+                }
+            }
         }
 
         function renderizarTablaAsignacionesManuales(asignaciones) {
@@ -4539,18 +4884,12 @@
             const selCartel = document.getElementById('modal-profe-select-cartel');
             if (selCartel) {
                 const cartelesMismaArea = cartelesAdminCache.filter(c => sonCarrerasDeMismaAreaFront(profe.carrera, c.carrera));
-                const renderOpcionCartel = (c) => {
-                    const esAsesor = esProfesorAsesorDeCartelFront(c, profe);
-                    return `<option value="${c.id}" ${esAsesor ? 'disabled' : ''}>[${c.clave || 'SIN-CLAVE'}] ${c.titulo_cartel} (${c.carrera || 'General'} - Nivel ${c.nivel})${esAsesor ? ' — [ASESORADO POR ESTE PROFESOR - NO DISPONIBLE]' : ''}</option>`;
-                };
 
                 if (cartelesMismaArea.length === 0) {
-                    selCartel.innerHTML = `<option value="">-- No hay carteles registrados del área de ${areaGeneralProfe} --</option>`;
+                    selCartel.innerHTML = `<option value="">-- No hay carteles registrados de: ${areaGeneralProfe} --</option>`;
                 } else {
                     selCartel.innerHTML = `<option value="">-- Selecciona un Cartel de ${areaGeneralProfe} (${cartelesMismaArea.length}) --</option>` +
-                        `<optgroup label="Área: ${areaGeneralProfe} y sus ramas (${cartelesMismaArea.length})">` +
-                        cartelesMismaArea.map(renderOpcionCartel).join('') +
-                        `</optgroup>`;
+                        construirOptgroupsCartelesPorAreasProfesor(profe, cartelesMismaArea);
                 }
             }
 
