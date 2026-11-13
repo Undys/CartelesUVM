@@ -5493,9 +5493,10 @@
         }
 
         function obtenerGanadoresPorNivelDesdeRanking() {
+            const listaRank = typeof datosRanking !== 'undefined' && Array.isArray(datosRanking) ? datosRanking : [];
             const fuente = (Array.isArray(rankingCertificadosCache) && rankingCertificadosCache.length > 0)
                 ? rankingCertificadosCache
-                : (Array.isArray(datosRankingGlobal) && datosRankingGlobal.length > 0 ? datosRankingGlobal : cartelesAdminCache);
+                : (listaRank.length > 0 ? listaRank : cartelesAdminCache);
 
             const podioPorNivel = { 1: [], 2: [], 3: [] };
             [1, 2, 3].forEach(niv => {
@@ -5632,7 +5633,7 @@
             if (selCartel) selCartel.value = String(cartelId);
             const selTipo = document.getElementById('cert-tipo');
             if (selTipo) selTipo.value = obtenerTipoReconocimientoPorLugar(lugar);
-            cargarDatosCartelEnCertificado();
+            cargarDatosCartelEnCertificado(cartelId);
             const previewEl = document.getElementById('certificado-preview-contenedor');
             if (previewEl) previewEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
@@ -5644,7 +5645,8 @@
                     rankingCertificadosCache = await resR.json();
                 } catch (e) {}
             }
-            const fuente = [...(rankingCertificadosCache || []), ...(cartelesAdminCache || []), ...(datosRankingGlobal || [])];
+            const listaRank = typeof datosRanking !== 'undefined' && Array.isArray(datosRanking) ? datosRanking : [];
+            const fuente = [...(rankingCertificadosCache || []), ...(cartelesAdminCache || []), ...listaRank];
             const cartel = fuente.find(c => Number(c.id) === Number(cartelId));
             if (!cartel) {
                 alert('No se encontró la información del cartel para imprimir.');
@@ -5656,7 +5658,7 @@
             if (selCartel) selCartel.value = String(cartel.id);
             const selTipo = document.getElementById('cert-tipo');
             if (selTipo) selTipo.value = obtenerTipoReconocimientoPorLugar(lugar);
-            cargarDatosCartelEnCertificado();
+            cargarDatosCartelEnCertificado(cartel.id);
 
             const listaCertificados = [];
             if (!individualPorIntegrante) {
@@ -5866,7 +5868,7 @@
                     selCartel.value = String(primerGanador.cartel.id);
                     const selTipo = document.getElementById('cert-tipo');
                     if (selTipo) selTipo.value = obtenerTipoReconocimientoPorLugar(primerGanador.lugar);
-                    cargarDatosCartelEnCertificado();
+                    cargarDatosCartelEnCertificado(primerGanador.cartel.id);
                     return;
                 }
             }
@@ -5874,8 +5876,10 @@
             actualizarVistaPreviaCertificado();
         }
 
-        function cargarDatosCartelEnCertificado() {
-            const id = document.getElementById('cert-select-cartel')?.value;
+        function cargarDatosCartelEnCertificado(idDirecto = null) {
+            const id = idDirecto !== null && idDirecto !== undefined && idDirecto !== ''
+                ? idDirecto
+                : document.getElementById('cert-select-cartel')?.value;
             const selInd = document.getElementById('cert-select-destinatario-individual');
             if (!id) {
                 cartelSeleccionadoCertificado = null;
@@ -5883,9 +5887,13 @@
                 actualizarVistaPreviaCertificado();
                 return;
             }
-            const fuente = [...(cartelesAdminCache || []), ...(rankingCertificadosCache || []), ...(datosRankingGlobal || [])];
+            const listaRank = typeof datosRanking !== 'undefined' && Array.isArray(datosRanking) ? datosRanking : [];
+            const fuente = [...(cartelesAdminCache || []), ...(rankingCertificadosCache || []), ...listaRank];
             const c = fuente.find(item => Number(item.id) === Number(id));
-            if (!c) return;
+            if (!c) {
+                actualizarVistaPreviaCertificado();
+                return;
+            }
 
             cartelSeleccionadoCertificado = c;
             const tituloCartel = (c.titulo_cartel || c.nombre_equipo || '').trim();
@@ -5949,7 +5957,7 @@
                 else if (lugarRanking === 3) selTipo.value = 'RECONOCIMIENTO — TERCER LUGAR';
                 else selTipo.value = 'RECONOCIMIENTO DE PARTICIPACIÓN';
             }
-            cargarDatosCartelEnCertificado();
+            cargarDatosCartelEnCertificado(cartelId);
         }
 
         function construirParrafoCuerpoReconocimiento(datos) {
