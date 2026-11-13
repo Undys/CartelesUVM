@@ -1080,19 +1080,19 @@
                             </div>
 
                             <div class="md:col-span-2">
-                                <label class="block font-bold text-slate-700 uppercase mb-1">Nombre(s) del Galardonado / Integrantes:</label>
-                                <input type="text" id="cert-destinatario" oninput="actualizarVistaPreviaCertificado()" value="Óscar Daniel Máynez Navarro" placeholder="Ej. Óscar Daniel Máynez Navarro" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-bold text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
+                                <label class="block font-bold text-slate-700 uppercase mb-1">Nombre del Cartel / Trabajo:</label>
+                                <input type="text" id="cert-destinatario" oninput="document.getElementById('cert-titulo-proyecto').value = this.value; actualizarVistaPreviaCertificado();" value="Síntesis de nanoestrellas de ZnO para tratamiento de agua" placeholder="Ej. Síntesis de nanoestrellas de ZnO para tratamiento de agua" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-bold text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
                             </div>
                             <div>
-                                <label class="block font-bold text-slate-700 uppercase mb-1">Seleccionar Destinatario Específico del Cartel:</label>
+                                <label class="block font-bold text-slate-700 uppercase mb-1">Seleccionar Destinatario / Cartel:</label>
                                 <select id="cert-select-destinatario-individual" onchange="if(this.value) { document.getElementById('cert-destinatario').value = this.value; actualizarVistaPreviaCertificado(); }" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-semibold text-slate-700 focus:ring-2 focus:ring-red-500 focus:outline-none">
-                                    <option value="">-- Equipo Completo / Personalizado --</option>
+                                    <option value="">-- Nombre del Cartel / Personalizado --</option>
                                 </select>
                             </div>
 
                             <div class="md:col-span-2">
                                 <label class="block font-bold text-slate-700 uppercase mb-1">Título del Proyecto / Cartel:</label>
-                                <input type="text" id="cert-titulo-proyecto" oninput="actualizarVistaPreviaCertificado()" value="Síntesis de nanoestrellas de ZnO para tratamiento de agua" placeholder="Ej. Síntesis de nanoestrellas de ZnO para tratamiento de agua" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-semibold text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
+                                <input type="text" id="cert-titulo-proyecto" oninput="document.getElementById('cert-destinatario').value = this.value; actualizarVistaPreviaCertificado();" value="Síntesis de nanoestrellas de ZnO para tratamiento de agua" placeholder="Ej. Síntesis de nanoestrellas de ZnO para tratamiento de agua" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-semibold text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
                             </div>
                             <div>
                                 <label class="block font-bold text-slate-700 uppercase mb-1">Equipo y Clave (Opcional):</label>
@@ -5474,15 +5474,16 @@
         function construirDatosCertificadoDesdeCartel(cartel, lugar = 1, destinatarioPersonalizado = null, tipoPersonalizado = null) {
             const base = obtenerDatosFormularioCertificado();
             const tipoRecon = tipoPersonalizado || obtenerTipoReconocimientoPorLugar(lugar);
-            const destRaw = destinatarioPersonalizado || cartel.participantes || cartel.nombre_equipo || 'Óscar Daniel Máynez Navarro';
+            const tituloCartel = (cartel.titulo_cartel || cartel.nombre_equipo || 'Síntesis de nanoestrellas de ZnO para tratamiento de agua').trim();
+            const destFinal = destinatarioPersonalizado ? formatearNombreGalardonado(destinatarioPersonalizado) : tituloCartel;
             const asesoresTexto = (cartel.asesor_nombre && cartel.asesor_nombre !== 'Sin Asesor')
                 ? cartel.asesor_nombre
                 : (cartel.profesores_asesores_nombres || '');
             return {
                 ...base,
                 tipo: tipoRecon,
-                destinatario: formatearNombreGalardonado(destRaw),
-                tituloProyecto: cartel.titulo_cartel || 'Síntesis de nanoestrellas de ZnO para tratamiento de agua',
+                destinatario: destFinal,
+                tituloProyecto: tituloCartel,
                 campus: base.campus || 'Campus Puebla',
                 area: cartel.carrera || 'Ingeniería en Biotecnología',
                 nivel: obtenerDescripcionNivelMadurez(cartel.nivel),
@@ -5666,8 +5667,8 @@
                     .map(s => s.trim())
                     .filter(Boolean);
                 if (integrantes.length > 0) {
-                    integrantes.forEach(alumno => {
-                        listaCertificados.push(construirDatosCertificadoDesdeCartel(cartel, lugar, alumno));
+                    integrantes.forEach(() => {
+                        listaCertificados.push(construirDatosCertificadoDesdeCartel(cartel, lugar));
                     });
                 } else {
                     listaCertificados.push(construirDatosCertificadoDesdeCartel(cartel, lugar));
@@ -5677,13 +5678,13 @@
                     .split(',')
                     .map(s => s.trim())
                     .filter(s => s && s.toUpperCase() !== 'SIN ASESOR');
-                asesoresLista.forEach(asesor => {
-                    listaCertificados.push(construirDatosCertificadoDesdeCartel(cartel, lugar, asesor, 'CONSTANCIA DE ASESORÍA ACADÉMICA'));
+                asesoresLista.forEach(() => {
+                    listaCertificados.push(construirDatosCertificadoDesdeCartel(cartel, lugar, null, 'CONSTANCIA DE ASESORÍA ACADÉMICA'));
                 });
             }
 
             const htmlPaginas = listaCertificados.map(item => `<div class="pagina-impresion">${generarHtmlCertificadoFormal(item)}</div>`).join('');
-            abrirVentanaImpresionCertificados(htmlPaginas, `Certificado ${lugar}° Lugar Nivel ${cartel.nivel} - ${cartel.nombre_equipo}`);
+            abrirVentanaImpresionCertificados(htmlPaginas, `Certificado ${lugar}° Lugar Nivel ${cartel.nivel} - ${cartel.titulo_cartel || cartel.nombre_equipo}`);
         }
 
         function imprimirGanadoresDeNivel(nivel, individualPorIntegrante = false) {
@@ -5701,8 +5702,8 @@
                 } else {
                     const integrantes = String(cartel.participantes || '').split(',').map(s => s.trim()).filter(Boolean);
                     if (integrantes.length > 0) {
-                        integrantes.forEach(alumno => {
-                            listaCertificados.push(construirDatosCertificadoDesdeCartel(cartel, lugar, alumno));
+                        integrantes.forEach(() => {
+                            listaCertificados.push(construirDatosCertificadoDesdeCartel(cartel, lugar));
                         });
                     } else {
                         listaCertificados.push(construirDatosCertificadoDesdeCartel(cartel, lugar));
@@ -5711,8 +5712,8 @@
                         .split(',')
                         .map(s => s.trim())
                         .filter(s => s && s.toUpperCase() !== 'SIN ASESOR');
-                    asesoresLista.forEach(asesor => {
-                        listaCertificados.push(construirDatosCertificadoDesdeCartel(cartel, lugar, asesor, 'CONSTANCIA DE ASESORÍA ACADÉMICA'));
+                    asesoresLista.forEach(() => {
+                        listaCertificados.push(construirDatosCertificadoDesdeCartel(cartel, lugar, null, 'CONSTANCIA DE ASESORÍA ACADÉMICA'));
                     });
                 }
             });
@@ -5733,8 +5734,8 @@
                     } else {
                         const integrantes = String(cartel.participantes || '').split(',').map(s => s.trim()).filter(Boolean);
                         if (integrantes.length > 0) {
-                            integrantes.forEach(alumno => {
-                                listaCertificados.push(construirDatosCertificadoDesdeCartel(cartel, lugar, alumno));
+                            integrantes.forEach(() => {
+                                listaCertificados.push(construirDatosCertificadoDesdeCartel(cartel, lugar));
                             });
                         } else {
                             listaCertificados.push(construirDatosCertificadoDesdeCartel(cartel, lugar));
@@ -5743,8 +5744,8 @@
                             .split(',')
                             .map(s => s.trim())
                             .filter(s => s && s.toUpperCase() !== 'SIN ASESOR');
-                        asesoresLista.forEach(asesor => {
-                            listaCertificados.push(construirDatosCertificadoDesdeCartel(cartel, lugar, asesor, 'CONSTANCIA DE ASESORÍA ACADÉMICA'));
+                        asesoresLista.forEach(() => {
+                            listaCertificados.push(construirDatosCertificadoDesdeCartel(cartel, lugar, null, 'CONSTANCIA DE ASESORÍA ACADÉMICA'));
                         });
                     }
                 });
@@ -5837,10 +5838,13 @@
             } catch (e) {}
 
             const selCartel = document.getElementById('cert-select-cartel');
-            if (selCartel && Array.isArray(cartelesAdminCache)) {
+            const listaCartelesDisp = (Array.isArray(cartelesAdminCache) && cartelesAdminCache.length > 0)
+                ? cartelesAdminCache
+                : (Array.isArray(rankingCertificadosCache) ? rankingCertificadosCache : []);
+            if (selCartel && listaCartelesDisp.length > 0) {
                 const prev = selCartel.value;
                 selCartel.innerHTML = '<option value="">-- Plantilla Base / Selecciona un cartel registrado --</option>' +
-                    cartelesAdminCache.map(c => `<option value="${c.id}">[${c.clave || 'S/C'}] ${c.titulo_cartel} (${c.nombre_equipo} - Nivel ${c.nivel})</option>`).join('');
+                    listaCartelesDisp.map(c => `<option value="${c.id}">[${c.clave || 'S/C'}] ${c.titulo_cartel} (${c.nombre_equipo} - Nivel ${c.nivel})</option>`).join('');
                 if (prev) selCartel.value = prev;
             }
 
@@ -5875,38 +5879,27 @@
             const selInd = document.getElementById('cert-select-destinatario-individual');
             if (!id) {
                 cartelSeleccionadoCertificado = null;
-                if (selInd) selInd.innerHTML = '<option value="">-- Equipo Completo / Personalizado --</option>';
+                if (selInd) selInd.innerHTML = '<option value="">-- Nombre del Cartel / Personalizado --</option>';
                 actualizarVistaPreviaCertificado();
                 return;
             }
-            const c = cartelesAdminCache.find(item => Number(item.id) === Number(id));
+            const fuente = [...(cartelesAdminCache || []), ...(rankingCertificadosCache || []), ...(datosRankingGlobal || [])];
+            const c = fuente.find(item => Number(item.id) === Number(id));
             if (!c) return;
 
             cartelSeleccionadoCertificado = c;
-            const tipo = (document.getElementById('cert-tipo')?.value || '').toUpperCase();
+            const tituloCartel = (c.titulo_cartel || c.nombre_equipo || '').trim();
 
-            // Poblar selector de destinatarios individuales (alumnos y asesores del cartel)
             if (selInd) {
-                const integrantes = String(c.participantes || '').split(',').map(s => formatearNombreGalardonado(s.trim())).filter(Boolean);
-                const asesores = String(c.profesores_asesores_nombres || c.asesor_nombre || '').split(',').map(s => formatearNombreGalardonado(s.trim())).filter(s => s && s.toUpperCase() !== 'SIN ASESOR');
-                const equipoFormatted = integrantes.length > 0 ? integrantes.join(', ') : formatearNombreGalardonado(c.nombre_equipo || '');
-                let opts = `<option value="${escaparHtmlCert(equipoFormatted)}">Equipo Completo (${integrantes.length || 1})</option>`;
-                integrantes.forEach(al => {
-                    opts += `<option value="${escaparHtmlCert(al)}">Alumno: ${escaparHtmlCert(al)}</option>`;
-                });
-                asesores.forEach(as => {
-                    opts += `<option value="${escaparHtmlCert(as)}">Asesor: ${escaparHtmlCert(as)}</option>`;
-                });
+                let opts = `<option value="${escaparHtmlCert(tituloCartel)}">Cartel: ${escaparHtmlCert(tituloCartel)}</option>`;
+                if (c.nombre_equipo) {
+                    opts += `<option value="${escaparHtmlCert(c.nombre_equipo)}">Equipo: ${escaparHtmlCert(c.nombre_equipo)}</option>`;
+                }
                 selInd.innerHTML = opts;
             }
 
-            if (tipo.includes('ASESOR')) {
-                document.getElementById('cert-destinatario').value = formatearNombreGalardonado(c.asesor_nombre || 'Profesor Asesor');
-            } else {
-                const integrantes = String(c.participantes || '').split(',').map(s => formatearNombreGalardonado(s.trim())).filter(Boolean);
-                document.getElementById('cert-destinatario').value = integrantes.length > 0 ? integrantes.join(', ') : formatearNombreGalardonado(c.nombre_equipo || '');
-            }
-            document.getElementById('cert-titulo-proyecto').value = c.titulo_cartel || '';
+            document.getElementById('cert-destinatario').value = tituloCartel;
+            document.getElementById('cert-titulo-proyecto').value = tituloCartel;
             const elCarrera = document.getElementById('cert-carrera') || document.getElementById('cert-area');
             if (elCarrera) elCarrera.value = c.carrera || 'Ingeniería en Biotecnología';
             const elNivel = document.getElementById('cert-nivel');
@@ -5961,7 +5954,6 @@
 
         function construirParrafoCuerpoReconocimiento(datos) {
             const t = String(datos.tipo || '').toUpperCase();
-            const tituloProyecto = escaparHtmlCert(datos.tituloProyecto || 'Síntesis de nanoestrellas de ZnO para tratamiento de agua');
             const evento = escaparHtmlCert(datos.evento || '20º edición del Foro de Investigación C1-2026');
             const area = escaparHtmlCert(datos.area || 'Ingeniería en Biotecnología');
             const numNivel = extraerNumeroNivelMadurez(datos.nivel);
@@ -5982,20 +5974,25 @@
 
             if (t.includes('ASESOR')) {
                 if (lugarTexto) {
-                    return `Por su destacada participación como Asesor Académico con el proyecto ${tituloProyecto} en la ${evento}, obteniendo el ${lugarTexto} de la vertical de ${area}${fragmentoNivel}.`;
+                    return `Por su destacada participación como Asesor Académico en la ${evento}, obteniendo el ${lugarTexto} de la vertical de ${area}${fragmentoNivel}.`;
                 }
-                return `Por su destacada participación como Asesor Académico con el proyecto ${tituloProyecto} en la ${evento}, de la vertical de ${area}${fragmentoNivel}.`;
+                return `Por su destacada participación como Asesor Académico en la ${evento}, de la vertical de ${area}${fragmentoNivel}.`;
             }
 
             if (lugarTexto) {
-                return `Por su destacada participación con el proyecto ${tituloProyecto} en la ${evento}, obteniendo el ${lugarTexto} de la vertical de ${area}${fragmentoNivel}.`;
+                return `Por su destacada participación en la ${evento}, obteniendo el ${lugarTexto} de la vertical de ${area}${fragmentoNivel}.`;
             }
 
-            return `Por su destacada participación con el proyecto ${tituloProyecto} en la ${evento}, de la vertical de ${area}${fragmentoNivel}.`;
+            return `Por su destacada participación en la ${evento}, de la vertical de ${area}${fragmentoNivel}.`;
         }
 
         function generarHtmlCertificadoFormal(datos) {
-            const destinatario = escaparHtmlCert(datos.destinatario || 'Óscar Daniel Máynez Navarro');
+            const t = String(datos.tipo || '').toUpperCase();
+            const esEvaluador = t.includes('EVALUADOR') || t.includes('JUEZ');
+            const textoPrincipal = esEvaluador
+                ? (datos.destinatario || datos.tituloProyecto)
+                : (datos.tituloProyecto || datos.destinatario);
+            const destinatario = escaparHtmlCert(textoPrincipal || 'Síntesis de nanoestrellas de ZnO para tratamiento de agua');
             const campus = escaparHtmlCert(datos.campus || 'Campus Puebla');
             const fecha = escaparHtmlCert(datos.fecha || formatearFechaCertificadoDesdeYMD(obtenerFechaActualYMD()));
             const firmaNombre = escaparHtmlCert(datos.firma1Nombre || 'Mtro. Javier Quintana Terés');
@@ -6024,14 +6021,10 @@
                         </div>
                     </div>
 
-                    <!-- 4, 5 y 6. Título central, Nombre del galardonado y Texto principal del cuerpo -->
+                    <!-- 4, 5 y 6. Título central, Nombre del cartel y Texto principal del cuerpo -->
                     <div style="text-align: center; margin: auto 0; padding: 0 6mm; position: relative; z-index: 2;">
-                        <div style="font-size: 38pt; font-weight: 800; color: #1f2937; letter-spacing: 0.5px; line-height: 1.1; margin-bottom: 7mm;">
-                            Reconocimiento
-                        </div>
-
-                        <div style="font-size: 13pt; font-weight: 400; color: #4b5563; margin-bottom: 3mm;">
-                            a
+                        <div style="font-size: 28pt; font-weight: 800; color: #1f2937; letter-spacing: 0.5px; line-height: 1.2; margin-bottom: 8mm;">
+                            Reconociendo el trabajo a
                         </div>
 
                         <div style="font-size: 24pt; font-weight: 800; color: #111827; line-height: 1.25; margin-bottom: 10mm; word-break: break-word;">
@@ -6076,10 +6069,12 @@
         function obtenerDatosFormularioCertificado() {
             const elCarrera = document.getElementById('cert-carrera') || document.getElementById('cert-area');
             const elClave = document.getElementById('cert-equipo-clave') || document.getElementById('cert-clave');
+            const tituloProyecto = document.getElementById('cert-titulo-proyecto')?.value.trim() || 'Síntesis de nanoestrellas de ZnO para tratamiento de agua';
+            const destinatario = document.getElementById('cert-destinatario')?.value.trim() || tituloProyecto;
             return {
                 tipo: document.getElementById('cert-tipo')?.value || 'RECONOCIMIENTO — PRIMER LUGAR',
-                destinatario: document.getElementById('cert-destinatario')?.value.trim() || 'Óscar Daniel Máynez Navarro',
-                tituloProyecto: document.getElementById('cert-titulo-proyecto')?.value.trim() || 'Síntesis de nanoestrellas de ZnO para tratamiento de agua',
+                destinatario,
+                tituloProyecto,
                 campus: document.getElementById('cert-campus')?.value.trim() || 'Campus Puebla',
                 area: elCarrera?.value.trim() || 'Ingeniería en Biotecnología',
                 nivel: document.getElementById('cert-nivel')?.value.trim() || 'Nivel 1 — Propuesta Documental / Solo Texto',
@@ -6186,20 +6181,26 @@
             const listaCertificados = [];
 
             if (cartel) {
+                const tituloCartel = (cartel.titulo_cartel || datosBase.tituloProyecto || datosBase.destinatario || '').trim();
                 const integrantes = String(cartel.participantes || '')
                     .split(',')
                     .map(s => s.trim())
                     .filter(Boolean);
 
                 if (integrantes.length > 0) {
-                    integrantes.forEach(alumno => {
+                    integrantes.forEach(() => {
                         listaCertificados.push({
                             ...datosBase,
-                            destinatario: formatearNombreGalardonado(alumno)
+                            destinatario: tituloCartel,
+                            tituloProyecto: tituloCartel
                         });
                     });
                 } else {
-                    listaCertificados.push({ ...datosBase });
+                    listaCertificados.push({
+                        ...datosBase,
+                        destinatario: tituloCartel,
+                        tituloProyecto: tituloCartel
+                    });
                 }
 
                 const asesoresLista = String(cartel.profesores_asesores_nombres || cartel.asesor_nombre || '')
@@ -6207,11 +6208,12 @@
                     .map(s => s.trim())
                     .filter(s => s && s.toUpperCase() !== 'SIN ASESOR');
 
-                asesoresLista.forEach(asesor => {
+                asesoresLista.forEach(() => {
                     listaCertificados.push({
                         ...datosBase,
-                        tipo: 'asesor',
-                        destinatario: formatearNombreGalardonado(asesor)
+                        tipo: 'CONSTANCIA DE ASESORÍA ACADÉMICA',
+                        destinatario: tituloCartel,
+                        tituloProyecto: tituloCartel
                     });
                 });
             } else {
