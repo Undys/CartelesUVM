@@ -41,6 +41,15 @@ if (typeof process.loadEnvFile === 'function') {
     }
 }
 
+// Protección global para que el proceso de Node.js nunca se caiga ante desconexiones momentáneas de red o promesas rechazadas
+process.on('uncaughtException', (err) => {
+    console.error('[PROTECCIÓN SERVIDOR - uncaughtException]:', err && err.message ? err.message : err);
+});
+
+process.on('unhandledRejection', (reason) => {
+    console.error('[PROTECCIÓN SERVIDOR - unhandledRejection]:', reason && reason.message ? reason.message : reason);
+});
+
 const app = express();
 app.use(express.json());
 app.use(cors());
@@ -640,7 +649,13 @@ async function conectarBD() {
         password: process.env.DB_PASSWORD || '',
         database: process.env.DB_NAME || 'evaluaciones_db',
         waitForConnections: true,
-        connectionLimit: 10
+        connectionLimit: 15,
+        maxIdle: 10,
+        idleTimeout: 60000,
+        queueLimit: 0,
+        enableKeepAlive: true,
+        keepAliveInitialDelay: 10000,
+        connectTimeout: 20000
     };
 
     if (sslConfig) {
@@ -1756,8 +1771,9 @@ app.put('/api/profesores/:id/carrera', async (req, res) => {
 
 // Eliminar a un profesor y limpiar sus relaciones
 app.delete('/api/profesores/:id', async (req, res) => {
-    const connection = await pool.getConnection();
+    let connection;
     try {
+        connection = await pool.getConnection();
         await connection.beginTransaction();
         const { id } = req.params;
 
@@ -1770,10 +1786,12 @@ app.delete('/api/profesores/:id', async (req, res) => {
         await connection.commit();
         res.json({ mensaje: "Profesor eliminado exitosamente" });
     } catch (err) {
-        await connection.rollback();
+        if (connection) {
+            try { await connection.rollback(); } catch (e) {}
+        }
         res.status(400).json({ error: err.message });
     } finally {
-        connection.release();
+        if (connection) connection.release();
     }
 });
 
@@ -1871,8 +1889,9 @@ app.post('/api/profesores', async (req, res) => {
 
 // Asignar niveles aleatorios y balanceados a todos los profesores
 app.post('/api/admin/profesores/randomizar-niveles', async (req, res) => {
-    const connection = await pool.getConnection();
+    let connection;
     try {
+        connection = await pool.getConnection();
         await connection.beginTransaction();
         const [profesores] = await connection.execute('SELECT id, carrera FROM profesores');
         
@@ -1904,10 +1923,12 @@ app.post('/api/admin/profesores/randomizar-niveles', async (req, res) => {
         await connection.commit();
         res.json({ mensaje: `¡Se asignaron y balancearon aleatoriamente los niveles para ${profesores.length} profesor(es) por área!` });
     } catch (err) {
-        await connection.rollback();
+        if (connection) {
+            try { await connection.rollback(); } catch (e) {}
+        }
         res.status(400).json({ error: err.message });
     } finally {
-        connection.release();
+        if (connection) connection.release();
     }
 });
 
@@ -2329,8 +2350,9 @@ app.get('/api/carteles/clave/:clave', async (req, res) => {
 
 // Eliminar un cartel individual y sus datos
 app.delete('/api/carteles/:id', async (req, res) => {
-    const connection = await pool.getConnection();
+    let connection;
     try {
+        connection = await pool.getConnection();
         await connection.beginTransaction();
         const { id } = req.params;
 
@@ -2356,17 +2378,20 @@ app.delete('/api/carteles/:id', async (req, res) => {
 
         res.json({ mensaje: "Cartel y evaluaciones eliminados correctamente" });
     } catch (err) {
-        await connection.rollback();
+        if (connection) {
+            try { await connection.rollback(); } catch (e) {}
+        }
         res.status(400).json({ error: err.message });
     } finally {
-        connection.release();
+        if (connection) connection.release();
     }
 });
 
 // Eliminar todos los carteles antiguos (limpieza general)
 app.delete('/api/admin/carteles/todos', async (req, res) => {
-    const connection = await pool.getConnection();
+    let connection;
     try {
+        connection = await pool.getConnection();
         await connection.beginTransaction();
         const [carteles] = await connection.execute('SELECT archivo_url FROM carteles');
 
@@ -2388,10 +2413,12 @@ app.delete('/api/admin/carteles/todos', async (req, res) => {
 
         res.json({ mensaje: `Se eliminaron ${carteles.length} carteles y se limpiaron todas sus asignaciones y evaluaciones.` });
     } catch (err) {
-        await connection.rollback();
+        if (connection) {
+            try { await connection.rollback(); } catch (e) {}
+        }
         res.status(400).json({ error: err.message });
     } finally {
-        connection.release();
+        if (connection) connection.release();
     }
 });
 
@@ -2704,8 +2731,9 @@ app.post('/api/carteles', upload.single('archivo_pdf'), async (req, res) => {
 
 // Repartir carteles entre profesores jueces (mínimo 2 jueces y máximo 3 jueces por cartel)
 async function ejecutarRepartoCarteles(req, res) {
-    const connection = await pool.getConnection();
+    let connection;
     try {
+        connection = await pool.getConnection();
         await connection.beginTransaction();
         await connection.execute('DELETE FROM asignaciones');
 
@@ -2781,10 +2809,12 @@ async function ejecutarRepartoCarteles(req, res) {
         await connection.commit();
         res.json({ mensaje: "¡Carteles repartidos exitosamente entre los profesores jueces (mínimo 2 y máximo 3 jueces por cartel)!" });
     } catch (err) {
-        await connection.rollback();
+        if (connection) {
+            try { await connection.rollback(); } catch (e) {}
+        }
         res.status(400).json({ error: err.message });
     } finally {
-        connection.release();
+        if (connection) connection.release();
     }
 }
 
@@ -2906,8 +2936,9 @@ app.post('/api/evaluar', async (req, res) => {
 
 // Evaluar por Maestro Invitado mediante Clave (Exclusivo desde el Dashboard de Profesores/Jueces)
 app.post('/api/evaluar-invitado', async (req, res) => {
-    const connection = await pool.getConnection();
+    let connection;
     try {
+        connection = await pool.getConnection();
         await connection.beginTransaction();
         const { clave, nombre_maestro, suplir_profesor_id, usuario_id, profesor_id } = req.body;
 
@@ -3092,10 +3123,12 @@ app.post('/api/evaluar-invitado', async (req, res) => {
             puntaje_total: resultadoRubrica.puntaje_total
         });
     } catch (err) {
-        await connection.rollback();
+        if (connection) {
+            try { await connection.rollback(); } catch (e) {}
+        }
         res.status(400).json({ error: err.message });
     } finally {
-        connection.release();
+        if (connection) connection.release();
     }
 });
 
