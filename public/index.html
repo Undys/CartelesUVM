@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Evaluación de Carteles - UVM</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
     <style>
         .star-btn {
             line-height: 1;
@@ -740,24 +741,37 @@
             <!-- (Requerimiento: admin da de alta a los profes con envío SMS)   -->
             <!-- ============================================================== -->
             <div id="admin-sec-usuarios" class="space-y-4">
-                <!-- Banner de Alta de Profesores y Link Exclusivo de Jueces -->
-                <div class="bg-gradient-to-r from-rose-900 to-red-800 text-white p-5 rounded-2xl shadow-md flex flex-col md:flex-row justify-between md:items-center gap-4 border border-rose-700">
-                    <div class="space-y-1">
+                <!-- Banner de Alta de Profesores, QR y Link Exclusivo de Jueces -->
+                <div class="bg-gradient-to-r from-rose-900 to-red-800 text-white p-5 rounded-2xl shadow-md flex flex-col lg:flex-row justify-between lg:items-center gap-4 border border-rose-700">
+                    <div class="space-y-1 flex-1">
                         <div class="inline-flex items-center gap-1.5 bg-amber-400 text-slate-900 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full">
-                            Alta de Profesores y Envío Instantáneo por WhatsApp
+                            Alta de Profesores • WhatsApp y Código QR de Acceso
                         </div>
                         <h3 class="text-base sm:text-lg font-black">Portal Exclusivo para Maestros y Jueces Evaluadores</h3>
                         <p class="text-xs text-rose-100 leading-relaxed max-w-2xl">
-                            Al dar de alta a un profesor con su número de celular, el sistema prepara al instante un mensaje de <strong>WhatsApp directo</strong> con su <strong>usuario</strong>, <strong>contraseña</strong> y el <strong>enlace directo a su dashboard</strong> (<code id="admin-label-url-jueces" class="bg-rose-950/80 px-2 py-0.5 rounded text-amber-300 font-mono">/jueces</code>).
+                            Al dar de alta a un profesor con su número de celular, el sistema prepara un mensaje de <strong>WhatsApp directo</strong> con su <strong>usuario</strong>, <strong>contraseña</strong> y el <strong>enlace a su dashboard</strong> (<code id="admin-label-url-jueces" class="bg-rose-950/80 px-2 py-0.5 rounded text-amber-300 font-mono">/jueces</code>). Si un maestro no revisó su mensaje, puede escanear el <strong>Código QR</strong> aquí mismo.
                         </p>
                     </div>
-                    <div class="flex flex-wrap items-center gap-2 shrink-0">
-                        <button type="button" onclick="copiarEnlaceJuezGeneral()" class="bg-white/15 hover:bg-white/25 text-white border border-white/30 px-3.5 py-2.5 rounded-xl text-xs font-bold transition">
-                            Copiar Link de Jueces (/jueces)
-                        </button>
-                        <button type="button" onclick="abrirModalCrearUsuario('profesor')" class="bg-amber-400 hover:bg-amber-300 text-slate-900 px-4 py-2.5 rounded-xl text-xs font-black shadow-md transition">
-                            + Dar de Alta Profesor (Enviar WhatsApp)
-                        </button>
+                    <div class="flex flex-wrap items-center gap-3 shrink-0">
+                        <div onclick="abrirModalQrJueces()" title="Haz clic para ampliar el Código QR en pantalla" class="cursor-pointer bg-white text-slate-900 p-2 rounded-xl shadow-md border-2 border-amber-300 flex items-center gap-2.5 hover:scale-105 transition">
+                            <div id="admin-banner-qr-contenedor" class="w-16 h-16 flex items-center justify-center bg-white rounded overflow-hidden shrink-0"></div>
+                            <div class="pr-1">
+                                <span class="block text-[10px] font-black uppercase text-rose-800 tracking-wider">QR Portal Jueces</span>
+                                <span class="block text-xs font-extrabold text-slate-800 leading-tight">Escanear / Ampliar</span>
+                                <span class="block text-[10px] text-slate-500 font-semibold">/jueces</span>
+                            </div>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button type="button" onclick="abrirModalQrJueces()" class="bg-white hover:bg-amber-50 text-rose-900 border border-amber-300 px-3.5 py-2.5 rounded-xl text-xs font-black shadow transition">
+                                Mostrar QR (/jueces)
+                            </button>
+                            <button type="button" onclick="copiarEnlaceJuezGeneral()" class="bg-white/15 hover:bg-white/25 text-white border border-white/30 px-3.5 py-2.5 rounded-xl text-xs font-bold transition">
+                                Copiar Link (/jueces)
+                            </button>
+                            <button type="button" onclick="abrirModalCrearUsuario('profesor')" class="bg-amber-400 hover:bg-amber-300 text-slate-900 px-4 py-2.5 rounded-xl text-xs font-black shadow-md transition">
+                                + Dar de Alta Profesor (Enviar WhatsApp)
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -1491,12 +1505,15 @@
                     <span>Enviar por WhatsApp Directo (1 Clic)</span>
                 </a>
 
-                <div class="grid grid-cols-2 gap-2">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     <button type="button" onclick="copiarTextoMensajeRapido()" class="bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs py-2.5 px-3 rounded-xl shadow transition">
                         Copiar Mensaje Completo
                     </button>
                     <button type="button" onclick="copiarSoloLinkMensajeRapido()" class="bg-amber-100 hover:bg-amber-200 text-amber-950 border border-amber-300 font-bold text-xs py-2.5 px-3 rounded-xl shadow-sm transition">
                         Copiar Solo el Link
+                    </button>
+                    <button type="button" onclick="abrirModalQrDesdeEnvioRapido()" class="bg-rose-800 hover:bg-rose-900 text-white font-black text-xs py-2.5 px-3 rounded-xl shadow transition">
+                        Ver Código QR
                     </button>
                 </div>
             </div>
@@ -1762,6 +1779,67 @@
                         Guardar Evaluación del Invitado (12 Criterios)
                     </button>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- MODAL 4: CÓDIGO QR DE ACCESO PARA MAESTROS / JUECES (/jueces)  -->
+    <!-- ============================================================== -->
+    <div id="modal-qr-jueces" class="hidden fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white rounded-3xl p-6 sm:p-7 max-w-md w-full shadow-2xl border-2 border-rose-200 space-y-4 my-8 text-center">
+            <div class="flex justify-between items-start text-left border-b border-slate-100 pb-3">
+                <div>
+                    <span class="inline-block bg-amber-100 text-amber-900 border border-amber-300 font-black text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-wider mb-1">
+                        Acceso Rápido por Cámara • Portal de Jueces
+                    </span>
+                    <h3 class="font-black text-lg text-slate-800" id="modal-qr-jueces-titulo">Código QR para Profesores / Jueces</h3>
+                    <p class="text-xs text-slate-500 mt-0.5" id="modal-qr-jueces-subtitulo">
+                        Escanea con la cámara del celular para abrir directamente el portal de inicio de sesión de Jueces (/jueces).
+                    </p>
+                </div>
+                <button type="button" onclick="cerrarModalQrJueces()" class="text-gray-400 hover:text-gray-600 text-xl font-bold ml-2">✕</button>
+            </div>
+
+            <!-- Selector rápido para elegir QR general o un profesor en específico -->
+            <div class="text-left">
+                <label class="block font-bold text-[11px] uppercase tracking-wider text-slate-600 mb-1">Elegir Profesor o Acceso General:</label>
+                <select id="modal-qr-select-profesor" onchange="cambiarSelectorModalQrJueces(this.value)" class="w-full border border-slate-300 p-2.5 rounded-xl text-xs font-bold bg-slate-50 text-slate-800 focus:ring-2 focus:ring-rose-600 focus:outline-none">
+                    <option value="">-- QR General del Portal de Jueces (/jueces) --</option>
+                </select>
+            </div>
+
+            <!-- Tarjeta de datos del profesor cuando se selecciona uno específico -->
+            <div id="modal-qr-info-profesor" class="hidden bg-rose-50 border border-rose-200 rounded-2xl p-3 text-left text-xs space-y-1">
+                <div class="flex justify-between items-center gap-2">
+                    <span class="text-rose-900 font-bold">Profesor(a):</span>
+                    <span id="modal-qr-profe-nombre" class="font-black text-slate-900 uppercase text-right"></span>
+                </div>
+                <div class="flex justify-between items-center gap-2">
+                    <span class="text-rose-900 font-bold">Usuario pre-llenado:</span>
+                    <code id="modal-qr-profe-usuario" class="bg-white text-rose-900 border border-rose-300 px-2 py-0.5 rounded font-mono font-black"></code>
+                </div>
+            </div>
+
+            <!-- Contenedor del Código QR -->
+            <div class="bg-white border-2 border-slate-200 rounded-2xl p-4 flex flex-col items-center justify-center shadow-inner">
+                <div id="modal-qr-jueces-contenedor" class="w-60 h-60 flex items-center justify-center bg-white"></div>
+                <p id="modal-qr-jueces-url" class="mt-2 font-mono text-[11px] font-bold text-rose-800 bg-rose-50 px-3 py-1 rounded-lg border border-rose-200 break-all w-full"></p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 pt-1">
+                <button type="button" onclick="copiarLinkModalQrJueces()" class="bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs py-2.5 px-3 rounded-xl shadow transition">
+                    Copiar Enlace
+                </button>
+                <button type="button" onclick="imprimirQrJuecesActual()" class="bg-rose-700 hover:bg-rose-800 text-white font-black text-xs py-2.5 px-3 rounded-xl shadow transition">
+                    Imprimir QR
+                </button>
+            </div>
+
+            <div class="flex justify-end pt-2 border-t border-slate-100">
+                <button type="button" onclick="cerrarModalQrJueces()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 py-2 rounded-xl text-xs font-bold transition">
+                    Cerrar
+                </button>
             </div>
         </div>
     </div>
@@ -2485,6 +2563,153 @@
             });
         }
 
+        function generarHtmlQrElemento(textoUrl, pxSize = 220) {
+            const urlLimpia = String(textoUrl || obtenerUrlExclusivaJueces()).trim();
+            if (typeof qrcode === 'function') {
+                try {
+                    const qr = qrcode(0, 'M');
+                    qr.addData(urlLimpia);
+                    qr.make();
+                    const svgTag = qr.createSvgTag({ cellSize: 6, margin: 2, scalable: true });
+                    return `<div style="width:${pxSize}px;height:${pxSize}px;" class="flex items-center justify-center [&>svg]:w-full [&>svg]:h-full">${svgTag}</div>`;
+                } catch (e) {}
+            }
+            const apiSrc = `https://api.qrserver.com/v1/create-qr-code/?size=${pxSize}x${pxSize}&margin=8&data=${encodeURIComponent(urlLimpia)}`;
+            return `<img src="${apiSrc}" alt="QR Jueces" style="width:${pxSize}px;height:${pxSize}px;" class="object-contain" />`;
+        }
+
+        function renderizarQrBannerAdmin() {
+            const cont = document.getElementById('admin-banner-qr-contenedor');
+            if (!cont) return;
+            cont.innerHTML = generarHtmlQrElemento(obtenerUrlExclusivaJueces(), 60);
+        }
+
+        function abrirModalQrJueces(matricula = '', nombreProfe = '') {
+            const modal = document.getElementById('modal-qr-jueces');
+            if (!modal) return;
+
+            const sel = document.getElementById('modal-qr-select-profesor');
+            if (sel) {
+                const profes = (Array.isArray(usuariosAdminCache) ? usuariosAdminCache : []).filter(u => u.rol === 'profesor');
+                let opts = '<option value="">-- QR General del Portal de Jueces (/jueces) --</option>';
+                profes.forEach(p => {
+                    const m = String(p.matricula || '').replace(/"/g, '&quot;');
+                    const n = String(p.nombre || '').replace(/"/g, '&quot;');
+                    opts += `<option value="${m}" data-nombre="${n}">${n} (${m})</option>`;
+                });
+                sel.innerHTML = opts;
+                sel.value = matricula || '';
+            }
+
+            actualizarContenidoModalQrJueces(matricula, nombreProfe);
+            modal.classList.remove('hidden');
+        }
+
+        function cambiarSelectorModalQrJueces(matricula) {
+            const sel = document.getElementById('modal-qr-select-profesor');
+            let nombre = '';
+            if (sel && sel.selectedIndex > -1) {
+                nombre = sel.options[sel.selectedIndex]?.getAttribute('data-nombre') || '';
+            }
+            actualizarContenidoModalQrJueces(matricula, nombre);
+        }
+
+        function actualizarContenidoModalQrJueces(matricula = '', nombreProfe = '') {
+            const mat = String(matricula || '').trim();
+            let nom = String(nombreProfe || '').trim();
+            if (mat && !nom && Array.isArray(usuariosAdminCache)) {
+                const encontrado = usuariosAdminCache.find(u => String(u.matricula || '').trim() === mat);
+                if (encontrado) nom = encontrado.nombre || '';
+            }
+
+            const url = obtenerUrlExclusivaJueces(mat);
+            const contQr = document.getElementById('modal-qr-jueces-contenedor');
+            if (contQr) {
+                contQr.innerHTML = generarHtmlQrElemento(url, 228);
+            }
+            const lblUrl = document.getElementById('modal-qr-jueces-url');
+            if (lblUrl) {
+                lblUrl.innerText = url;
+            }
+
+            const boxProfe = document.getElementById('modal-qr-info-profesor');
+            const lblNom = document.getElementById('modal-qr-profe-nombre');
+            const lblUsr = document.getElementById('modal-qr-profe-usuario');
+            if (boxProfe) {
+                if (mat) {
+                    boxProfe.classList.remove('hidden');
+                    if (lblNom) lblNom.innerText = nom || 'Profesor Evaluador';
+                    if (lblUsr) lblUsr.innerText = mat;
+                } else {
+                    boxProfe.classList.add('hidden');
+                }
+            }
+        }
+
+        function cerrarModalQrJueces() {
+            const modal = document.getElementById('modal-qr-jueces');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function copiarLinkModalQrJueces() {
+            const url = document.getElementById('modal-qr-jueces-url')?.innerText || obtenerUrlExclusivaJueces();
+            navigator.clipboard.writeText(url).then(() => {
+                alert(`Enlace copiado al portapapeles:\n${url}`);
+            }).catch(() => {
+                prompt("Copia el enlace:", url);
+            });
+        }
+
+        function abrirModalQrDesdeEnvioRapido() {
+            const mat = document.getElementById('envio-rapido-usuario')?.innerText.trim() || '';
+            const nom = document.getElementById('envio-rapido-nombre')?.innerText.trim() || '';
+            cerrarModalEnvioRapidoCorreo();
+            abrirModalQrJueces(mat, nom);
+        }
+
+        function imprimirQrJuecesActual() {
+            const url = document.getElementById('modal-qr-jueces-url')?.innerText || obtenerUrlExclusivaJueces();
+            const mat = document.getElementById('modal-qr-select-profesor')?.value || '';
+            const nom = document.getElementById('modal-qr-profe-nombre')?.innerText || '';
+            const qrHtml = generarHtmlQrElemento(url, 320);
+            const w = window.open('', '_blank', 'width=680,height=780');
+            if (!w) {
+                alert('Permite las ventanas emergentes para imprimir el Código QR.');
+                return;
+            }
+            w.document.write(`
+                <!DOCTYPE html>
+                <html lang="es">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Código QR Acceso Jueces UVM</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; text-align: center; padding: 36px 24px; color: #0f172a; }
+                        .card { max-width: 460px; margin: 0 auto; border: 3px solid #9f1239; border-radius: 24px; padding: 32px 24px; }
+                        .badge { display: inline-block; background: #fef3c7; color: #92400e; border: 1px solid #f59e0b; padding: 4px 14px; border-radius: 999px; font-size: 12px; font-weight: 800; text-transform: uppercase; }
+                        h1 { font-size: 24px; margin: 14px 0 6px 0; color: #881337; }
+                        p { font-size: 14px; color: #475569; margin: 0 0 20px 0; }
+                        .qr-wrap { display: flex; justify-content: center; margin: 18px 0; }
+                        .url { font-family: monospace; font-size: 13px; font-weight: bold; background: #fff1f2; color: #9f1239; padding: 10px 14px; border-radius: 10px; word-break: break-all; }
+                        .profe { margin-top: 14px; font-size: 14px; font-weight: bold; color: #1e293b; }
+                    </style>
+                </head>
+                <body>
+                    <div class="card">
+                        <span class="badge">UVM • Evaluación de Carteles</span>
+                        <h1>Acceso para Profesores / Jueces</h1>
+                        <p>Escanea este código QR con la cámara de tu celular para ingresar al portal de evaluación</p>
+                        ${mat ? `<div class="profe">${nom ? nom + ' • ' : ''}Usuario: <code>${mat}</code></div>` : ''}
+                        <div class="qr-wrap">${qrHtml}</div>
+                        <div class="url">${url}</div>
+                    </div>
+                    <script>window.onload = function() { setTimeout(function(){ window.print(); }, 250); };<\/script>
+                </body>
+                </html>
+            `);
+            w.document.close();
+        }
+
         let servidorBootIdActual = null;
         let intervaloEstadoServidor = null;
 
@@ -2496,7 +2721,7 @@
         }
 
         function cerrarTodosLosModales() {
-            ['modal-evaluar-invitado', 'modal-crear-usuario', 'modal-configurar-smtp', 'modal-promover-usuario', 'modal-asignar-juez-cartel', 'modal-ver-carteles-profesor', 'modal-editar-clave-cartel', 'modal-editar-asesores-cartel'].forEach(id => {
+            ['modal-evaluar-invitado', 'modal-crear-usuario', 'modal-configurar-smtp', 'modal-promover-usuario', 'modal-asignar-juez-cartel', 'modal-ver-carteles-profesor', 'modal-editar-clave-cartel', 'modal-editar-asesores-cartel', 'modal-qr-jueces'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.classList.add('hidden');
             });
@@ -2576,6 +2801,7 @@
             if (lblUrlJueces) {
                 lblUrlJueces.innerText = `${window.location.origin}/jueces`;
             }
+            renderizarQrBannerAdmin();
 
             // Pre-llenar usuario de juez si viene en el link del correo (?usuario=...)
             const params = new URLSearchParams(window.location.search);
@@ -3488,6 +3714,7 @@
         }
 
         async function cargarAdminDashboard() {
+            renderizarQrBannerAdmin();
             try {
                 const resMetricas = await fetch('/api/admin/metricas');
                 const metricas = await resMetricas.json();
@@ -3639,6 +3866,9 @@
                     botonesAccion = `
                         <button onclick="enviarSmsUsuario(${u.id}, '${telMostrar.replace(/'/g, "\\'")}', '${u.nombre.replace(/'/g, "\\'")}')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded-lg font-bold text-[11px] shadow-sm transition" title="Enviar por WhatsApp usuario, contraseña y link a su dashboard">
                             Enviar WhatsApp
+                        </button>
+                        <button onclick="abrirModalQrJueces('${u.matricula.replace(/'/g, "\\'")}', '${u.nombre.replace(/'/g, "\\'")}')" class="bg-rose-800 hover:bg-rose-900 text-amber-300 border border-rose-700 px-2.5 py-1 rounded-lg font-black text-[11px] shadow-sm transition" title="Mostrar código QR de acceso para este profesor">
+                            QR Juez
                         </button>
                         <button onclick="copiarEnlaceJuez('${u.matricula.replace(/'/g, "\\'")}')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 px-2 py-1 rounded-lg font-bold text-[11px] transition" title="Copiar link directo de acceso para este profesor">
                             Link Juez
