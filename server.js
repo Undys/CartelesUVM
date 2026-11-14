@@ -3173,4 +3173,16 @@ app.get('/api/dashboard/ranking', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Servidor listo en http://localhost:${PORT}`));
+app.listen(PORT, () => {
+    console.log(`Servidor listo en http://localhost:${PORT}`);
+
+    // Auto Keep-Alive para Render: evita que la instancia gratuita de Render entre en suspensión tras 15 minutos sin tráfico
+    const renderUrl = (process.env.RENDER_EXTERNAL_URL || process.env.PUBLIC_URL || '').trim().replace(/\/+$/, '');
+    if (renderUrl && renderUrl.startsWith('http')) {
+        setInterval(async () => {
+            try {
+                await fetch(`${renderUrl}/api/estado-servidor`);
+            } catch (e) {}
+        }, 10 * 60 * 1000); // Cada 10 minutos
+    }
+});

@@ -2723,33 +2723,25 @@
         async function verificarEstadoServidor() {
             try {
                 const res = await fetch('/api/estado-servidor', { cache: 'no-store' });
-                if (!res.ok) throw new Error('Servidor inactivo');
+                if (!res.ok) return;
                 const data = await res.json();
                 if (!servidorBootIdActual) {
                     servidorBootIdActual = data.boot_id || null;
                 } else if (data.boot_id && data.boot_id !== servidorBootIdActual) {
-                    // El servidor fue cerrado y reiniciado: cerrar sesión inmediatamente
                     servidorBootIdActual = data.boot_id;
-                    if (usuarioActual) {
-                        cerrarSesion();
-                    }
                 }
             } catch (e) {
-                // El servidor se cerró o perdió conexión: cerrar cualquier página/sesión abierta de inmediato
-                if (usuarioActual) {
-                    cerrarSesion();
-                }
+                // Ignorar microcortes de Wi-Fi/datos móviles para no sacar a los jueces mientras evalúan
             }
         }
 
         function iniciarMonitoreoServidor() {
             if (intervaloEstadoServidor) clearInterval(intervaloEstadoServidor);
             verificarEstadoServidor();
+            // Ping ligero cada 25s para mantener Render activo sin saturarlo de peticiones
             intervaloEstadoServidor = setInterval(() => {
-                if (usuarioActual) {
-                    verificarEstadoServidor();
-                }
-            }, 3000);
+                verificarEstadoServidor();
+            }, 25000);
         }
 
         // Si se cierra la pestaña/página o el navegador restaura desde caché (bfcache), limpiar sesión para evitar accesos indebidos
