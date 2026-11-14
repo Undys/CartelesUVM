@@ -593,8 +593,8 @@ function generarDatosSmsCuenta({ telefono, email, nombre, matricula, password, r
     const telWa = obtenerTelefonoParaWhatsApp(telLimpio);
 
     const textoSms = rol === 'profesor'
-        ? `UVM Carteles - Hola ${nombre}, tus datos de Juez Evaluador (${carrera || 'General'}):\nUsuario: ${matricula}\nClave: ${password}\nIngresa aqui: ${enlaceAcceso}`
-        : `UVM Carteles - Hola ${nombre}, tus datos de acceso:\nUsuario: ${matricula}\nClave: ${password}\nIngresa aqui: ${enlaceAcceso}`;
+        ? `UVM Carteles — Estimado(a) ${nombre}, le compartimos sus credenciales de acceso como Juez Evaluador (${carrera || 'General'}):\n\nUsuario: ${matricula}\nContraseña: ${password}\nEnlace de acceso: ${enlaceAcceso}\n\nNota importante: Le informamos que las evaluaciones darán inicio a las 11:00 a. m. Agradecemos de antemano su valiosa participación.`
+        : `UVM Carteles — Estimado(a) ${nombre}, le compartimos sus credenciales de acceso al sistema:\n\nUsuario: ${matricula}\nContraseña: ${password}\nEnlace de acceso: ${enlaceAcceso}\n\nNota importante: Le informamos que las evaluaciones darán inicio a las 11:00 a. m.`;
 
     const bodyEncoded = encodeURIComponent(textoSms);
     const smsUrl = telLimpio ? `sms:${telLimpio}?body=${bodyEncoded}` : `sms:?body=${bodyEncoded}`;

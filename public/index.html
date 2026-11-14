@@ -4099,7 +4099,7 @@
             const soloDigitos = telRaw.replace(/\D/g, '');
             const enlace = datos.enlace_acceso || obtenerUrlExclusivaJueces(datos.matricula);
 
-            const textoSms = datos.mensaje_sms || `Carteles UVM - Juez Evaluador\nHola ${datos.nombre}:\nUsuario: ${datos.matricula}\nClave: ${datos.password}\nAcceso directo: ${enlace}`;
+            const textoSms = datos.mensaje_sms || `UVM Carteles — Estimado(a) ${datos.nombre}, le compartimos sus credenciales de acceso como Juez Evaluador:\n\nUsuario: ${datos.matricula}\nContraseña: ${datos.password}\nEnlace de acceso: ${enlace}\n\nNota importante: Le informamos que las evaluaciones darán inicio a las 11:00 a. m. Agradecemos de antemano su valiosa participación.`;
 
             ultimoTextoMensajeRapido = textoSms;
             ultimoLinkAccesoRapido = enlace;
