@@ -7,6 +7,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const dns = require('dns');
 const nodemailer = require('nodemailer');
+const ExcelJS = require('exceljs');
 
 // Priorizar IPv4 globalmente para evitar retrasos de 30-60s por timeouts de IPv6 al conectar a Gmail/SMTP desde servidores en la nube
 if (typeof dns.setDefaultResultOrder === 'function') {
@@ -3169,6 +3170,137 @@ app.get('/api/dashboard/ranking', async (req, res) => {
         res.json(rows);
     } catch (err) {
         res.status(400).json({ error: err.message });
+    }
+});
+
+// Exportar reporte de carteles a Excel (.xlsx) — Exclusivo Panel Admin
+app.get('/api/admin/exportar-excel', async (req, res) => {
+    try {
+        const escalaQuery = parseInt(req.query && req.query.escala);
+        const escala = (escalaQuery === 100) ? 100 : (escalaQuery === 10 ? 10 : escalaRankingGlobal);
+
+        const query = `
+            SELECT 
+                c.id,
+                c.clave,
+                c.participantes,
+                c.titulo_cartel,
+                c.nivel,
+                COUNT(e.id) AS num_evaluaciones,
+                ROUND(AVG(e.puntaje_total), 2) AS promedio_final
+            FROM carteles c
+            LEFT JOIN evaluaciones e ON c.id = e.cartel_id
+            GROUP BY c.id
+            ORDER BY c.nivel ASC, promedio_final DESC, c.clave ASC, c.id ASC
+        `;
+        const [rows] = await pool.query(query);
+
+        const workbook = new ExcelJS.Workbook();
+        workbook.creator = 'Sistema de Evaluación de Carteles UVM';
+        workbook.created = new Date();
+
+        const sheet = workbook.addWorksheet('Carteles y Calificaciones', {
+            views: [{ state: 'frozen', ySplit: 1 }]
+        });
+
+        sheet.columns = [
+            { header: 'Clave del Cartel', key: 'clave', width: 20 },
+            { header: 'Integrantes', key: 'integrantes', width: 46 },
+            { header: 'Título del Cartel', key: 'titulo_cartel', width: 50 },
+            { header: 'Calificación Final', key: 'calificacion_final', width: 22 }
+        ];
+
+        // Estilo de encabezados
+        const headerRow = sheet.getRow(1);
+        headerRow.height = 28;
+        headerRow.eachCell((cell) => {
+            cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+            cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FFB91C1C' }
+            };
+            cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+            cell.border = {
+                top: { style: 'thin', color: { argb: 'FF991B1B' } },
+                left: { style: 'thin', color: { argb: 'FF991B1B' } },
+                bottom: { style: 'medium', color: { argb: 'FF7F1D1D' } },
+                right: { style: 'thin', color: { argb: 'FF991B1B' } }
+            };
+        });
+
+        // Llenar filas de carteles
+        rows.forEach((r, idx) => {
+            const integrantesLimpio = (r.participantes || '')
+                .split(',')
+                .map(p => p.trim())
+                .filter(Boolean)
+                .join(', ') || 'Sin integrantes';
+
+            const tieneEvaluaciones = Number(r.num_evaluaciones || 0) > 0 && r.promedio_final !== null && r.promedio_final !== undefined;
+            let calificacionValor = 'Sin evaluar';
+            if (tieneEvaluaciones) {
+                const base100 = parseFloat(r.promedio_final);
+                calificacionValor = (escala === 10)
+                    ? Math.round((base100 / 10) * 100) / 100
+                    : Math.round(base100 * 100) / 100;
+            }
+
+            const row = sheet.addRow({
+                clave: String(r.clave || 'Sin clave'),
+                integrantes: integrantesLimpio,
+                titulo_cartel: String(r.titulo_cartel || '').trim(),
+                calificacion_final: calificacionValor
+            });
+
+            const esPar = idx % 2 === 1;
+            const bgColor = esPar ? 'FFF8FAFC' : 'FFFFFFFF';
+
+            row.eachCell((cell, colNumber) => {
+                cell.fill = {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: { argb: bgColor }
+                };
+                cell.border = {
+                    top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                    left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                    bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                    right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+                };
+
+                if (colNumber === 1) {
+                    cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FF1E293B' } };
+                    cell.alignment = { vertical: 'middle', horizontal: 'center' };
+                } else if (colNumber === 2 || colNumber === 3) {
+                    cell.font = { name: 'Calibri', size: 11, color: { argb: 'FF0F172A' } };
+                    cell.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true };
+                } else if (colNumber === 4) {
+                    if (tieneEvaluaciones) {
+                        cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FF0F172A' } };
+                        cell.numFmt = '0.00';
+                    } else {
+                        cell.font = { name: 'Calibri', size: 10, italic: true, color: { argb: 'FF64748B' } };
+                    }
+                    cell.alignment = { vertical: 'middle', horizontal: 'center' };
+                }
+            });
+        });
+
+        sheet.autoFilter = 'A1:D1';
+
+        const fechaHoy = new Date().toISOString().slice(0, 10);
+        const nombreArchivo = `carteles_calificaciones_uvm_${fechaHoy}.xlsx`;
+
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename="${nombreArchivo}"`);
+        res.setHeader('Cache-Control', 'no-store');
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        res.send(Buffer.from(buffer));
+    } catch (err) {
+        console.error('Error al exportar Excel:', err);
+        res.status(500).json({ error: 'Error al generar el archivo Excel: ' + (err.message || err.code || 'Error de conexión') });
     }
 });
 

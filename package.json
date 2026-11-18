@@ -11,6 +11,7 @@
   "description": "",
   "dependencies": {
     "cors": "^2.8.6",
+    "exceljs": "^4.4.0",
     "express": "^5.2.1",
     "multer": "^2.4.0",
     "mysql2": "^3.24.4",
