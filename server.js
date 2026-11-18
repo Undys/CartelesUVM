@@ -436,11 +436,12 @@ function calcularPuntajeRubrica(datos) {
     let sumaPonderadaEstrellas = 0;
 
     for (const crit of RUBRICA_EVALUACION.criterios) {
-        const val = parseInt(datos[crit.id]);
-        if (isNaN(val) || val < 1 || val > maxEscala) {
+        const raw = datos[crit.id];
+        const val = (raw === '' || raw === null || raw === undefined) ? NaN : parseInt(raw, 10);
+        if (isNaN(val) || val < 0 || val > maxEscala) {
             return {
                 valido: false,
-                error: `El criterio "${crit.numero}. ${crit.titulo}" debe calificarse en la escala de 1 a ${maxEscala}.`
+                error: `El criterio "${crit.numero}. ${crit.titulo}" debe calificarse en la escala de 0 a ${maxEscala}.`
             };
         }
         valores[crit.id] = val;
@@ -767,6 +768,7 @@ async function asegurarEsquemaYColumnas() {
                 escala_max INT NOT NULL DEFAULT 5,
                 estrellas_ponderadas DECIMAL(6,2) NOT NULL DEFAULT 0,
                 puntaje_total DECIMAL(6,2) NOT NULL DEFAULT 0,
+                comentarios TEXT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         `);
@@ -994,6 +996,9 @@ async function asegurarEsquemaYColumnas() {
         if (!nombresCols.has('estrellas_ponderadas')) {
             await pool.query("ALTER TABLE evaluaciones ADD COLUMN estrellas_ponderadas DECIMAL(6,2) NOT NULL DEFAULT 0");
         }
+        if (!nombresCols.has('comentarios')) {
+            await pool.query("ALTER TABLE evaluaciones ADD COLUMN comentarios TEXT NULL");
+        }
 
         const colPuntaje = evalCols.find(c => c.Field === 'puntaje_total');
         if (!colPuntaje) {
@@ -1216,7 +1221,39 @@ app.get('/api/estudiantes/:id/carteles', async (req, res) => {
             ORDER BY c.id DESC
         `;
         const [rows] = await pool.query(query, [usuarioId, `%${nombreU}%`]);
-        res.json(rows);
+
+        // Adjuntar comentarios/retroalimentación de los evaluadores para cada cartel del estudiante
+        let mapaComentarios = {};
+        if (rows.length > 0) {
+            try {
+                const ids = rows.map(r => r.id);
+                const placeholders = ids.map(() => '?').join(',');
+                const [evalComRows] = await pool.query(
+                    `SELECT cartel_id, comentarios, created_at
+                     FROM evaluaciones
+                     WHERE cartel_id IN (${placeholders})
+                       AND comentarios IS NOT NULL
+                       AND TRIM(comentarios) <> ''
+                     ORDER BY id ASC`,
+                    ids
+                );
+                evalComRows.forEach(ev => {
+                    if (!mapaComentarios[ev.cartel_id]) mapaComentarios[ev.cartel_id] = [];
+                    mapaComentarios[ev.cartel_id].push({
+                        numero: mapaComentarios[ev.cartel_id].length + 1,
+                        texto: String(ev.comentarios || '').trim(),
+                        fecha: ev.created_at || null
+                    });
+                });
+            } catch (eCom) {}
+        }
+
+        const resultado = rows.map(r => ({
+            ...r,
+            comentarios_evaluadores: mapaComentarios[r.id] || []
+        }));
+
+        res.json(resultado);
     } catch (err) {
         res.status(400).json({ error: err.message });
     }
@@ -2909,19 +2946,21 @@ app.post('/api/evaluar', async (req, res) => {
         }
 
         const v = resultadoRubrica.valores;
+        const comentariosTexto = String(req.body.comentarios || '').trim().slice(0, 2000) || null;
         const query = `
             INSERT INTO evaluaciones (
                 cartel_id, profesor_id,
                 r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12,
-                escala_max, estrellas_ponderadas, puntaje_total
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                escala_max, estrellas_ponderadas, puntaje_total, comentarios
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
         await pool.query(query, [
             cartel_id, profesor_id,
             v.r1, v.r2, v.r3, v.r4, v.r5, v.r6, v.r7, v.r8, v.r9, v.r10, v.r11, v.r12,
             resultadoRubrica.escala_max,
             resultadoRubrica.estrellas_ponderadas,
-            resultadoRubrica.puntaje_total
+            resultadoRubrica.puntaje_total,
+            comentariosTexto
         ]);
 
         res.json({
@@ -3100,20 +3139,22 @@ app.post('/api/evaluar-invitado', async (req, res) => {
             }
         }
 
-        // Guardar la evaluación con los 12 criterios ponderados
+        // Guardar la evaluación con los 12 criterios ponderados y comentarios opcionales
         const v = resultadoRubrica.valores;
+        const comentariosTexto = String(req.body.comentarios || '').trim().slice(0, 2000) || null;
         await connection.execute(
             `INSERT INTO evaluaciones (
                 cartel_id, profesor_id,
                 r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12,
-                escala_max, estrellas_ponderadas, puntaje_total
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                escala_max, estrellas_ponderadas, puntaje_total, comentarios
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 cartel.id, profesorId,
                 v.r1, v.r2, v.r3, v.r4, v.r5, v.r6, v.r7, v.r8, v.r9, v.r10, v.r11, v.r12,
                 resultadoRubrica.escala_max,
                 resultadoRubrica.estrellas_ponderadas,
-                resultadoRubrica.puntaje_total
+                resultadoRubrica.puntaje_total,
+                comentariosTexto
             ]
         );
 

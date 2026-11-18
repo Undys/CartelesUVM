@@ -599,18 +599,27 @@
                     <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
                         <div>
                             <h4 class="font-black text-slate-800 text-sm sm:text-base">Rúbrica para Evaluación de Carteles de Investigación (12 Criterios • 100%)</h4>
-                            <p class="text-xs text-gray-500">Califica cada uno de los 12 criterios utilizando la guía de equivalencia por niveles.</p>
+                            <p class="text-xs text-gray-500">Califica cada uno de los 12 criterios de 0 a 5 estrellas utilizando la guía de equivalencia.</p>
                         </div>
-                        <span id="eval-resumen-puntaje" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200 self-start sm:self-auto">
-                            0 de 12 criterios calificados
-                        </span>
+                        <div class="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+                            <button type="button" onclick="calificarTodoConCero('eval')" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-700 border border-slate-300 hover:border-red-300 transition" title="Marca los 12 criterios con 0 (útil si el equipo no se presentó)">
+                                Poner 0 en todo
+                            </button>
+                            <span id="eval-resumen-puntaje" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                                0 de 12 criterios calificados
+                            </span>
+                        </div>
                     </div>
 
                     <!-- Guía de Equivalencia Lógica para el Evaluador -->
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs bg-slate-50 p-3 rounded-xl border border-slate-200">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 text-xs bg-slate-50 p-3 rounded-xl border border-slate-200">
+                        <div class="bg-red-50 border border-red-200 p-2.5 rounded-lg">
+                            <span class="font-black text-red-950 block">0 ★ (No cumple / Ausente)</span>
+                            <span class="text-[11px] text-red-900">Criterio omitido, sin evidencia o equipo no presentado.</span>
+                        </div>
                         <div class="bg-amber-50 border border-amber-200 p-2.5 rounded-lg">
                             <span class="font-black text-amber-950 block">1 - 2 ★ (Nivel Inicial)</span>
-                            <span class="text-[11px] text-amber-900">Desempeño básico, poco delimitado, ausente o superficial.</span>
+                            <span class="text-[11px] text-amber-900">Desempeño básico, poco delimitado o superficial.</span>
                         </div>
                         <div class="bg-blue-50 border border-blue-200 p-2.5 rounded-lg">
                             <span class="font-black text-blue-950 block">3 - 4 ★ (Nivel Intermedio)</span>
@@ -625,6 +634,14 @@
                     <!-- 12 Criterios Ponderados generados dinámicamente -->
                     <div id="contenedor-criterios-eval" class="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <!-- Renderizado por renderizarFormularioRubrica('eval') -->
+                    </div>
+
+                    <!-- Comentarios / Retroalimentación opcional para los alumnos -->
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-1.5">
+                        <label for="eval-comentarios" class="block font-bold text-xs text-slate-700 uppercase tracking-wider">
+                            Comentarios / Retroalimentación para los Alumnos (Opcional)
+                        </label>
+                        <textarea id="eval-comentarios" rows="3" maxlength="2000" placeholder="Escribe fortalezas, observaciones o sugerencias de mejora para el equipo. Si escribes un comentario, los estudiantes podrán leerlo de forma anónima en su panel." class="w-full border border-slate-300 p-2.5 rounded-lg text-xs text-slate-800 bg-white focus:ring-2 focus:ring-red-500 focus:outline-none resize-y"></textarea>
                     </div>
 
                     <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3.5 rounded-xl font-extrabold text-sm shadow transition">
@@ -1772,16 +1789,29 @@
                     <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-2 pt-1">
                         <div>
                             <span class="font-black text-xs text-slate-800 block">Rúbrica Oficial de 12 Criterios (100%)</span>
-                            <span class="text-[11px] text-slate-500">1-2 ★ Nivel Inicial • 3-4 ★ Nivel Intermedio • 5 ★ Nivel Avanzado</span>
+                            <span class="text-[11px] text-slate-500">0 ★ No cumple • 1-2 ★ Inicial • 3-4 ★ Intermedio • 5 ★ Avanzado</span>
                         </div>
-                        <span id="invitado-resumen-puntaje" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200 self-start sm:self-auto">
-                            0 de 12 criterios calificados
-                        </span>
+                        <div class="flex flex-wrap items-center gap-1.5 self-start sm:self-auto">
+                            <button type="button" onclick="calificarTodoConCero('invitado')" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-700 border border-slate-300 hover:border-red-300 transition" title="Marca los 12 criterios con 0 (útil si el equipo no se presentó)">
+                                Poner 0 en todo
+                            </button>
+                            <span id="invitado-resumen-puntaje" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                                0 de 12 criterios calificados
+                            </span>
+                        </div>
                     </div>
 
                     <!-- 12 Criterios invitado generados dinámicamente -->
                     <div id="contenedor-criterios-invitado" class="space-y-2.5 max-h-96 overflow-y-auto pr-1">
                         <!-- Renderizado por renderizarFormularioRubrica('invitado') -->
+                    </div>
+
+                    <!-- Comentarios opcionales del evaluador invitado -->
+                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
+                        <label for="invitado-comentarios" class="block font-bold text-[11px] text-slate-700 uppercase tracking-wider">
+                            Comentarios / Retroalimentación para los Alumnos (Opcional)
+                        </label>
+                        <textarea id="invitado-comentarios" rows="2" maxlength="2000" placeholder="Opcional: escribe observaciones o sugerencias de mejora para los estudiantes..." class="w-full border border-slate-300 p-2 rounded-lg text-xs text-slate-800 bg-white focus:ring-2 focus:ring-amber-500 focus:outline-none resize-y"></textarea>
                     </div>
 
                     <button type="submit" class="w-full bg-amber-600 hover:bg-amber-700 text-white py-3 rounded-xl font-bold text-xs shadow">
@@ -3166,6 +3196,28 @@
                         badgeEval = `<span class="bg-slate-100 text-slate-600 border border-slate-200 text-xs px-2.5 py-1 rounded-full font-semibold">Esperando evaluación (Mín. 2 • Máx. 3)</span>`;
                     }
 
+                    const comentariosLista = Array.isArray(c.comentarios_evaluadores) ? c.comentarios_evaluadores : [];
+                    const bloqueComentarios = comentariosLista.length > 0
+                        ? `
+                            <div class="bg-indigo-50/70 p-3.5 rounded-xl border border-indigo-200 space-y-2 text-xs">
+                                <div class="flex items-center justify-between gap-2">
+                                    <span class="font-black text-indigo-950 uppercase tracking-wider text-[11px]">Retroalimentación de los Evaluadores</span>
+                                    <span class="bg-indigo-100 text-indigo-800 border border-indigo-200 px-2 py-0.5 rounded-full text-[10px] font-bold">${comentariosLista.length} ${comentariosLista.length === 1 ? 'comentario' : 'comentarios'}</span>
+                                </div>
+                                <div class="space-y-2">
+                                    ${comentariosLista.map(com => `
+                                        <div class="bg-white p-2.5 rounded-lg border border-indigo-100 shadow-sm">
+                                            <span class="block text-[10px] font-extrabold uppercase tracking-wider text-indigo-700 mb-0.5">Evaluador ${com.numero}</span>
+                                            <p class="text-slate-700 leading-relaxed whitespace-pre-line">${escaparHtmlCert(com.texto)}</p>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        `
+                        : (totalEval > 0
+                            ? `<div class="bg-slate-50 px-3 py-2 rounded-xl border border-slate-200 text-[11px] text-slate-500 italic">Los evaluadores aún no han dejado comentarios escritos para este cartel.</div>`
+                            : '');
+
                     return `
                         <div class="border border-slate-200 rounded-2xl p-5 bg-white shadow-sm hover:border-red-300 transition space-y-4">
                             <div class="flex flex-col sm:flex-row justify-between sm:items-start gap-3">
@@ -3194,6 +3246,9 @@
                                 <span class="font-black text-red-950">Alumnos Participantes:</span>
                                 <p class="text-slate-800 font-bold mt-0.5">${c.participantes || 'No especificados'}</p>
                             </div>
+
+                            <!-- Comentarios de los Evaluadores -->
+                            ${bloqueComentarios}
 
                             <div class="flex flex-wrap justify-between items-center gap-2 pt-2 border-t border-slate-100 text-xs">
                                 <span class="text-slate-600 font-medium">
@@ -3428,13 +3483,15 @@
 
             const body = {
                 cartel_id: cartelId,
-                profesor_id: profId
+                profesor_id: profId,
+                comentarios: (document.getElementById('eval-comentarios')?.value || '').trim()
             };
 
             for (const c of CONFIG_RUBRICA_CARTELES.criterios) {
-                const v = parseInt(document.getElementById(`eval-${c.id}`)?.value);
-                if (!v || v < 1 || v > CONFIG_RUBRICA_CARTELES.escala_max) {
-                    return alert(`Por favor califica los 12 criterios antes de guardar (falta "${c.numero}. ${c.titulo}").`);
+                const rawVal = document.getElementById(`eval-${c.id}`)?.value;
+                const v = (rawVal === '' || rawVal === null || rawVal === undefined) ? NaN : parseInt(rawVal, 10);
+                if (isNaN(v) || v < 0 || v > CONFIG_RUBRICA_CARTELES.escala_max) {
+                    return alert(`Por favor califica los 12 criterios (de 0 a ${CONFIG_RUBRICA_CARTELES.escala_max}) antes de guardar (falta "${c.numero}. ${c.titulo}").`);
                 }
                 body[c.id] = v;
             }
@@ -3488,8 +3545,15 @@
 
         function obtenerInfoEquivalenciaValor(valor) {
             const max = CONFIG_RUBRICA_CARTELES.escala_max;
+            if (valor === 0) {
+                return {
+                    etiqueta: `0/${max} ★ • No cumple / Ausente`,
+                    clase: 'bg-red-100 text-red-900 border-red-300',
+                    desc: '0 ★ (No cumple / Ausente): Criterio omitido, sin evidencia o equipo no presentado.'
+                };
+            }
             if (max === 3) {
-                if (valor === 1) return { etiqueta: `1/${max} • Nivel Inicial`, clase: 'bg-amber-100 text-amber-900 border-amber-300', desc: 'Desempeño básico, poco delimitado, ausente o superficial.' };
+                if (valor === 1) return { etiqueta: `1/${max} • Nivel Inicial`, clase: 'bg-amber-100 text-amber-900 border-amber-300', desc: 'Desempeño básico, poco delimitado o superficial.' };
                 if (valor === 2) return { etiqueta: `2/${max} • Nivel Intermedio`, clase: 'bg-blue-100 text-blue-900 border-blue-300', desc: 'Desempeño claro, estructurado y funcional, con oportunidades de mejora.' };
                 return { etiqueta: `3/${max} • Nivel Avanzado`, clase: 'bg-emerald-100 text-emerald-900 border-emerald-300', desc: 'Desempeño excelente, riguroso, innovador, profundo y con alto impacto.' };
             }
@@ -3497,7 +3561,7 @@
                 return {
                     etiqueta: `${valor}/5 ★ • Nivel Inicial`,
                     clase: 'bg-amber-100 text-amber-900 border-amber-300',
-                    desc: 'Nivel Inicial (1-2 ★): Desempeño básico, poco delimitado, ausente o superficial.'
+                    desc: 'Nivel Inicial (1-2 ★): Desempeño básico, poco delimitado o superficial.'
                 };
             }
             if (valor <= 4) {
@@ -3536,7 +3600,8 @@
             const max = CONFIG_RUBRICA_CARTELES.escala_max;
 
             cont.innerHTML = CONFIG_RUBRICA_CARTELES.criterios.map(c => {
-                let botonesEstrellas = '';
+                const infoCero = obtenerInfoEquivalenciaValor(0);
+                let botonesEstrellas = `<button type="button" class="zero-btn px-2 py-0.5 rounded-lg text-xs font-black border border-slate-300 bg-white text-slate-500 hover:bg-red-50 hover:text-red-700 hover:border-red-300 transition cursor-pointer focus:outline-none mr-1" title="${infoCero.desc}">0</button>`;
                 for (let i = 1; i <= max; i++) {
                     const infoEq = obtenerInfoEquivalenciaValor(i);
                     botonesEstrellas += `<button type="button" class="star-btn text-2xl sm:text-3xl text-slate-300 cursor-pointer focus:outline-none" title="${infoEq.desc}">★</button>`;
@@ -3558,11 +3623,56 @@
                             <span id="${prefijo}-${c.id}-badge" class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-500 border border-slate-200">
                                 Sin calificar
                             </span>
-                            <input type="hidden" id="${prefijo}-${c.id}" value="0">
+                            <input type="hidden" id="${prefijo}-${c.id}" value="">
                         </div>
                     </div>
                 `;
             }).join('');
+        }
+
+        function aplicarEstadoVisualCriterio(prefijo, r, valor) {
+            const contenedor = document.getElementById(`${prefijo}-${r}-estrellas`);
+            const input = document.getElementById(`${prefijo}-${r}`);
+            const badge = document.getElementById(`${prefijo}-${r}-badge`);
+            if (!contenedor || !input) return;
+
+            const btnCero = contenedor.querySelector('.zero-btn');
+            const botones = contenedor.querySelectorAll('.star-btn');
+
+            if (valor === null || valor === undefined || valor === '' || isNaN(valor)) {
+                if (btnCero) {
+                    btnCero.className = 'zero-btn px-2 py-0.5 rounded-lg text-xs font-black border border-slate-300 bg-white text-slate-500 hover:bg-red-50 hover:text-red-700 hover:border-red-300 transition cursor-pointer focus:outline-none mr-1';
+                }
+                botones.forEach(btn => {
+                    btn.className = 'star-btn text-2xl sm:text-3xl text-slate-300 cursor-pointer focus:outline-none';
+                });
+                if (badge) {
+                    badge.innerText = 'Sin calificar';
+                    badge.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-500 border border-slate-200';
+                }
+                return;
+            }
+
+            const numVal = Number(valor);
+            if (btnCero) {
+                btnCero.className = numVal === 0
+                    ? 'zero-btn px-2 py-0.5 rounded-lg text-xs font-black border border-red-700 bg-red-600 text-white shadow-sm transition cursor-pointer focus:outline-none mr-1'
+                    : 'zero-btn px-2 py-0.5 rounded-lg text-xs font-black border border-slate-300 bg-white text-slate-500 hover:bg-red-50 hover:text-red-700 hover:border-red-300 transition cursor-pointer focus:outline-none mr-1';
+            }
+
+            botones.forEach((btn, idx) => {
+                if (idx < numVal) {
+                    btn.className = 'star-btn text-2xl sm:text-3xl text-amber-400 cursor-pointer focus:outline-none drop-shadow-sm';
+                } else {
+                    btn.className = 'star-btn text-2xl sm:text-3xl text-slate-300 cursor-pointer focus:outline-none';
+                }
+            });
+
+            if (badge) {
+                const infoEq = obtenerInfoEquivalenciaValor(numVal);
+                badge.innerText = infoEq.etiqueta;
+                badge.className = `px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${infoEq.clase}`;
+            }
         }
 
         function configurarSistemaEstrellas(prefijo) {
@@ -3573,11 +3683,11 @@
                 const r = c.id;
                 const contenedor = document.getElementById(`${prefijo}-${r}-estrellas`);
                 if (!contenedor) return;
+                const btnCero = contenedor.querySelector('.zero-btn');
                 const botones = contenedor.querySelectorAll('.star-btn');
                 const input = document.getElementById(`${prefijo}-${r}`);
-                const badge = document.getElementById(`${prefijo}-${r}-badge`);
 
-                function pintar(hastaValor) {
+                function pintarPreview(hastaValor) {
                     botones.forEach((btn, idx) => {
                         if (idx < hastaValor) {
                             btn.className = 'star-btn text-2xl sm:text-3xl text-amber-400 cursor-pointer focus:outline-none drop-shadow-sm';
@@ -3587,41 +3697,50 @@
                     });
                 }
 
+                if (btnCero) {
+                    btnCero.onclick = () => {
+                        input.value = '0';
+                        aplicarEstadoVisualCriterio(prefijo, r, 0);
+                        actualizarResumenPuntaje(prefijo);
+                    };
+                }
+
                 botones.forEach((btn, idx) => {
                     const valor = idx + 1;
-                    btn.onmouseenter = () => pintar(valor);
-                    btn.onmouseleave = () => pintar(parseInt(input.value) || 0);
+                    btn.onmouseenter = () => pintarPreview(valor);
+                    btn.onmouseleave = () => {
+                        const guardado = input.value === '' ? 0 : (parseInt(input.value, 10) || 0);
+                        pintarPreview(guardado);
+                    };
                     btn.onclick = () => {
-                        input.value = valor;
-                        pintar(valor);
-                        if (badge) {
-                            const infoEq = obtenerInfoEquivalenciaValor(valor);
-                            badge.innerText = infoEq.etiqueta;
-                            badge.className = `px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${infoEq.clase}`;
-                        }
+                        input.value = String(valor);
+                        aplicarEstadoVisualCriterio(prefijo, r, valor);
                         actualizarResumenPuntaje(prefijo);
                     };
                 });
             });
         }
 
+        function calificarTodoConCero(prefijo) {
+            const ok = confirm('¿Seguro que deseas marcar los 12 criterios con calificación 0 (No cumple / No presentado)?\n\nAún podrás ajustar cualquier criterio o agregar un comentario antes de guardar.');
+            if (!ok) return;
+            CONFIG_RUBRICA_CARTELES.criterios.forEach(c => {
+                const input = document.getElementById(`${prefijo}-${c.id}`);
+                if (input) input.value = '0';
+                aplicarEstadoVisualCriterio(prefijo, c.id, 0);
+            });
+            actualizarResumenPuntaje(prefijo);
+        }
+
         function reiniciarEstrellas(prefijo) {
             CONFIG_RUBRICA_CARTELES.criterios.forEach(c => {
                 const r = c.id;
                 const input = document.getElementById(`${prefijo}-${r}`);
-                if (input) input.value = '0';
-                const cont = document.getElementById(`${prefijo}-${r}-estrellas`);
-                if (cont) {
-                    cont.querySelectorAll('.star-btn').forEach(btn => {
-                        btn.className = 'star-btn text-2xl sm:text-3xl text-slate-300 cursor-pointer focus:outline-none';
-                    });
-                }
-                const badge = document.getElementById(`${prefijo}-${r}-badge`);
-                if (badge) {
-                    badge.innerText = 'Sin calificar';
-                    badge.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-500 border border-slate-200';
-                }
+                if (input) input.value = '';
+                aplicarEstadoVisualCriterio(prefijo, r, null);
             });
+            const txtCom = document.getElementById(`${prefijo}-comentarios`);
+            if (txtCom) txtCom.value = '';
             actualizarResumenPuntaje(prefijo);
         }
 
@@ -3633,8 +3752,9 @@
             let completos = 0;
 
             CONFIG_RUBRICA_CARTELES.criterios.forEach(c => {
-                const v = parseInt(document.getElementById(`${prefijo}-${c.id}`)?.value) || 0;
-                if (v > 0) {
+                const rawVal = document.getElementById(`${prefijo}-${c.id}`)?.value;
+                const v = (rawVal === '' || rawVal === null || rawVal === undefined) ? NaN : parseInt(rawVal, 10);
+                if (!isNaN(v) && v >= 0) {
                     sumaEstrellasPonderada += v * (c.peso / sumaTotalPesos);
                     completos++;
                 }
@@ -5422,13 +5542,15 @@
                 nombre_maestro: nombre,
                 suplir_profesor_id: suplirId || null,
                 usuario_id: usuarioActual.id || null,
-                profesor_id: usuarioActual.profesor_id || null
+                profesor_id: usuarioActual.profesor_id || null,
+                comentarios: (document.getElementById('invitado-comentarios')?.value || '').trim()
             };
 
             for (const c of CONFIG_RUBRICA_CARTELES.criterios) {
-                const v = parseInt(document.getElementById(`invitado-${c.id}`)?.value);
-                if (!v || v < 1 || v > CONFIG_RUBRICA_CARTELES.escala_max) {
-                    return alert(`Por favor califica los 12 criterios antes de guardar (falta "${c.numero}. ${c.titulo}").`);
+                const rawVal = document.getElementById(`invitado-${c.id}`)?.value;
+                const v = (rawVal === '' || rawVal === null || rawVal === undefined) ? NaN : parseInt(rawVal, 10);
+                if (isNaN(v) || v < 0 || v > CONFIG_RUBRICA_CARTELES.escala_max) {
+                    return alert(`Por favor califica los 12 criterios (de 0 a ${CONFIG_RUBRICA_CARTELES.escala_max}) antes de guardar (falta "${c.numero}. ${c.titulo}").`);
                 }
                 payload[c.id] = v;
             }
