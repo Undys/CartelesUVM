@@ -6,6 +6,9 @@
     <title>Sistema de Evaluación de Carteles - UVM</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         .star-btn {
             line-height: 1;
@@ -1139,8 +1142,8 @@
                                 <input type="text" id="cert-campus" oninput="actualizarVistaPreviaCertificado()" value="Campus Puebla" placeholder="Ej. Campus Puebla" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-bold text-red-900 focus:ring-2 focus:ring-red-500 focus:outline-none">
                             </div>
                             <div>
-                                <label class="block font-bold text-slate-700 uppercase mb-1">Edición / Foro de Investigación:</label>
-                                <input type="text" id="cert-evento" oninput="actualizarVistaPreviaCertificado()" value="20º edición del Foro de Investigación C1-2026" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-semibold text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
+                                <label class="block font-bold text-slate-700 uppercase mb-1">Edición / Jornada de Investigación:</label>
+                                <input type="text" id="cert-evento" oninput="actualizarVistaPreviaCertificado()" value="21° Jornada Nacional de Investigación Multidisciplinaria Estudiantil C3-2026" class="w-full border border-slate-300 p-2.5 rounded-lg bg-white font-semibold text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none">
                             </div>
                             <div>
                                 <label class="block font-bold text-slate-700 uppercase mb-1">Fecha de Emisión (Elegir en calendario o escribir):</label>
@@ -5737,9 +5740,35 @@
             return 'RECONOCIMIENTO DE PARTICIPACIÓN';
         }
 
+        function obtenerLugarRankingDeCartel(cartelId) {
+            const listaRank = typeof datosRanking !== 'undefined' && Array.isArray(datosRanking) ? datosRanking : [];
+            const fuente = (Array.isArray(rankingCertificadosCache) && rankingCertificadosCache.length > 0)
+                ? rankingCertificadosCache
+                : (listaRank.length > 0 ? listaRank : cartelesAdminCache);
+            if (!Array.isArray(fuente) || fuente.length === 0) return 0;
+
+            const objetivo = fuente.find(c => Number(c.id) === Number(cartelId));
+            if (!objetivo) return 0;
+
+            const delNivel = fuente.filter(c => Number(c.nivel) === Number(objetivo.nivel));
+            const ordenados = [...delNivel].sort((a, b) => {
+                const evalA = Number(a.num_evaluaciones || 0) > 0 && a.promedio_final !== null ? 1 : 0;
+                const evalB = Number(b.num_evaluaciones || 0) > 0 && b.promedio_final !== null ? 1 : 0;
+                if (evalB !== evalA) return evalB - evalA;
+                const promA = parseFloat(a.promedio_final || 0);
+                const promB = parseFloat(b.promedio_final || 0);
+                if (promB !== promA) return promB - promA;
+                return Number(a.id || 0) - Number(b.id || 0);
+            });
+
+            const idx = ordenados.findIndex(c => Number(c.id) === Number(cartelId));
+            return idx >= 0 ? idx + 1 : 0;
+        }
+
         function construirDatosCertificadoDesdeCartel(cartel, lugar = 1, destinatarioPersonalizado = null, tipoPersonalizado = null) {
             const base = obtenerDatosFormularioCertificado();
-            const tipoRecon = tipoPersonalizado || obtenerTipoReconocimientoPorLugar(lugar);
+            const lugarNum = Number(lugar) > 0 ? Number(lugar) : obtenerLugarRankingDeCartel(cartel.id);
+            const tipoRecon = tipoPersonalizado || obtenerTipoReconocimientoPorLugar(lugarNum);
             const tituloCartel = (cartel.titulo_cartel || cartel.nombre_equipo || 'Síntesis de nanoestrellas de ZnO para tratamiento de agua').trim();
             const destFinal = destinatarioPersonalizado ? formatearNombreGalardonado(destinatarioPersonalizado) : tituloCartel;
             const asesoresTexto = (cartel.asesor_nombre && cartel.asesor_nombre !== 'Sin Asesor')
@@ -5748,6 +5777,7 @@
             return {
                 ...base,
                 tipo: tipoRecon,
+                lugarRanking: lugarNum,
                 destinatario: destFinal,
                 tituloProyecto: tituloCartel,
                 campus: base.campus || 'Campus Puebla',
@@ -5896,7 +5926,7 @@
             if (selCartel) selCartel.value = String(cartelId);
             const selTipo = document.getElementById('cert-tipo');
             if (selTipo) selTipo.value = obtenerTipoReconocimientoPorLugar(lugar);
-            cargarDatosCartelEnCertificado(cartelId);
+            cargarDatosCartelEnCertificado(cartelId, lugar);
             const previewEl = document.getElementById('certificado-preview-contenedor');
             if (previewEl) previewEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
@@ -5921,7 +5951,7 @@
             if (selCartel) selCartel.value = String(cartel.id);
             const selTipo = document.getElementById('cert-tipo');
             if (selTipo) selTipo.value = obtenerTipoReconocimientoPorLugar(lugar);
-            cargarDatosCartelEnCertificado(cartel.id);
+            cargarDatosCartelEnCertificado(cartel.id, lugar);
 
             const listaCertificados = [];
             if (!individualPorIntegrante) {
@@ -6035,8 +6065,8 @@
 
         function formatearFechaCertificadoDesdeYMD(valorYmd) {
             const meses = [
-                'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-                'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+                'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+                'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
             ];
             let anio, mesIdx, dia;
             const partes = String(valorYmd || '').trim().split('-');
@@ -6131,7 +6161,7 @@
                     selCartel.value = String(primerGanador.cartel.id);
                     const selTipo = document.getElementById('cert-tipo');
                     if (selTipo) selTipo.value = obtenerTipoReconocimientoPorLugar(primerGanador.lugar);
-                    cargarDatosCartelEnCertificado(primerGanador.cartel.id);
+                    cargarDatosCartelEnCertificado(primerGanador.cartel.id, primerGanador.lugar);
                     return;
                 }
             }
@@ -6139,7 +6169,7 @@
             actualizarVistaPreviaCertificado();
         }
 
-        function cargarDatosCartelEnCertificado(idDirecto = null) {
+        function cargarDatosCartelEnCertificado(idDirecto = null, lugarOverride = null) {
             const id = idDirecto !== null && idDirecto !== undefined && idDirecto !== ''
                 ? idDirecto
                 : document.getElementById('cert-select-cartel')?.value;
@@ -6160,6 +6190,15 @@
 
             cartelSeleccionadoCertificado = c;
             const tituloCartel = (c.titulo_cartel || c.nombre_equipo || '').trim();
+
+            // Adaptar automáticamente el puesto según el lugar real del cartel en el ranking
+            const lugarDetectado = (lugarOverride !== null && lugarOverride !== undefined && Number(lugarOverride) > 0)
+                ? Number(lugarOverride)
+                : obtenerLugarRankingDeCartel(c.id);
+            const selTipo = document.getElementById('cert-tipo');
+            if (selTipo && lugarDetectado > 0) {
+                selTipo.value = obtenerTipoReconocimientoPorLugar(lugarDetectado);
+            }
 
             if (selInd) {
                 let opts = `<option value="${escaparHtmlCert(tituloCartel)}">Cartel: ${escaparHtmlCert(tituloCartel)}</option>`;
@@ -6220,115 +6259,132 @@
                 else if (lugarRanking === 3) selTipo.value = 'RECONOCIMIENTO — TERCER LUGAR';
                 else selTipo.value = 'RECONOCIMIENTO DE PARTICIPACIÓN';
             }
-            cargarDatosCartelEnCertificado(cartelId);
+            cargarDatosCartelEnCertificado(cartelId, lugarRanking);
         }
 
         function construirParrafoCuerpoReconocimiento(datos) {
             const t = String(datos.tipo || '').toUpperCase();
-            const evento = escaparHtmlCert(datos.evento || '20º edición del Foro de Investigación C1-2026');
-            const area = escaparHtmlCert(datos.area || 'Ingeniería en Biotecnología');
+            const evento = escaparHtmlCert(datos.evento || '21° Jornada Nacional de Investigación Multidisciplinaria Estudiantil C3-2026');
             const numNivel = extraerNumeroNivelMadurez(datos.nivel);
-            const fragmentoNivel = numNivel ? ` con Nivel de Madurez ${escaparHtmlCert(numNivel)}` : '';
+            const fragmentoNivel = numNivel
+                ? ` con <strong style="font-weight: 700;">Nivel de Madurez ${escaparHtmlCert(numNivel)}</strong>`
+                : '';
 
             let lugarTexto = '';
             if (t.includes('PRIMER') || t === 'PRIMER_LUGAR') {
-                lugarTexto = '1º Lugar';
+                lugarTexto = '1° lugar';
             } else if (t.includes('SEGUNDO') || t === 'SEGUNDO_LUGAR') {
-                lugarTexto = '2º Lugar';
+                lugarTexto = '2° lugar';
             } else if (t.includes('TERCER') || t === 'TERCER_LUGAR') {
-                lugarTexto = '3º Lugar';
+                lugarTexto = '3° lugar';
             }
 
             if (t.includes('EVALUADOR') || t.includes('JUEZ')) {
-                return `Por su destacada participación como Jurado Evaluador en la ${evento}, de la vertical de ${area}.`;
+                return `Por su destacada participación como <strong style="font-weight: 700;">Jurado Evaluador</strong> en la <strong style="font-weight: 700;">${evento}</strong>`;
             }
 
             if (t.includes('ASESOR')) {
                 if (lugarTexto) {
-                    return `Por su destacada participación como Asesor Académico en la ${evento}, obteniendo el ${lugarTexto} de la vertical de ${area}${fragmentoNivel}.`;
+                    return `Por su destacada participación como <strong style="font-weight: 700;">Asesor Académico</strong> en la <strong style="font-weight: 700;">${evento}</strong> obteniendo el <strong style="font-weight: 700;">${lugarTexto}</strong>${fragmentoNivel}`;
                 }
-                return `Por su destacada participación como Asesor Académico en la ${evento}, de la vertical de ${area}${fragmentoNivel}.`;
+                return `Por su destacada participación como <strong style="font-weight: 700;">Asesor Académico</strong> en la <strong style="font-weight: 700;">${evento}</strong>${fragmentoNivel}`;
             }
 
             if (lugarTexto) {
-                return `Por su destacada participación en la ${evento}, obteniendo el ${lugarTexto} de la vertical de ${area}${fragmentoNivel}.`;
+                return `En la <strong style="font-weight: 700;">${evento}</strong> obteniendo el <strong style="font-weight: 700;">${lugarTexto}</strong>${fragmentoNivel}`;
             }
 
-            return `Por su destacada participación en la ${evento}, de la vertical de ${area}${fragmentoNivel}.`;
+            return `Por su destacada participación en la <strong style="font-weight: 700;">${evento}</strong>${fragmentoNivel}`;
         }
 
         function generarHtmlCertificadoFormal(datos) {
             const t = String(datos.tipo || '').toUpperCase();
             const esEvaluador = t.includes('EVALUADOR') || t.includes('JUEZ');
-            const textoPrincipal = esEvaluador
+            const esAsesor = t.includes('ASESOR');
+            const textoPrincipal = (esEvaluador || esAsesor)
                 ? (datos.destinatario || datos.tituloProyecto)
                 : (datos.tituloProyecto || datos.destinatario);
-            const destinatario = escaparHtmlCert(textoPrincipal || 'Síntesis de nanoestrellas de ZnO para tratamiento de agua');
+            const destinatarioTexto = String(textoPrincipal || 'Síntesis de nanoestrellas de ZnO para tratamiento de agua').trim();
+            const destinatario = escaparHtmlCert(destinatarioTexto);
+            const subtituloReconocimiento = (esEvaluador || esAsesor) ? 'a' : 'al proyecto de investigación';
+
+            // Ajustar dinámicamente el tamaño del título grande del cartel si es muy extenso
+            let tamTituloPt = 25;
+            if (destinatarioTexto.length > 110) tamTituloPt = 17.5;
+            else if (destinatarioTexto.length > 80) tamTituloPt = 20;
+            else if (destinatarioTexto.length > 55) tamTituloPt = 22.5;
+
             const campus = escaparHtmlCert(datos.campus || 'Campus Puebla');
             const fecha = escaparHtmlCert(datos.fecha || formatearFechaCertificadoDesdeYMD(obtenerFechaActualYMD()));
             const firmaNombre = escaparHtmlCert(datos.firma1Nombre || 'Mtro. Javier Quintana Terés');
             const firmaCargo = escaparHtmlCert(datos.firma1Cargo || 'Rector UVM Campus Puebla');
             const parrafoCuerpo = construirParrafoCuerpoReconocimiento(datos);
+            const logoUrl = `${window.location.origin}/logo-foro-21.png`;
 
             return `
-                <div class="certificado-hoja" style="width: 215.9mm; height: 279.4mm; background: #ffffff; color: #1e293b; box-sizing: border-box; padding: 24mm 24mm 20mm 24mm; position: relative; font-family: 'Inter', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; margin: 0 auto; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12); display: flex; flex-direction: column; justify-content: space-between; overflow: hidden;">
+                <div class="certificado-hoja" style="width: 215.9mm; height: 279.4mm; background: #ffffff; color: #1e293b; box-sizing: border-box; padding: 10mm 22mm 14mm 22mm; position: relative; font-family: 'Poppins', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; margin: 0 auto; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12); display: flex; flex-direction: column; justify-content: space-between; overflow: hidden;">
                     
-                    <!-- 1. Esquina superior izquierda: Bloque rectangular vertical color gris oscuro -->
-                    <div style="position: absolute; top: 0; left: 20mm; width: 22mm; height: 52mm; background-color: #32363a;"></div>
+                    <!-- 1. Esquina superior izquierda: Bloque rectangular vertical gris oscuro (exacto PDF oficial) -->
+                    <div style="position: absolute; top: 0; left: 20.15mm; width: 22mm; height: 52.2mm; background-color: #32363a; z-index: 1;"></div>
 
-                    <!-- 2. Borde inferior: Franja delgada horizontal color rojo vivo -->
-                    <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 4.5mm; background-color: #e60000;"></div>
+                    <!-- 2. Borde inferior: Franja horizontal roja oficial -->
+                    <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 4.2mm; background-color: #e60000; z-index: 1;"></div>
 
-                    <!-- 3. Encabezado -->
-                    <div style="text-align: center; margin-top: 12mm; position: relative; z-index: 2;">
-                        <div style="font-size: 18pt; font-weight: 800; color: #1e293b; letter-spacing: 0.4px; line-height: 1.25;">
-                            <span style="color: #d90000; font-weight: 900;">UVM</span> Universidad del Valle de México
+                    <!-- 3. Encabezado Oficial con Logo 21 Foro de Investigación -->
+                    <div style="text-align: center; position: relative; z-index: 2;">
+                        <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 4mm;">
+                            <img src="${logoUrl}" alt="21 Foro de Investigación UVM Campus Puebla" style="height: 20.5mm; width: auto; max-width: 72mm; object-fit: contain; display: block;">
                         </div>
-                        <div style="font-size: 13.5pt; font-weight: 600; color: #475569; margin-top: 2mm;">
+                        <div style="font-size: 16.5pt; font-weight: 700; color: #1e293b; letter-spacing: 0.1px; line-height: 1.25;">
+                            <span style="color: #d90000; font-weight: 800;">UVM</span> Universidad del Valle de México
+                        </div>
+                        <div style="font-size: 12.5pt; font-weight: 500; color: #475569; margin-top: 1.5mm;">
                             ${campus}
                         </div>
-                        <div style="font-size: 11.5pt; font-weight: 400; color: #64748b; margin-top: 8mm;">
+                        <div style="font-size: 10.5pt; font-weight: 400; color: #64748b; margin-top: 8mm;">
                             Extiende el presente
+                        </div>
+                        <div style="font-size: 33pt; font-weight: 700; color: #1e293b; letter-spacing: -0.4px; line-height: 1.12; margin-top: 1.5mm;">
+                            Reconocimiento
+                        </div>
+                        <div style="font-size: 13pt; font-weight: 400; color: #475569; margin-top: 2mm;">
+                            ${subtituloReconocimiento}
                         </div>
                     </div>
 
-                    <!-- 4, 5 y 6. Título central, Nombre del cartel y Texto principal del cuerpo -->
-                    <div style="text-align: center; margin: auto 0; padding: 0 6mm; position: relative; z-index: 2;">
-                        <div style="font-size: 28pt; font-weight: 800; color: #1f2937; letter-spacing: 0.5px; line-height: 1.2; margin-bottom: 8mm;">
-                            Reconociendo el trabajo a
-                        </div>
-
-                        <div style="font-size: 24pt; font-weight: 800; color: #111827; line-height: 1.25; margin-bottom: 10mm; word-break: break-word;">
+                    <!-- 4. Título grande del cartel y texto principal oficial C3-2026 -->
+                    <div style="text-align: center; margin: auto 0; padding: 2mm 4mm; position: relative; z-index: 2;">
+                        <div style="font-size: ${tamTituloPt}pt; font-weight: 700; color: #0f172a; line-height: 1.26; max-width: 166mm; margin: 0 auto 14mm auto; word-break: break-word;">
                             ${destinatario}
                         </div>
 
-                        <div style="font-size: 12.5pt; font-weight: 400; color: #334155; line-height: 1.65; max-width: 155mm; margin: 0 auto;">
+                        <div style="font-size: 14pt; font-weight: 300; color: #1e293b; line-height: 1.48; max-width: 158mm; margin: 0 auto;">
                             ${parrafoCuerpo}
                         </div>
                     </div>
 
-                    <!-- 7. Pie de página -->
-                    <div style="text-align: center; position: relative; z-index: 2; padding-bottom: 6mm;">
-                        <div style="font-size: 11pt; font-weight: 400; color: #475569; margin-bottom: 4mm;">
+                    <!-- 5. Pie de página: Fecha, Lema, Firma y Leyenda oficial -->
+                    <div style="text-align: center; position: relative; z-index: 2; padding-bottom: 3mm;">
+                        <div style="font-size: 10.5pt; font-weight: 500; color: #475569; margin-bottom: 4.5mm;">
                             ${fecha}
                         </div>
 
-                        <div style="font-size: 11.5pt; font-weight: 600; font-style: italic; color: #1e293b; margin-bottom: 22mm;">
+                        <div style="font-size: 10.5pt; font-weight: 500; color: #475569; margin-bottom: 22mm;">
                             “Por siempre responsable de lo que se ha cultivado”
                         </div>
 
                         <!-- Línea de firma centrada -->
                         <div style="width: 78mm; margin: 0 auto;">
-                            <div style="border-top: 1.5px solid #334155; padding-top: 3mm; font-size: 11.5pt; font-weight: 700; color: #111827;">
+                            <div style="border-top: 1.2px solid #1e293b; padding-top: 3mm; font-size: 10.5pt; font-weight: 700; color: #111827;">
                                 ${firmaNombre}
                             </div>
-                            <div style="font-size: 10pt; font-weight: 500; color: #4b5563; margin-top: 1mm;">
+                            <div style="font-size: 9.5pt; font-weight: 400; color: #475569; margin-top: 1mm;">
                                 ${firmaCargo}
                             </div>
                         </div>
 
                         <!-- Leyenda pequeña en la esquina inferior derecha -->
-                        <div style="text-align: right; font-size: 8.5pt; font-weight: 400; color: #64748b; margin-top: 10mm;">
+                        <div style="text-align: right; font-size: 8.5pt; font-weight: 400; color: #64748b; margin-top: 9mm;">
                             Sin validez oficial, con valor curricular
                         </div>
                     </div>
@@ -6351,7 +6407,7 @@
                 nivel: document.getElementById('cert-nivel')?.value.trim() || 'Nivel 1 — Propuesta Documental / Solo Texto',
                 asesores: document.getElementById('cert-asesores')?.value.trim() || '',
                 clave: elClave?.value.trim() || '',
-                evento: document.getElementById('cert-evento')?.value.trim() || '20º edición del Foro de Investigación C1-2026',
+                evento: document.getElementById('cert-evento')?.value.trim() || '21° Jornada Nacional de Investigación Multidisciplinaria Estudiantil C3-2026',
                 fecha: document.getElementById('cert-fecha')?.value.trim() || formatearFechaCertificadoDesdeYMD(obtenerFechaActualYMD()),
                 firma1Nombre: document.getElementById('cert-firma1-nombre')?.value.trim() || 'Mtro. Javier Quintana Terés',
                 firma1Cargo: document.getElementById('cert-firma1-cargo')?.value.trim() || 'Rector UVM Campus Puebla'
@@ -6377,6 +6433,9 @@
                 <head>
                     <meta charset="UTF-8">
                     <title>${escaparHtmlCert(tituloVentana)}</title>
+                    <link rel="preconnect" href="https://fonts.googleapis.com">
+                    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+                    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
                     <style>
                         @page {
                             size: letter portrait;
@@ -6386,6 +6445,7 @@
                             margin: 0;
                             padding: 0;
                             background: #e2e8f0;
+                            font-family: 'Poppins', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
                             -webkit-print-color-adjust: exact !important;
                             print-color-adjust: exact !important;
                         }
@@ -6419,7 +6479,7 @@
                     </style>
                 </head>
                 <body>
-                    <div class="no-print-bar" style="background: #0f172a; color: #ffffff; padding: 10px 20px; font-family: Arial, sans-serif; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 50;">
+                    <div class="no-print-bar" style="background: #0f172a; color: #ffffff; padding: 10px 20px; font-family: 'Poppins', Arial, sans-serif; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 50;">
                         <span style="font-size: 13px; font-weight: bold;">Vista de Impresión Oficial UVM (Formato Carta Vertical)</span>
                         <div style="display: flex; gap: 10px;">
                             <button onclick="window.print()" style="background: #dc2626; color: #ffffff; border: none; padding: 8px 16px; border-radius: 6px; font-weight: bold; cursor: pointer;">Imprimir / Guardar PDF</button>
@@ -6429,7 +6489,21 @@
                     ${htmlPaginas}
                     <script>
                         window.onload = function() {
-                            setTimeout(function() { window.print(); }, 350);
+                            var promesas = [];
+                            if (document.fonts && document.fonts.ready) {
+                                promesas.push(document.fonts.ready);
+                            }
+                            Array.prototype.slice.call(document.images || []).forEach(function(img) {
+                                if (!img.complete) {
+                                    promesas.push(new Promise(function(resolve) {
+                                        img.onload = resolve;
+                                        img.onerror = resolve;
+                                    }));
+                                }
+                            });
+                            Promise.all(promesas).then(function() {
+                                setTimeout(function() { window.print(); }, 250);
+                            });
                         };
                     <\/script>
                 </body>
