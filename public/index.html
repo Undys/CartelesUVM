@@ -1057,6 +1057,9 @@
                             <button type="button" onclick="inicializarPestanaCertificados(true)" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow transition">
                                 Actualizar desde Ranking
                             </button>
+                            <button type="button" onclick="descargarPdfTodosGanadoresRanking(this)" class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-black shadow-md transition">
+                                Descargar Todos los Ganadores (PDF)
+                            </button>
                             <button type="button" onclick="imprimirTodosGanadoresRanking(false)" class="bg-red-700 hover:bg-red-800 text-white px-4 py-2 rounded-xl text-xs font-black shadow-md transition">
                                 Imprimir Todos los Ganadores (1° a 3° Lugar)
                             </button>
@@ -1160,7 +1163,10 @@
                                 </div>
                             </div>
                             <div class="flex flex-col justify-end gap-2">
-                                <button type="button" onclick="imprimirCertificadoActual()" class="w-full bg-red-700 hover:bg-red-800 text-white px-4 py-2.5 rounded-lg text-xs font-black shadow transition">
+                                <button type="button" onclick="descargarPdfCertificadoActual(this)" class="w-full bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg text-xs font-black shadow transition">
+                                    Descargar PDF (Vista Previa)
+                                </button>
+                                <button type="button" onclick="imprimirCertificadoActual()" class="w-full bg-red-700 hover:bg-red-800 text-white px-4 py-2 rounded-lg text-xs font-black shadow transition">
                                     Imprimir Vista Previa Actual
                                 </button>
                             </div>
@@ -1172,6 +1178,9 @@
                         <div class="flex flex-wrap justify-between items-center gap-2">
                             <span class="text-xs font-extrabold uppercase tracking-wider text-slate-500">Vista Previa del Certificado Activo (Formato Vertical Carta):</span>
                             <div class="flex items-center gap-2">
+                                <button type="button" onclick="descargarPdfCertificadoActual(this)" class="bg-slate-800 hover:bg-slate-900 text-white px-3.5 py-1.5 rounded-lg text-xs font-black shadow transition">
+                                    Descargar PDF
+                                </button>
                                 <button type="button" onclick="imprimirCertificadoActual()" class="bg-red-700 hover:bg-red-800 text-white px-3.5 py-1.5 rounded-lg text-xs font-black shadow transition">
                                     Imprimir este Certificado
                                 </button>
@@ -5609,7 +5618,8 @@
                         const btnCertAdmin = (usuarioActual && usuarioActual.rol === 'admin')
                             ? `<div class="mt-1 flex flex-col items-center gap-1">
                                    ${lugarActual >= 1 && lugarActual <= 3
-                                       ? `<button type="button" onclick="imprimirDirectoDesdeRanking(${r.id}, ${lugarActual}, false)" class="inline-flex items-center bg-red-700 hover:bg-red-800 text-white px-2 py-0.5 rounded text-[10px] font-black transition shadow-sm">Imprimir ${lugarActual}° Lugar</button>`
+                                       ? `<button type="button" onclick="descargarPdfDirectoDesdeRanking(${r.id}, ${lugarActual}, this)" class="inline-flex items-center bg-emerald-700 hover:bg-emerald-800 text-white px-2 py-0.5 rounded text-[10px] font-black transition shadow-sm">PDF ${lugarActual}° Lugar</button>
+                                          <button type="button" onclick="imprimirDirectoDesdeRanking(${r.id}, ${lugarActual}, false)" class="inline-flex items-center bg-red-700 hover:bg-red-800 text-white px-2 py-0.5 rounded text-[10px] font-black transition shadow-sm">Imprimir ${lugarActual}° Lugar</button>`
                                        : ''
                                    }
                                    <button type="button" onclick="abrirCertificadoDesdeCartel(${r.id}, ${lugarActual})" class="inline-flex items-center bg-slate-800 hover:bg-slate-900 text-white px-2 py-0.5 rounded text-[10px] font-bold transition shadow-sm">Ver Certificado</button>
@@ -5886,6 +5896,9 @@
                                     </p>
                                 </div>
                                 <div class="pt-2 border-t border-slate-100 flex flex-wrap gap-1.5">
+                                    <button type="button" onclick="descargarPdfDirectoDesdeRanking(${cartel.id}, ${lugar}, this)" class="bg-slate-800 hover:bg-slate-900 text-white px-2.5 py-1.5 rounded-lg text-[11px] font-black transition shadow-sm">
+                                        Descargar PDF
+                                    </button>
                                     <button type="button" onclick="imprimirDirectoDesdeRanking(${cartel.id}, ${lugar}, false)" class="flex-1 bg-red-700 hover:bg-red-800 text-white px-2.5 py-1.5 rounded-lg text-[11px] font-black transition shadow-sm">
                                         Imprimir ${lugar}° Lugar
                                     </button>
@@ -5907,9 +5920,14 @@
                                     <h4 class="text-xs font-black text-slate-800">${titulosNivel[niv]}</h4>
                                 </div>
                                 ${ganadores.length > 0 ? `
-                                    <button type="button" onclick="imprimirGanadoresDeNivel(${niv}, false)" class="bg-red-50 hover:bg-red-100 text-red-800 border border-red-200 px-2.5 py-1 rounded-lg text-[10px] font-extrabold transition shrink-0">
-                                        Imprimir Top ${ganadores.length} Nivel ${niv}
-                                    </button>
+                                    <div class="flex items-center gap-1 shrink-0">
+                                        <button type="button" onclick="descargarPdfGanadoresDeNivel(${niv}, this)" class="bg-slate-800 hover:bg-slate-900 text-white px-2 py-1 rounded-lg text-[10px] font-extrabold transition">
+                                            PDF Top ${ganadores.length}
+                                        </button>
+                                        <button type="button" onclick="imprimirGanadoresDeNivel(${niv}, false)" class="bg-red-50 hover:bg-red-100 text-red-800 border border-red-200 px-2 py-1 rounded-lg text-[10px] font-extrabold transition">
+                                            Imprimir
+                                        </button>
+                                    </div>
                                 ` : ''}
                             </div>
                             <div class="space-y-2.5">
@@ -6516,6 +6534,110 @@
             const datos = obtenerDatosFormularioCertificado();
             const htmlPagina = `<div class="pagina-impresion">${generarHtmlCertificadoFormal(datos)}</div>`;
             abrirVentanaImpresionCertificados(htmlPagina, `Certificado - ${datos.destinatario}`);
+        }
+
+        async function descargarCertificadosComoPdf(listaCertificados, nombreArchivo = 'certificado_uvm.pdf', btn = null) {
+            if (!Array.isArray(listaCertificados) || listaCertificados.length === 0) {
+                alert('No hay certificados para descargar.');
+                return;
+            }
+            const textoOriginal = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.classList.add('opacity-70', 'cursor-wait');
+                btn.innerHTML = 'Generando PDF...';
+            }
+            try {
+                const res = await fetch('/api/admin/certificados/pdf', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        nombreArchivo,
+                        certificados: listaCertificados
+                    })
+                });
+                if (!res.ok) {
+                    let msgErr = 'No se pudo generar el PDF.';
+                    try {
+                        const errJson = await res.json();
+                        if (errJson && errJson.error) msgErr = errJson.error;
+                    } catch (e) {}
+                    throw new Error(msgErr);
+                }
+
+                const blob = await res.blob();
+                const disposition = res.headers.get('Content-Disposition') || '';
+                const match = disposition.match(/filename="?([^"]+)"?/i);
+                const filename = match && match[1] ? match[1] : nombreArchivo;
+
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+            } catch (err) {
+                alert('Error al descargar el PDF: ' + err.message);
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-70', 'cursor-wait');
+                    btn.innerHTML = textoOriginal;
+                }
+            }
+        }
+
+        function descargarPdfCertificadoActual(btn = null) {
+            const datos = obtenerDatosFormularioCertificado();
+            const slug = String(datos.tituloProyecto || datos.destinatario || 'certificado').slice(0, 45);
+            descargarCertificadosComoPdf([datos], `Certificado_${slug}.pdf`, btn);
+        }
+
+        async function descargarPdfDirectoDesdeRanking(cartelId, lugar = 1, btn = null) {
+            if (!Array.isArray(rankingCertificadosCache) || rankingCertificadosCache.length === 0) {
+                try {
+                    const resR = await fetch('/api/dashboard/ranking');
+                    rankingCertificadosCache = await resR.json();
+                } catch (e) {}
+            }
+            const listaRank = typeof datosRanking !== 'undefined' && Array.isArray(datosRanking) ? datosRanking : [];
+            const fuente = [...(rankingCertificadosCache || []), ...(cartelesAdminCache || []), ...listaRank];
+            const cartel = fuente.find(c => Number(c.id) === Number(cartelId));
+            if (!cartel) {
+                alert('No se encontró la información del cartel para descargar el PDF.');
+                return;
+            }
+            const datos = construirDatosCertificadoDesdeCartel(cartel, lugar);
+            const clave = cartel.clave ? `_${cartel.clave}` : '';
+            await descargarCertificadosComoPdf([datos], `Certificado_${lugar}_Lugar_Nivel_${cartel.nivel}${clave}.pdf`, btn);
+        }
+
+        function descargarPdfGanadoresDeNivel(nivel, btn = null) {
+            const podio = obtenerGanadoresPorNivelDesdeRanking();
+            const ganadores = podio[nivel] || [];
+            if (ganadores.length === 0) {
+                alert(`No hay carteles en Nivel ${nivel} para descargar.`);
+                return;
+            }
+            const lista = ganadores.map(({ lugar, cartel }) => construirDatosCertificadoDesdeCartel(cartel, lugar));
+            descargarCertificadosComoPdf(lista, `Certificados_Ganadores_Nivel_${nivel}.pdf`, btn);
+        }
+
+        function descargarPdfTodosGanadoresRanking(btn = null) {
+            const podio = obtenerGanadoresPorNivelDesdeRanking();
+            const lista = [];
+            [1, 2, 3].forEach(niv => {
+                (podio[niv] || []).forEach(({ lugar, cartel }) => {
+                    lista.push(construirDatosCertificadoDesdeCartel(cartel, lugar));
+                });
+            });
+            if (lista.length === 0) {
+                alert('No hay carteles registrados en el Ranking todavía.');
+                return;
+            }
+            descargarCertificadosComoPdf(lista, 'Certificados_Todos_Los_Ganadores_C3_2026.pdf', btn);
         }
 
         function imprimirCertificadosIndividualesCartel() {

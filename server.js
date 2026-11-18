@@ -8,6 +8,7 @@ const crypto = require('crypto');
 const dns = require('dns');
 const nodemailer = require('nodemailer');
 const ExcelJS = require('exceljs');
+const PDFDocument = require('pdfkit');
 
 // Priorizar IPv4 globalmente para evitar retrasos de 30-60s por timeouts de IPv6 al conectar a Gmail/SMTP desde servidores en la nube
 if (typeof dns.setDefaultResultOrder === 'function') {
@@ -3301,6 +3302,273 @@ app.get('/api/admin/exportar-excel', async (req, res) => {
     } catch (err) {
         console.error('Error al exportar Excel:', err);
         res.status(500).json({ error: 'Error al generar el archivo Excel: ' + (err.message || err.code || 'Error de conexión') });
+    }
+});
+
+// =========================================================================
+// GENERACIÓN DE CERTIFICADOS OFICIALES EN PDF (PLANTILLA C3-2026)
+// =========================================================================
+function dibujarTextoEnriquecidoCentradoPdf(doc, segmentos, { x, y, width, fontSize, lineHeight, color }) {
+    // Dividir segmentos en tokens de palabras preservando espacios para salto de línea exacto
+    const tokens = [];
+    for (const seg of segmentos) {
+        const partes = String(seg.text || '').split(/(\s+)/);
+        for (const p of partes) {
+            if (!p) continue;
+            tokens.push({ text: p, font: seg.font, isSpace: /^\s+$/.test(p) });
+        }
+    }
+
+    const lineas = [];
+    let lineaActual = [];
+    let anchoActual = 0;
+
+    for (const tok of tokens) {
+        if (tok.isSpace && lineaActual.length === 0) continue;
+        doc.font(tok.font).fontSize(fontSize);
+        const w = doc.widthOfString(tok.text);
+
+        if (!tok.isSpace && lineaActual.length > 0 && anchoActual + w > width) {
+            // Quitar espacio final de la línea antes de hacer salto
+            while (lineaActual.length > 0 && lineaActual[lineaActual.length - 1].isSpace) {
+                const ultimo = lineaActual.pop();
+                anchoActual -= ultimo.w;
+            }
+            lineas.push({ tokens: lineaActual, width: anchoActual });
+            lineaActual = [{ ...tok, w }];
+            anchoActual = w;
+        } else {
+            lineaActual.push({ ...tok, w });
+            anchoActual += w;
+        }
+    }
+    if (lineaActual.length > 0) {
+        while (lineaActual.length > 0 && lineaActual[lineaActual.length - 1].isSpace) {
+            const ultimo = lineaActual.pop();
+            anchoActual -= ultimo.w;
+        }
+        if (lineaActual.length > 0) {
+            lineas.push({ tokens: lineaActual, width: anchoActual });
+        }
+    }
+
+    let curY = y;
+    for (const linea of lineas) {
+        let curX = x + (width - linea.width) / 2;
+        for (const tok of linea.tokens) {
+            doc.font(tok.font).fontSize(fontSize).fillColor(color)
+                .text(tok.text, curX, curY, { lineBreak: false });
+            curX += tok.w;
+        }
+        curY += lineHeight;
+    }
+    return curY;
+}
+
+function dibujarPaginaCertificadoPdf(doc, datos, recursos) {
+    const { fLight, fReg, fMed, fBold, fExtra, logoPath } = recursos;
+    const W = 612;
+    const H = 792;
+
+    const t = String(datos.tipo || '').toUpperCase();
+    const esEvaluador = t.includes('EVALUADOR') || t.includes('JUEZ');
+    const esAsesor = t.includes('ASESOR');
+    const textoPrincipal = (esEvaluador || esAsesor)
+        ? (datos.destinatario || datos.tituloProyecto)
+        : (datos.tituloProyecto || datos.destinatario);
+    const destinatarioTexto = String(textoPrincipal || 'Síntesis de nanoestrellas de ZnO para tratamiento de agua').trim();
+    const subtituloReconocimiento = (esEvaluador || esAsesor) ? 'a' : 'al proyecto de investigación';
+
+    const campus = String(datos.campus || 'Campus Puebla').trim();
+    const evento = String(datos.evento || '21° Jornada Nacional de Investigación Multidisciplinaria Estudiantil C3-2026').trim();
+    const fecha = String(datos.fecha || 'San Andrés Cholula, Puebla a 14 de noviembre 2026.').trim();
+    const firmaNombre = String(datos.firma1Nombre || 'Mtro. Javier Quintana Terés').trim();
+    const firmaCargo = String(datos.firma1Cargo || 'Rector UVM Campus Puebla').trim();
+
+    const nivelMatch = String(datos.nivel || '').match(/[123]/);
+    const numNivel = nivelMatch ? nivelMatch[0] : '';
+
+    let lugarTexto = '';
+    if (t.includes('PRIMER') || t === 'PRIMER_LUGAR' || Number(datos.lugarRanking) === 1) {
+        lugarTexto = '1° lugar';
+    } else if (t.includes('SEGUNDO') || t === 'SEGUNDO_LUGAR' || Number(datos.lugarRanking) === 2) {
+        lugarTexto = '2° lugar';
+    } else if (t.includes('TERCER') || t === 'TERCER_LUGAR' || Number(datos.lugarRanking) === 3) {
+        lugarTexto = '3° lugar';
+    }
+
+    // 1. Fondo blanco, bloque gris superior izquierdo y franja roja inferior (exacto PDF oficial)
+    doc.rect(0, 0, W, H).fill('#ffffff');
+    doc.rect(57.12, 0, 62.4, 147.96).fill('#32363a');
+    doc.rect(0, H - 11.88, W, 11.88).fill('#e60000');
+
+    // 2. Logo oficial 21 Foro de Investigación
+    if (fs.existsSync(logoPath)) {
+        doc.image(logoPath, (W - 166) / 2, 28, { width: 166 });
+    }
+
+    // 3. UVM Universidad del Valle de México
+    const uvmText = 'UVM ';
+    const uniText = 'Universidad del Valle de México';
+    doc.font(fExtra).fontSize(17);
+    const wUvm = doc.widthOfString(uvmText);
+    doc.font(fBold).fontSize(17);
+    const wUni = doc.widthOfString(uniText);
+    const xUvm = (W - (wUvm + wUni)) / 2;
+    doc.font(fExtra).fontSize(17).fillColor('#d90000').text(uvmText, xUvm, 102, { lineBreak: false });
+    doc.font(fBold).fontSize(17).fillColor('#1e293b').text(uniText, xUvm + wUvm, 102, { lineBreak: false });
+
+    // 4. Campus, Extiende el presente, Reconocimiento, Subtítulo
+    doc.font(fMed).fontSize(13).fillColor('#475569').text(campus, 60, 129, { width: W - 120, align: 'center' });
+    doc.font(fReg).fontSize(11).fillColor('#64748b').text('Extiende el presente', 60, 168, { width: W - 120, align: 'center' });
+    doc.font(fBold).fontSize(34).fillColor('#1e293b').text('Reconocimiento', 60, 184, { width: W - 120, align: 'center' });
+    doc.font(fReg).fontSize(13.5).fillColor('#475569').text(subtituloReconocimiento, 60, 236, { width: W - 120, align: 'center' });
+
+    // 5. Título grande del cartel (auto-escalado y centrado verticalmente en [268..422])
+    let tamTitulo = 24;
+    if (destinatarioTexto.length > 115) tamTitulo = 17;
+    else if (destinatarioTexto.length > 85) tamTitulo = 19.5;
+    else if (destinatarioTexto.length > 55) tamTitulo = 21.5;
+
+    doc.font(fBold).fontSize(tamTitulo);
+    const altoTitulo = doc.heightOfString(destinatarioTexto, { width: 472, align: 'center', lineGap: 4 });
+    const yTitulo = 268 + Math.max(0, (154 - altoTitulo) / 2);
+    doc.font(fBold).fontSize(tamTitulo).fillColor('#0f172a').text(destinatarioTexto, 70, yTitulo, {
+        width: 472,
+        align: 'center',
+        lineGap: 4
+    });
+
+    // 6. Cuerpo oficial C3-2026 con contraste Light / Bold perfectamente centrado
+    const segmentosCuerpo = [];
+    if (esEvaluador) {
+        segmentosCuerpo.push(
+            { text: 'Por su destacada participación como ', font: fLight },
+            { text: 'Jurado Evaluador', font: fBold },
+            { text: ' en la ', font: fLight },
+            { text: evento, font: fBold }
+        );
+    } else if (esAsesor) {
+        segmentosCuerpo.push(
+            { text: 'Por su destacada participación como ', font: fLight },
+            { text: 'Asesor Académico', font: fBold },
+            { text: ' en la ', font: fLight },
+            { text: evento, font: fBold }
+        );
+        if (lugarTexto) {
+            segmentosCuerpo.push(
+                { text: ' obteniendo el ', font: fLight },
+                { text: lugarTexto, font: fBold }
+            );
+        }
+        if (numNivel) {
+            segmentosCuerpo.push(
+                { text: ' con ', font: fLight },
+                { text: `Nivel de Madurez ${numNivel}`, font: fBold }
+            );
+        }
+    } else if (lugarTexto) {
+        segmentosCuerpo.push(
+            { text: 'En la ', font: fLight },
+            { text: evento, font: fBold },
+            { text: ' obteniendo el ', font: fLight },
+            { text: lugarTexto, font: fBold }
+        );
+        if (numNivel) {
+            segmentosCuerpo.push(
+                { text: ' con ', font: fLight },
+                { text: `Nivel de Madurez ${numNivel}`, font: fBold }
+            );
+        }
+    } else {
+        segmentosCuerpo.push(
+            { text: 'Por su destacada participación en la ', font: fLight },
+            { text: evento, font: fBold }
+        );
+        if (numNivel) {
+            segmentosCuerpo.push(
+                { text: ' con ', font: fLight },
+                { text: `Nivel de Madurez ${numNivel}`, font: fBold }
+            );
+        }
+    }
+
+    dibujarTextoEnriquecidoCentradoPdf(doc, segmentosCuerpo, {
+        x: 74,
+        y: 440,
+        width: 464,
+        fontSize: 14.5,
+        lineHeight: 22.5,
+        color: '#1e293b'
+    });
+
+    // 7. Fecha y Lema
+    doc.font(fMed).fontSize(10.5).fillColor('#475569').text(fecha, 60, 544, { width: W - 120, align: 'center' });
+    doc.font(fMed).fontSize(10.5).fillColor('#475569').text('“Por siempre responsable de lo que se ha cultivado”', 60, 572, { width: W - 120, align: 'center' });
+
+    // 8. Firma centrada
+    doc.moveTo(196, 656).lineTo(416, 656).lineWidth(1.1).strokeColor('#1e293b').stroke();
+    doc.font(fBold).fontSize(10.5).fillColor('#111827').text(firmaNombre, 60, 665, { width: W - 120, align: 'center' });
+    doc.font(fReg).fontSize(9.5).fillColor('#475569').text(firmaCargo, 60, 681, { width: W - 120, align: 'center' });
+
+    // 9. Leyenda inferior derecha
+    doc.font(fReg).fontSize(8.5).fillColor('#64748b').text('Sin validez oficial, con valor curricular', 60, 726, { width: W - 120, align: 'right' });
+}
+
+app.post('/api/admin/certificados/pdf', (req, res) => {
+    try {
+        const body = req.body || {};
+        const lista = Array.isArray(body.certificados) && body.certificados.length > 0
+            ? body.certificados
+            : (body.certificado ? [body.certificado] : []);
+
+        if (lista.length === 0) {
+            return res.status(400).json({ error: 'No se recibieron certificados para generar el PDF.' });
+        }
+
+        const fontsDir = path.join(__dirname, 'fonts');
+        const recursos = {
+            fLight: fs.existsSync(path.join(fontsDir, 'Poppins-Light.ttf')) ? path.join(fontsDir, 'Poppins-Light.ttf') : 'Helvetica',
+            fReg: fs.existsSync(path.join(fontsDir, 'Poppins-Regular.ttf')) ? path.join(fontsDir, 'Poppins-Regular.ttf') : 'Helvetica',
+            fMed: fs.existsSync(path.join(fontsDir, 'Poppins-Medium.ttf')) ? path.join(fontsDir, 'Poppins-Medium.ttf') : 'Helvetica',
+            fBold: fs.existsSync(path.join(fontsDir, 'Poppins-Bold.ttf')) ? path.join(fontsDir, 'Poppins-Bold.ttf') : 'Helvetica-Bold',
+            fExtra: fs.existsSync(path.join(fontsDir, 'Poppins-ExtraBold.ttf')) ? path.join(fontsDir, 'Poppins-ExtraBold.ttf') : 'Helvetica-Bold',
+            logoPath: path.join(__dirname, 'public', 'logo-foro-21.png')
+        };
+
+        const nombreBase = String(body.nombreArchivo || 'certificado_uvm')
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-zA-Z0-9._-]+/g, '_')
+            .replace(/^_+|_+$/g, '') || 'certificado_uvm';
+        const nombreFinal = nombreBase.toLowerCase().endsWith('.pdf') ? nombreBase : `${nombreBase}.pdf`;
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${nombreFinal}"`);
+        res.setHeader('Cache-Control', 'no-store');
+
+        const doc = new PDFDocument({
+            size: 'LETTER',
+            margin: 0,
+            autoFirstPage: false,
+            info: {
+                Title: nombreFinal,
+                Author: 'UVM Campus Puebla - Sistema de Carteles'
+            }
+        });
+
+        doc.pipe(res);
+
+        lista.forEach((item) => {
+            doc.addPage({ size: 'LETTER', margin: 0 });
+            dibujarPaginaCertificadoPdf(doc, item || {}, recursos);
+        });
+
+        doc.end();
+    } catch (err) {
+        console.error('Error al generar PDF de certificados:', err);
+        if (!res.headersSent) {
+            res.status(500).json({ error: 'Error al generar el PDF: ' + (err.message || 'Error interno') });
+        }
     }
 });
 
